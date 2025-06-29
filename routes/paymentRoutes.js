@@ -28,18 +28,20 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
             };
         });
 
-        // ✅ FIXED: only productId + quantity sent to webhook
         const formattedItems = items.map(i => ({
             productId: i.product._id,
             quantity: i.quantity
         }));
 
+        const successUrl = `${process.env.FRONTEND_URL}/order-success`;
+        const cancelUrl = `${process.env.FRONTEND_URL}/cart`;
+
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             mode: 'payment',
             line_items: lineItems,
-            success_url: 'http://localhost:3000/order-success',
-            cancel_url: 'http://localhost:3000/cart',
+            success_url: successUrl,
+            cancel_url: cancelUrl,
             metadata: {
                 customData: JSON.stringify({
                     items: formattedItems,
