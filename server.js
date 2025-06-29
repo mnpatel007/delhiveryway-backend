@@ -3,46 +3,68 @@ const http = require('http');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const path = require('path');
-const socketIo = require('socket.io');
+const socketIO = require('socket.io');
+const cookieParser = require('cookie-parser');
+const authRoutes = require('./routes/authRoutes');
+const shopRoutes = require('./routes/shopRoutes');
+const productRoutes = require('./routes/productRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const vendorRoutes = require('./routes/vendorRoutes');
+const customerRoutes = require('./routes/customerRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const webhookRoute = require('./routes/webhook');
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-
-const io = socketIo(server, {
+const io = socketIO(server, {
     cors: {
-        origin: ['http://localhost:3000', 'http://localhost:3001', 'https://delhiveryway-vendor.vercel.app/', 'https://delhiveryway-customer.vercel.app'],
-        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        origin: [
+            'https://delhiveryway-customer.vercel.app',
+            'https://delhiveryway-vendor.vercel.app',
+            'http://localhost:3000'
+        ],
+        methods: ['GET', 'POST'],
         credentials: true
     }
 });
 
-// ✅ Make io accessible in routes like webhook.js
+// ✅ Socket instance accessible in routes
 app.set('io', io);
 
-// ✅ Stripe webhook must be registered before body parsers
-app.use('/api/webhook', require('./routes/webhook'));
-
+// ✅ CORS setup
+const allowedOrigins = [
+    'https://delhiveryway-customer.vercel.app',
+    'https://delhiveryway-vendor.vercel.app',
+    'http://localhost:3000'
+];
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://delhiveryway-vendor.vercel.app/',
-        'https://delhiveryway-customer.vercel.app'
-    ],
+    origin: allowedOrigins,
     credentials: true
 }));
 
-
+app.use(cookieParser());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.urlencoded({ extended: true }));
 
-// ✅ Socket.IO logic
+// ✅ Webhook route (must use raw body parsing)
+app.use('/api/webhook', webhookRoute);
+
+// ✅ Main API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/shops', shopRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/vendor', vendorRoutes);
+app.use('/api/customer', customerRoutes);
+app.use('/api/payment', paymentRoutes);
+
+// ✅ Socket.IO connection
 io.on('connection', (socket) => {
     console.log('🟢 Socket connected:', socket.id);
 
-    socket.on('registerVendor', (vendorId) => {
+    socket.on('joinVendorRoom', (vendorId) => {
         socket.join(vendorId);
         console.log(`📦 Vendor ${vendorId} joined their socket room`);
     });
@@ -52,37 +74,15 @@ io.on('connection', (socket) => {
     });
 });
 
-// ✅ MongoDB and route setup
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log('✅ Connected to MongoDB');
-
-        // All routes after DB connection
-        const authRoutes = require('./routes/authRoutes');
-        const shopRoutes = require('./routes/shopRoutes');
-        const productRoutes = require('./routes/productRoutes');
-        const orderRoutes = require('./routes/orderRoutes');
-        const vendorOrderRoutes = require('./routes/vendororderRoutes');
-        const paymentRoutes = require('./routes/paymentRoutes');
-        const vendorStatsRoutes = require('./routes/vendorStatsRoutes');
-
-        app.use('/api/auth', authRoutes);
-        app.use('/api/shops', shopRoutes);
-        app.use('/api/products', productRoutes);
-        app.use('/api/orders', orderRoutes);
-        app.use('/api/vendor/orders', vendorOrderRoutes);
-        app.use('/api/vendor', vendorStatsRoutes);
-        app.use('/api/payment', paymentRoutes);
-
-        app.get('/', (req, res) => {
-            res.send('DelhiveryWay Backend API Running ✅');
-        });
-
-        const PORT = process.env.PORT || 5000;
-        server.listen(PORT, () =>
-            console.log(`🚀 Server running with Socket.IO on port ${PORT}`)
-        );
-    })
-    .catch((err) => {
-        console.error('❌ MongoDB connection error:', err);
+// ✅ Connect to MongoDB and start server
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log('✅ Connected to MongoDB');
+    server.listen(process.env.PORT || 5000, () => {
+        console.log('🚀 Server running with Socket.IO on port', process.env.PORT || 5000);
     });
+}).catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+});
