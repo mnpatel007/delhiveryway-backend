@@ -28,7 +28,7 @@ app.use('/api/webhook', require('./routes/webhook'));
 app.use(cors({
     origin: [
         'http://localhost:3000',
-        'http://localhost:3001',
+        'https://delhiveryway-vendor.vercel.app/',
         'https://delhiveryway-customer.vercel.app'
     ],
     credentials: true
