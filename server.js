@@ -9,7 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const shopRoutes = require('./routes/shopRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
-const vendorRoutes = require('./routes/vendorRoutes');
+const vendororderRoutes = require('./routes/vendororderRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const webhookRoute = require('./routes/webhook');
@@ -56,7 +56,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/shops', shopRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/vendor', vendorRoutes);
+app.use('/api/vendor', vendororderRoutes);
 app.use('/api/customer', customerRoutes);
 app.use('/api/payment', paymentRoutes);
 
