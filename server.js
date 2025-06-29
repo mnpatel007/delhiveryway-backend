@@ -26,9 +26,14 @@ app.set('io', io);
 app.use('/api/webhook', require('./routes/webhook'));
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://delhiveryway-customer.vercel.app'
+    ],
     credentials: true
 }));
+
 
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
