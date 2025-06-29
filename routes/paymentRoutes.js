@@ -11,10 +11,16 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
             return res.status(400).json({ error: 'Invalid items in request' });
         }
 
+        let itemTotal = 0;
+        const shopSet = new Set();
+
         const lineItems = items.map(item => {
             if (!item.product || !item.product.name || !item.product.price || !item.quantity) {
                 throw new Error('Invalid product structure in items');
             }
+
+            itemTotal += item.product.price * item.quantity;
+            shopSet.add(item.product.shopId); // for delivery calculation
 
             return {
                 price_data: {
@@ -28,20 +34,45 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
             };
         });
 
+        const gst = itemTotal * 0.05;
+        const deliveryCharge = shopSet.size * 10;
+
+        // Add GST as line item
+        lineItems.push({
+            price_data: {
+                currency: 'inr',
+                product_data: {
+                    name: 'GST (5%)',
+                },
+                unit_amount: Math.round(gst * 100),
+            },
+            quantity: 1,
+        });
+
+        // Add Delivery Charge as line item
+        lineItems.push({
+            price_data: {
+                currency: 'inr',
+                product_data: {
+                    name: 'Delivery Charges',
+                },
+                unit_amount: Math.round(deliveryCharge * 100),
+            },
+            quantity: 1,
+        });
+
+        // Send minimal data to webhook
         const formattedItems = items.map(i => ({
             productId: i.product._id,
             quantity: i.quantity
         }));
 
-        const successUrl = `${process.env.FRONTEND_URL}/order-success`;
-        const cancelUrl = `${process.env.FRONTEND_URL}/cart`;
-
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             mode: 'payment',
             line_items: lineItems,
-            success_url: successUrl,
-            cancel_url: cancelUrl,
+            success_url: `${process.env.FRONTEND_URL}/order-success`,
+            cancel_url: `${process.env.FRONTEND_URL}/cart`,
             metadata: {
                 customData: JSON.stringify({
                     items: formattedItems,
