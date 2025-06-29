@@ -1,53 +1,59 @@
 const mongoose = require('mongoose');
 
+const orderItemSchema = new mongoose.Schema({
+    productId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+    },
+    shopId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Shop',
+    },
+    name: String,
+    price: Number,
+    quantity: Number,
+    shopName: String
+});
+
 const orderSchema = new mongoose.Schema({
     customerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
     },
-    items: [{
-        productId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Product',
-            required: true
-        },
-        quantity: {
-            type: Number,
-            required: true
-        },
-        shopId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Shop',
-            required: true
-        }
-    }],
+    items: [orderItemSchema],
     totalAmount: {
         type: Number,
-        required: true
+        required: true,
+        default: 0,
     },
     deliveryCharge: {
         type: Number,
-        default: 0
+        required: true,
+        default: 0,
     },
     address: {
         type: String,
-        required: true
+        required: true,
     },
     status: {
         type: String,
         enum: ['pending', 'preparing', 'out for delivery', 'delivered', 'cancelled'],
-        default: 'pending'
+        default: 'pending',
     },
     reason: {
-        type: String, // ✅ Add this field
-        default: ''
+        type: String,
+        default: '',
     },
     paymentStatus: {
         type: String,
-        enum: ['unpaid', 'paid'],
-        default: 'unpaid'
+        enum: ['paid', 'refunded'],
+        default: 'paid',
+    },
+    paymentIntentId: {
+        type: String, // This is necessary to issue refunds
     }
-}, { timestamps: true });
+}, {
+    timestamps: true
+});
 
 module.exports = mongoose.model('Order', orderSchema);
