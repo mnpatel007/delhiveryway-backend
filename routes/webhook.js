@@ -5,7 +5,6 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
 
-// Stripe requires raw body for webhook
 router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
@@ -27,10 +26,11 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
             console.log('📨 Metadata received from session:', metadata);
 
             const { items, address, userId } = metadata;
-
             let totalAmount = 0;
             const shopSet = new Set();
             const populatedItems = [];
+
+            const productCache = {};
 
             for (const item of items) {
                 const product = await Product.findById(item.productId).populate('shopId');
@@ -38,6 +38,8 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                     console.warn(`⚠️ Product not found: ${item.productId}`);
                     continue;
                 }
+
+                productCache[item.productId] = product;
 
                 totalAmount += product.price * item.quantity;
                 shopSet.add(product.shopId._id.toString());
@@ -65,29 +67,29 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
 
             console.log('✅ Order created in DB:', newOrder._id);
 
-            // 🔥 Emit real-time alert to each shop's vendor (Accept/Reject popup)
             const io = req.app.get('io');
+            if (!io) {
+                console.warn('⚠️ Socket.IO not initialized');
+                return res.json({ received: true });
+            }
 
             for (const shopId of shopSet) {
                 const shop = await Shop.findById(shopId);
-
                 if (!shop || !shop.vendorId) {
                     console.warn(`⚠️ Cannot emit: shop or vendorId missing for shopId: ${shopId}`);
                     continue;
                 }
 
-                const shopItems = await Promise.all(
-                    populatedItems
-                        .filter(i => i.shopId.toString() === shopId)
-                        .map(async (i) => {
-                            const p = await Product.findById(i.productId);
-                            return {
-                                name: p.name,
-                                quantity: i.quantity,
-                                shopName: shop.name
-                            };
-                        })
-                );
+                const shopItems = populatedItems
+                    .filter(i => i.shopId.toString() === shopId)
+                    .map(i => {
+                        const p = productCache[i.productId];
+                        return {
+                            name: p?.name || 'Unknown',
+                            quantity: i.quantity,
+                            shopName: shop.name
+                        };
+                    });
 
                 io.to(shop.vendorId.toString()).emit('newOrder', {
                     orderId: newOrder._id,
