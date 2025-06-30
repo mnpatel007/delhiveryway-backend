@@ -4,25 +4,27 @@ const Order = require('../models/Order');
 
 exports.getVendorStats = async (req, res) => {
     try {
-        const vendorId = req.user._id;
+        const vendorId = req.user.id;
 
-        const shops = await Shop.find({ vendor: vendorId });
-        const shopIds = shops.map(shop => shop._id.toString());
+        // Get all shops owned by this vendor
+        const shops = await Shop.find({ vendorId }).select('_id');
+        const shopIds = shops.map(shop => shop._id);
 
-        const products = await Product.find({ shopId: { $in: shopIds } });
-        const productIds = products.map(p => p._id.toString());
+        // Count products under those shops
+        const totalProducts = await Product.countDocuments({ shopId: { $in: shopIds } });
 
-        const orders = await Order.find({
-            'items.productId': { $in: productIds }
+        // Count orders that include those shops' products
+        const totalOrders = await Order.countDocuments({
+            'items.shopId': { $in: shopIds }
         });
 
         res.json({
             totalShops: shops.length,
-            totalProducts: products.length,
-            totalOrders: orders.length
+            totalProducts,
+            totalOrders
         });
     } catch (err) {
-        console.error('Vendor stats error:', err);
+        console.error('❌ Vendor stats error:', err);
         res.status(500).json({ message: 'Failed to load stats' });
     }
 };

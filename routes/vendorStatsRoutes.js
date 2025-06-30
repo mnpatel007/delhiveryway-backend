@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const { protect, restrictTo } = require('../middleware/authMiddleware');
 const { getVendorStats } = require('../controllers/VendorStatsController');
-const { protect } = require('../middleware/authMiddleware');
 
-router.get('/stats', protect, getVendorStats);
+router.get('/stats', protect, restrictTo('vendor'), getVendorStats);
 
 module.exports = router;
