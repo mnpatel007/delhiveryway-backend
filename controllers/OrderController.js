@@ -9,11 +9,15 @@ exports.placeOrder = async (req, res) => {
 
         let totalAmount = 0;
         let orderItems = [];
-        let shopVendorMap = {}; // 🔁 Map each shop to its vendor
+        let shopVendorMap = {};
 
         for (const item of items) {
-            const product = await Product.findById(item.productId).populate('shopId');
-            if (!product || !product.shopId) continue;
+            const product = await Product.findById(item.productId).populate({
+                path: 'shopId',
+                populate: { path: 'vendorId' }
+            });
+
+            if (!product || !product.shopId || !product.shopId.vendorId) continue;
 
             totalAmount += product.price * item.quantity;
 
@@ -23,10 +27,12 @@ exports.placeOrder = async (req, res) => {
                 quantity: item.quantity
             });
 
-            const vendorId = product.shopId.vendorId.toString();
+            const vendorId = product.shopId.vendorId._id.toString();
+
             if (!shopVendorMap[vendorId]) {
                 shopVendorMap[vendorId] = [];
             }
+
             shopVendorMap[vendorId].push({
                 productId: product._id,
                 name: product.name,
@@ -49,9 +55,10 @@ exports.placeOrder = async (req, res) => {
 
         await order.save();
 
-        // 🔔 Emit to each affected vendor
+        const io = req.app.get('io'); // you have this set globally in server.js
+
         for (const [vendorId, vendorItems] of Object.entries(shopVendorMap)) {
-            global.io.to(vendorId).emit('newOrder', {
+            io.to(vendorId).emit('newOrder', {
                 orderId: order._id,
                 items: vendorItems,
                 address,
@@ -61,10 +68,11 @@ exports.placeOrder = async (req, res) => {
 
         res.status(201).json({ message: 'Order placed successfully', order });
     } catch (err) {
-        console.error(err);
+        console.error('❌ Order placement error:', err);
         res.status(500).json({ message: 'Failed to place order' });
     }
 };
+
 
 
 exports.getCustomerOrders = async (req, res) => {
