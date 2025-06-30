@@ -5,7 +5,7 @@ const Shop = require('../models/Shop');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
-// GET all vendor orders
+// ✅ GET all orders for a vendor
 router.get('/', protect, restrictTo('vendor'), async (req, res) => {
     try {
         const vendorId = req.user.id;
@@ -41,7 +41,18 @@ router.get('/', protect, restrictTo('vendor'), async (req, res) => {
     }
 });
 
-// PUT update order status and trigger refund if cancelled
+// ✅ GET order status by ID for double-checking before popup/sound
+router.get('/:id/status', async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id).select('status');
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        res.json({ status: order.status });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to get order status' });
+    }
+});
+
+// ✅ PUT to accept or cancel order, including refund if needed
 router.put('/:id', protect, restrictTo('vendor'), async (req, res) => {
     try {
         const { status, reason } = req.body;
@@ -68,7 +79,7 @@ router.put('/:id', protect, restrictTo('vendor'), async (req, res) => {
                 return res.status(200).json({ message: 'Order cancelled (no payment to refund)', order });
             }
 
-            // process refund
+            // process Stripe refund
             const refund = await stripe.refunds.create({
                 payment_intent: order.paymentIntentId
             });
@@ -77,7 +88,7 @@ router.put('/:id', protect, restrictTo('vendor'), async (req, res) => {
             order.reason = reason || 'No reason provided';
             await order.save();
 
-            // emit to customer
+            // emit cancellation with refund to customer
             const io = req.app.get('io');
             if (io) {
                 io.to(order.customerId.toString()).emit('orderCancelled', {
@@ -90,7 +101,7 @@ router.put('/:id', protect, restrictTo('vendor'), async (req, res) => {
             return res.json({ message: 'Order cancelled and refund issued', refund });
         }
 
-        // status update (non-cancelled)
+        // ✅ Accept or update non-cancelled status
         order.status = status;
         await order.save();
         res.json({ message: 'Order status updated', order });
