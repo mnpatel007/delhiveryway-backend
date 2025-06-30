@@ -47,6 +47,12 @@ io.on('connection', (socket) => {
         console.log(`📦 Vendor ${vendorId} joined their socket room`);
     });
 
+    socket.on('registerCustomer', (customerId) => {
+        socket.join(customerId);
+        console.log(`👤 Customer ${customerId} joined their socket room`);
+    });
+
+
     socket.on('disconnect', () => {
         console.log('🔌 Socket disconnected:', socket.id);
     });
