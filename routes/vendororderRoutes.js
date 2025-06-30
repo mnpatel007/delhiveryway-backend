@@ -49,14 +49,26 @@ router.put('/:id', protect, restrictTo('vendor'), async (req, res) => {
         if (!order) return res.status(404).json({ message: 'Order not found' });
 
         if (status === 'cancelled') {
+            // fallback for older/test orders with no paymentIntent
             if (!order.paymentIntentId) {
-                // fallback for older/test orders with no paymentIntent
                 order.status = 'cancelled';
                 order.reason = reason || 'No reason provided';
                 await order.save();
+
+                // emit to customer
+                const io = req.app.get('io');
+                if (io) {
+                    io.to(order.customerId.toString()).emit('orderCancelled', {
+                        orderId: order._id,
+                        reason: order.reason,
+                        refund: false
+                    });
+                }
+
                 return res.status(200).json({ message: 'Order cancelled (no payment to refund)', order });
             }
 
+            // process refund
             const refund = await stripe.refunds.create({
                 payment_intent: order.paymentIntentId
             });
@@ -65,9 +77,20 @@ router.put('/:id', protect, restrictTo('vendor'), async (req, res) => {
             order.reason = reason || 'No reason provided';
             await order.save();
 
+            // emit to customer
+            const io = req.app.get('io');
+            if (io) {
+                io.to(order.customerId.toString()).emit('orderCancelled', {
+                    orderId: order._id,
+                    reason: order.reason,
+                    refund: true
+                });
+            }
+
             return res.json({ message: 'Order cancelled and refund issued', refund });
         }
 
+        // status update (non-cancelled)
         order.status = status;
         await order.save();
         res.json({ message: 'Order status updated', order });
