@@ -59,7 +59,8 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                 totalAmount: grandTotal,
                 deliveryCharge,
                 status: 'pending',
-                paymentStatus: 'paid'
+                paymentStatus: 'paid',
+                paymentIntentId: session.payment_intent // ✅ Added here
             });
 
             console.log('✅ Order created in DB:', newOrder._id);

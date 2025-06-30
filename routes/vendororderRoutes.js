@@ -50,7 +50,11 @@ router.put('/:id', protect, restrictTo('vendor'), async (req, res) => {
 
         if (status === 'cancelled') {
             if (!order.paymentIntentId) {
-                return res.status(400).json({ message: 'No payment intent associated with this order' });
+                // fallback for older/test orders with no paymentIntent
+                order.status = 'cancelled';
+                order.reason = reason || 'No reason provided';
+                await order.save();
+                return res.status(200).json({ message: 'Order cancelled (no payment to refund)', order });
             }
 
             const refund = await stripe.refunds.create({
@@ -67,6 +71,7 @@ router.put('/:id', protect, restrictTo('vendor'), async (req, res) => {
         order.status = status;
         await order.save();
         res.json({ message: 'Order status updated', order });
+
     } catch (err) {
         console.error('❌ Error updating order status or issuing refund:', err);
         res.status(500).json({ message: 'Failed to update order or refund' });
