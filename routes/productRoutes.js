@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
-// CREATE product (only vendors)
+// ✅ Create a new product (Vendor only)
 router.post('/', protect, restrictTo('vendor'), async (req, res) => {
     try {
         const product = new Product({ ...req.body, vendorId: req.user.id });
@@ -15,34 +16,46 @@ router.post('/', protect, restrictTo('vendor'), async (req, res) => {
     }
 });
 
-// GET products for a specific shop (public)
+// ✅ Get all products for a shop
 router.get('/shop/:id', async (req, res) => {
     try {
         const products = await Product.find({ shopId: req.params.id });
         res.status(200).json(products);
     } catch (err) {
-        res.status(500).json({ message: 'Failed to get products by shop', error: err.message });
+        console.error('❌ Error fetching shop products:', err.message);
+        res.status(500).json({ message: 'Failed to fetch shop products', error: err.message });
     }
 });
 
-// GET all vendor products (only vendor)
+// ✅ Get all products for the logged-in vendor
 router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
     try {
         const products = await Product.find({ vendorId: req.user.id });
         res.status(200).json(products);
     } catch (err) {
-        res.status(500).json({ message: 'Failed to get vendor products', error: err.message });
+        console.error('❌ Error fetching vendor products:', err.message);
+        res.status(500).json({ message: 'Failed to fetch vendor products', error: err.message });
     }
 });
 
-// ✅ GET product by ID (vendor + customer)
+// ✅ Get product by ID (for customer + vendor)
 router.get('/:id', protect, restrictTo('vendor', 'customer'), async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id).populate('shopId');
+        const productId = req.params.id;
+        console.log('➡️ Fetching product by ID:', productId);
+
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({ message: 'Invalid product ID format' });
+        }
+
+        const product = await Product.findById(productId).populate('shopId');
+
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
+
         res.status(200).json(product);
+
     } catch (err) {
         console.error('❌ Error fetching product by ID:', err.message);
         res.status(500).json({ message: 'Failed to fetch product', error: err.message });
