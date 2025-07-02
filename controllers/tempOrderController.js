@@ -32,11 +32,13 @@ exports.createTempOrder = async (req, res) => {
             const vendorId = product.shopId.vendorId.toString();
             if (!vendorMap[vendorId]) vendorMap[vendorId] = [];
             vendorMap[vendorId].push({
+                productId: product._id,
                 name: product.name,
                 quantity: item.quantity,
                 price: product.price,
                 shopName: product.shopId.name
             });
+
         }
 
         const deliveryCharge = shopSet.size * 10;
