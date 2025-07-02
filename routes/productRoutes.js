@@ -15,7 +15,7 @@ router.get('/vendors', protect, restrictTo('vendor'), getVendorProducts);
 // POST /, GET /shop/:id, GET /vendors
 
 // ✅ GET product by ID
-router.get('/:id', protect, restrictTo('vendor'), async (req, res) => {
+router.get('/:id', protect, restrictTo('vendor', 'customer'), async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
         if (!product) return res.status(404).json({ message: 'Product not found' });
