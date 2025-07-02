@@ -46,8 +46,8 @@ const orderSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['paid', 'refunded'],
-        default: 'paid',
+        enum: ['unpaid', 'paid', 'refunded'],
+        default: 'unpaid',
     },
     paymentIntentId: {
         type: String, // This is necessary to issue refunds
