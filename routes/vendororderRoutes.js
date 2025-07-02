@@ -112,4 +112,38 @@ router.put('/:id', protect, restrictTo('vendor'), async (req, res) => {
     }
 });
 
+router.put('/:id/confirm', protect, restrictTo('vendor'), async (req, res) => {
+    try {
+        const { items } = req.body;
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+
+        if (order.status !== 'pending_vendor') {
+            return res.status(400).json({ message: 'Not a rehearsal order' });
+        }
+
+        order.items = items;
+        order.status = 'confirmed_by_vendor';
+        await order.save();
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(order.customerId.toString()).emit('vendorConfirmedOrder', {
+                orderId: order._id,
+                items,
+                address: order.address,
+                totalAmount: order.totalAmount,
+                deliveryCharge: order.deliveryCharge
+            });
+        }
+
+        res.json({ message: 'Order confirmed by vendor', order });
+
+    } catch (err) {
+        console.error('❌ Failed to confirm vendor order:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+
 module.exports = router;
