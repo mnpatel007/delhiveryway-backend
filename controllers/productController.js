@@ -1,30 +1,47 @@
 const Product = require('../models/Product');
 
+// CREATE product
 exports.createProduct = async (req, res) => {
     try {
-        const { shopId, name, description, price } = req.body;
-        const product = await Product.create({ shopId, name, description, price });
+        const product = new Product({ ...req.body, vendorId: req.user.id });
+        await product.save();
         res.status(201).json(product);
     } catch (err) {
-        res.status(500).json({ message: 'Failed to create product', error: err.message });
+        console.error('❌ Error creating product:', err.message);
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 };
 
+// GET all products for a shop
 exports.getProductsByShop = async (req, res) => {
     try {
-        const products = await Product.find({ shopId: req.params.shopId });
-        res.status(200).json(products);
+        const products = await Product.find({ shopId: req.params.id });
+        res.json(products);
     } catch (err) {
-        res.status(500).json({ message: 'Failed to fetch products', error: err.message });
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 };
 
+// GET all products for a vendor
 exports.getVendorProducts = async (req, res) => {
     try {
-        const products = await Product.find().populate('shopId');
-        const vendorProducts = products.filter(p => p.shopId?.vendorId?.toString() === req.user.id);
-        res.status(200).json(vendorProducts);
+        const products = await Product.find({ vendorId: req.user.id });
+        res.json(products);
     } catch (err) {
-        res.status(500).json({ message: 'Failed to fetch vendor products', error: err.message });
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+};
+
+// GET single product by ID (for checkout)
+exports.getProductById = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id).populate('shopId');
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        res.status(200).json(product);
+    } catch (err) {
+        console.error('❌ Error in getProductById:', err.message);
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 };
