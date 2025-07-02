@@ -71,6 +71,7 @@ mongoose.connect(process.env.MONGO_URI)
         const vendorOrderRoutes = require('./routes/vendororderRoutes');
         const paymentRoutes = require('./routes/paymentRoutes');
         const vendorStatsRoutes = require('./routes/vendorStatsRoutes');
+        const tempOrderRoutes = require('./routes/tempOrderRoutes');
 
         app.use('/api/auth', authRoutes);
         app.use('/api/shops', shopRoutes);
@@ -79,6 +80,7 @@ mongoose.connect(process.env.MONGO_URI)
         app.use('/api/vendor/orders', vendorOrderRoutes);
         app.use('/api/vendor', vendorStatsRoutes);
         app.use('/api/payment', paymentRoutes);
+        app.use('/api/temp-orders', tempOrderRoutes);
 
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');
