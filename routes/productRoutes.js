@@ -30,7 +30,7 @@ router.get('/shop/:id', async (req, res) => {
 // ✅ Get all products for the logged-in vendor
 router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
     try {
-        const products = await Product.find({ vendorId: req.user.id });
+        const products = await Product.find({ vendorId: req.user.id }).populate('shopId');
         res.status(200).json(products);
     } catch (err) {
         console.error('❌ Error fetching vendor products:', err.message);
