@@ -28,40 +28,15 @@ router.get('/shop/:id', async (req, res) => {
     }
 });
 
-// ✅ Get all products for the logged-in vendor (used by VendorDashboard)
+// ✅ Get all products for the logged-in vendor — 🟡 MUST BE ABOVE `/:id`
 router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
-    try {
-        // Step 1: Get all shop IDs owned by the vendor
-        const vendorShops = await Shop.find({ vendor: req.user.id });
-        const shopIds = vendorShops.map(shop => shop._id);
-
-        // Step 2: Find products whose shopId is in vendor's shops
-        const products = await Product.find({ shopId: { $in: shopIds } }).populate('shopId');
-
-        // Optional: Filter out any broken entries where shop was deleted
-        const validProducts = products.filter(p => p.shopId && p.shopId._id);
-
-        res.status(200).json(validProducts);
-    } catch (err) {
-        console.error('❌ Error fetching vendor products:', err.message);
-        res.status(500).json({ message: 'Failed to fetch vendor products', error: err.message });
-    }
-});
-
-// ✅ Get product by ID (used by edit page, customer/cart)
-router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
+    console.log('🧪 /api/products/vendors route HIT');
     try {
         console.log('🧪 Vendor ID:', req.user.id);
-
         const vendorShops = await Shop.find({ vendor: req.user.id });
         console.log('🏪 Shops found for vendor:', vendorShops.map(s => ({ id: s._id, name: s.name })));
 
         const shopIds = vendorShops.map(shop => shop._id);
-        if (shopIds.length === 0) {
-            console.log('⚠️ No shops found for vendor. Cannot fetch products.');
-            return res.status(200).json([]);
-        }
-
         const products = await Product.find({ shopId: { $in: shopIds } }).populate('shopId');
         console.log('📦 Products fetched for vendor:', products);
 
@@ -73,9 +48,29 @@ router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
     }
 });
 
+// ✅ Get product by ID — MUST BE LAST
+router.get('/:id', protect, restrictTo('vendor', 'customer'), async (req, res) => {
+    try {
+        const productId = req.params.id;
 
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({ message: 'Invalid product ID format' });
+        }
 
-// ✅ Delete product (used by vendor dashboard)
+        const product = await Product.findById(productId).populate('shopId');
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.status(200).json(product);
+    } catch (err) {
+        console.error('❌ Error fetching product by ID:', err.message);
+        res.status(500).json({ message: 'Failed to fetch product', error: err.message });
+    }
+});
+
+// ✅ Delete product (used by vendor)
 router.delete('/:id', protect, restrictTo('vendor'), async (req, res) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
