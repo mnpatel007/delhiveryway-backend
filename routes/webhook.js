@@ -5,7 +5,6 @@ const Product = require('../models/Product');
 const Shop = require('../models/Shop');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// Use raw body parser ONLY for Stripe
 router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
@@ -25,18 +24,13 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
             const metadata = JSON.parse(session.metadata.customData);
             const { items, address, userId } = metadata;
 
-            console.log('📨 Metadata received from session:', metadata);
-
             let totalAmount = 0;
             const shopSet = new Set();
             const populatedItems = [];
 
             for (const item of items) {
                 const product = await Product.findById(item.productId).populate('shopId');
-                if (!product) {
-                    console.warn('⚠️ Product not found:', item.productId);
-                    continue;
-                }
+                if (!product) continue;
 
                 totalAmount += product.price * item.quantity;
                 shopSet.add(product.shopId._id.toString());
@@ -58,18 +52,15 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                 address,
                 totalAmount: grandTotal,
                 deliveryCharge,
-                status: 'pending',
+                status: 'staged', // ✅ KEY CHANGE
                 paymentStatus: 'paid',
-                paymentIntentId: session.payment_intent // ✅ Added here
+                paymentIntentId: session.payment_intent
             });
 
             console.log('✅ Order created in DB:', newOrder._id);
 
-            // Real-time emit to vendors
             const io = req.app.get('io');
-            if (!io) {
-                console.error('❌ Socket.IO not initialized');
-            } else {
+            if (io) {
                 for (const shopId of shopSet) {
                     const shop = await Shop.findById(shopId);
                     if (!shop) continue;
@@ -87,13 +78,14 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                             })
                     );
 
-                    io.to(shop.vendorId.toString()).emit('newOrder', {
+                    // ✅ EMIT TO newStagedOrder instead of newOrder
+                    io.to(shop.vendorId.toString()).emit('newStagedOrder', {
                         orderId: newOrder._id,
                         address,
                         items: itemsForShop
                     });
 
-                    console.log(`📡 Real-time alert emitted to vendor ${shop.vendorId}`);
+                    console.log(`📡 newStagedOrder emitted to vendor ${shop.vendorId}`);
                 }
             }
 

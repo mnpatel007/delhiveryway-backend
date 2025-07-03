@@ -145,5 +145,31 @@ router.put('/:id/confirm', protect, restrictTo('vendor'), async (req, res) => {
     }
 });
 
+// ✅ Post-payment vendor confirms staged order
+router.patch('/confirm/:orderId', protect, restrictTo('vendor'), async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.orderId);
+        if (!order || order.status !== 'staged') {
+            return res.status(400).json({ message: 'Order not in confirmable state' });
+        }
+
+        order.status = 'confirmed';
+        await order.save();
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(order.customerId.toString()).emit('orderStatusUpdate', {
+                orderId: order._id,
+                status: 'confirmed'
+            });
+        }
+
+        res.status(200).json({ message: 'Order confirmed' });
+    } catch (err) {
+        console.error('❌ Confirm staged order error:', err.message);
+        res.status(500).json({ message: 'Failed to confirm staged order' });
+    }
+});
+
 
 module.exports = router;
