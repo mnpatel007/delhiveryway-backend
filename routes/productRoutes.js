@@ -31,12 +31,17 @@ router.get('/shop/:id', async (req, res) => {
 router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
     try {
         const products = await Product.find({ vendorId: req.user.id }).populate('shopId');
-        res.status(200).json(products);
+
+        // ✅ Filter out any products where shopId is null (i.e. orphaned products)
+        const validProducts = products.filter(p => p.shopId && p.shopId._id);
+
+        res.status(200).json(validProducts);
     } catch (err) {
         console.error('❌ Error fetching vendor products:', err.message);
         res.status(500).json({ message: 'Failed to fetch vendor products', error: err.message });
     }
 });
+
 
 // ✅ Get product by ID (for customer + vendor)
 router.get('/:id', protect, restrictTo('vendor', 'customer'), async (req, res) => {
