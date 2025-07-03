@@ -52,10 +52,16 @@ router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
 router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
     try {
         console.log('🧪 Vendor ID:', req.user.id);
+
         const vendorShops = await Shop.find({ vendor: req.user.id });
-        console.log('🏪 Shops found for vendor:', vendorShops);
+        console.log('🏪 Shops found for vendor:', vendorShops.map(s => ({ id: s._id, name: s.name })));
 
         const shopIds = vendorShops.map(shop => shop._id);
+        if (shopIds.length === 0) {
+            console.log('⚠️ No shops found for vendor. Cannot fetch products.');
+            return res.status(200).json([]);
+        }
+
         const products = await Product.find({ shopId: { $in: shopIds } }).populate('shopId');
         console.log('📦 Products fetched for vendor:', products);
 
@@ -66,6 +72,7 @@ router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch vendor products', error: err.message });
     }
 });
+
 
 
 // ✅ Delete product (used by vendor dashboard)
