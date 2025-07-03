@@ -26,11 +26,15 @@ exports.getProductsByShop = async (req, res) => {
 exports.getVendorProducts = async (req, res) => {
     try {
         const products = await Product.find({ vendorId: req.user.id }).populate('shopId');
-        res.json(products);
+
+        // Filter out invalid ones (shopId null or not populated)
+        const valid = products.filter(p => p.shopId && p.shopId._id);
+        res.json(valid);
     } catch (err) {
         res.status(500).json({ message: 'Server error', error: err.message });
     }
 };
+
 
 
 // GET single product by ID (for checkout)
