@@ -6,16 +6,21 @@ const Shop = require('../models/Shop');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 // ✅ Create a new product (Vendor only)
+// Create new shop (Vendor only)
 router.post('/', protect, restrictTo('vendor'), async (req, res) => {
     try {
-        const product = new Product({ ...req.body });
-        await product.save();
-        res.status(201).json(product);
+        const shop = new Shop({
+            ...req.body,
+            vendor: req.user.id, // ✅ attach vendor properly
+        });
+        await shop.save();
+        res.status(201).json(shop);
     } catch (err) {
-        console.error('❌ Error creating product:', err.message);
-        res.status(500).json({ message: 'Failed to create product', error: err.message });
+        console.error('Error creating shop:', err.message);
+        res.status(500).json({ error: 'Failed to create shop' });
     }
 });
+
 
 // ✅ Get all products for a shop (public)
 router.get('/shop/:id', async (req, res) => {
