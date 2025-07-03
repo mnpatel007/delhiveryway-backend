@@ -25,12 +25,13 @@ exports.getProductsByShop = async (req, res) => {
 // GET all products for a vendor
 exports.getVendorProducts = async (req, res) => {
     try {
-        const products = await Product.find({ vendorId: req.user.id });
+        const products = await Product.find({ vendorId: req.user.id }).populate('shopId');
         res.json(products);
     } catch (err) {
         res.status(500).json({ message: 'Server error', error: err.message });
     }
 };
+
 
 // GET single product by ID (for checkout)
 exports.getProductById = async (req, res) => {
