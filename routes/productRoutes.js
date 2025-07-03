@@ -28,14 +28,12 @@ router.get('/shop/:id', async (req, res) => {
     }
 });
 
-// ✅ Get all products for the logged-in vendor (uses vendorId correctly)
+// ✅ Get all products for the logged-in vendor (uses vendorId)
 router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
     console.log('🧪 /api/products/vendors route HIT');
     try {
         console.log('🧪 Vendor ID:', req.user.id);
-
-        // ✅ FIXED FIELD: use vendorId instead of vendor
-        const vendorShops = await Shop.find({ vendorId: req.user.id });
+        const vendorShops = await Shop.find({ vendorId: req.user.id }); // vendorId used here
         console.log('🏪 Shops found for vendor:', vendorShops.map(s => ({ id: s._id, name: s.name })));
 
         const shopIds = vendorShops.map(shop => shop._id);
@@ -50,7 +48,7 @@ router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
     }
 });
 
-// ✅ Get product by ID (used by both customer and vendor portals)
+// ✅ Get single product by ID (used by vendor and customer)
 router.get('/:id', protect, restrictTo('vendor', 'customer'), async (req, res) => {
     try {
         const productId = req.params.id;
@@ -72,7 +70,31 @@ router.get('/:id', protect, restrictTo('vendor', 'customer'), async (req, res) =
     }
 });
 
-// ✅ Delete product (used by vendor dashboard)
+// ✅ Update product by ID
+router.put('/:id', protect, restrictTo('vendor'), async (req, res) => {
+    try {
+        const updated = await Product.findByIdAndUpdate(
+            req.params.id,
+            {
+                name: req.body.name,
+                description: req.body.description,
+                price: req.body.price,
+            },
+            { new: true }
+        );
+
+        if (!updated) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.status(200).json(updated);
+    } catch (err) {
+        console.error('❌ Error updating product:', err.message);
+        res.status(500).json({ message: 'Failed to update product', error: err.message });
+    }
+});
+
+// ✅ Delete product
 router.delete('/:id', protect, restrictTo('vendor'), async (req, res) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
