@@ -6,23 +6,18 @@ const Shop = require('../models/Shop');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 // ✅ Create a new product (Vendor only)
-// Create new shop (Vendor only)
 router.post('/', protect, restrictTo('vendor'), async (req, res) => {
     try {
-        const shop = new Shop({
-            ...req.body,
-            vendor: req.user.id, // ✅ attach vendor properly
-        });
-        await shop.save();
-        res.status(201).json(shop);
+        const product = new Product({ ...req.body });
+        await product.save();
+        res.status(201).json(product);
     } catch (err) {
-        console.error('Error creating shop:', err.message);
-        res.status(500).json({ error: 'Failed to create shop' });
+        console.error('❌ Error creating product:', err.message);
+        res.status(500).json({ message: 'Failed to create product', error: err.message });
     }
 });
 
-
-// ✅ Get all products for a shop (public)
+// ✅ Get all products for a shop (public route)
 router.get('/shop/:id', async (req, res) => {
     try {
         const products = await Product.find({ shopId: req.params.id });
@@ -33,12 +28,14 @@ router.get('/shop/:id', async (req, res) => {
     }
 });
 
-// ✅ Get all products for the logged-in vendor — 🟡 MUST BE ABOVE `/:id`
+// ✅ Get all products for the logged-in vendor (uses vendorId correctly)
 router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
     console.log('🧪 /api/products/vendors route HIT');
     try {
         console.log('🧪 Vendor ID:', req.user.id);
-        const vendorShops = await Shop.find({ vendor: req.user.id });
+
+        // ✅ FIXED FIELD: use vendorId instead of vendor
+        const vendorShops = await Shop.find({ vendorId: req.user.id });
         console.log('🏪 Shops found for vendor:', vendorShops.map(s => ({ id: s._id, name: s.name })));
 
         const shopIds = vendorShops.map(shop => shop._id);
@@ -53,7 +50,7 @@ router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
     }
 });
 
-// ✅ Get product by ID — MUST BE LAST
+// ✅ Get product by ID (used by both customer and vendor portals)
 router.get('/:id', protect, restrictTo('vendor', 'customer'), async (req, res) => {
     try {
         const productId = req.params.id;
@@ -75,7 +72,7 @@ router.get('/:id', protect, restrictTo('vendor', 'customer'), async (req, res) =
     }
 });
 
-// ✅ Delete product (used by vendor)
+// ✅ Delete product (used by vendor dashboard)
 router.delete('/:id', protect, restrictTo('vendor'), async (req, res) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
