@@ -49,26 +49,24 @@ router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
 });
 
 // ✅ Get product by ID (used by edit page, customer/cart)
-router.get('/:id', protect, restrictTo('vendor', 'customer'), async (req, res) => {
+router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
     try {
-        const productId = req.params.id;
+        console.log('🧪 Vendor ID:', req.user.id);
+        const vendorShops = await Shop.find({ vendor: req.user.id });
+        console.log('🏪 Shops found for vendor:', vendorShops);
 
-        if (!mongoose.Types.ObjectId.isValid(productId)) {
-            return res.status(400).json({ message: 'Invalid product ID format' });
-        }
+        const shopIds = vendorShops.map(shop => shop._id);
+        const products = await Product.find({ shopId: { $in: shopIds } }).populate('shopId');
+        console.log('📦 Products fetched for vendor:', products);
 
-        const product = await Product.findById(productId).populate('shopId');
-
-        if (!product) {
-            return res.status(404).json({ message: 'Product not found' });
-        }
-
-        res.status(200).json(product);
+        const validProducts = products.filter(p => p.shopId && p.shopId._id);
+        res.status(200).json(validProducts);
     } catch (err) {
-        console.error('❌ Error fetching product by ID:', err.message);
-        res.status(500).json({ message: 'Failed to fetch product', error: err.message });
+        console.error('❌ Error fetching vendor products:', err.message);
+        res.status(500).json({ message: 'Failed to fetch vendor products', error: err.message });
     }
 });
+
 
 // ✅ Delete product (used by vendor dashboard)
 router.delete('/:id', protect, restrictTo('vendor'), async (req, res) => {
