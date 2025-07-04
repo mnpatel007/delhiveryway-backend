@@ -52,7 +52,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                 address,
                 totalAmount: grandTotal,
                 deliveryCharge,
-                status: 'staged', // ✅ KEY CHANGE
+                status: 'staged',
                 paymentStatus: 'paid',
                 paymentIntentId: session.payment_intent
             });
@@ -73,12 +73,12 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                                 return {
                                     name: p?.name || 'Unknown',
                                     quantity: i.quantity,
-                                    shopName: shop.name
+                                    shopName: shop.name,
+                                    price: p?.price || 0  // ✅ Include price
                                 };
                             })
                     );
 
-                    // ✅ EMIT TO newStagedOrder instead of newOrder
                     io.to(shop.vendorId.toString()).emit('newStagedOrder', {
                         orderId: newOrder._id,
                         address,
