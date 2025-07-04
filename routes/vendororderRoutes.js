@@ -171,5 +171,4 @@ router.patch('/confirm/:orderId', protect, restrictTo('vendor'), async (req, res
     }
 });
 
-
 module.exports = router;
