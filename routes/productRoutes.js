@@ -38,7 +38,6 @@ router.get('/vendors', protect, restrictTo('vendor'), async (req, res) => {
 
         const shopIds = vendorShops.map(shop => shop._id);
         const products = await Product.find({ shopId: { $in: shopIds } }).populate('shopId');
-        console.log('📦 Products fetched for vendor:', products);
 
         const validProducts = products.filter(p => p.shopId && p.shopId._id);
         res.status(200).json(validProducts);
