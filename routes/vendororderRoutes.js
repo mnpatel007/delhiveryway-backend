@@ -166,8 +166,8 @@ router.patch('/confirm/:orderId', protect, restrictTo('vendor'), async (req, res
 
         res.status(200).json({ message: 'Order confirmed' });
     } catch (err) {
-        console.error('❌ Confirm staged order error:', err.message);
-        res.status(500).json({ message: 'Failed to confirm staged order' });
+        console.error('❌ Confirm staged order FULL ERROR:', err);
+        res.status(500).json({ message: 'Failed to confirm staged order', error: err.message });
     }
 });
 
