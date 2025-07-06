@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const Order = require('../models/Order');
+const Order = require('../models/Order'); // ✅ You missed this import!
 
 router.post('/create-checkout-session', protect, restrictTo('customer'), async (req, res) => {
     try {
@@ -36,12 +36,7 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
         });
 
         const gst = itemTotal * 0.05;
-        const deliveryCharge = Number(req.body.deliveryCharge);
-        if (isNaN(deliveryCharge)) {
-            console.error('❌ Invalid deliveryCharge:', req.body.deliveryCharge);
-            return res.status(400).json({ error: 'Invalid delivery charge' });
-        }
-
+        const deliveryCharge = shopSet.size * 10;
 
         // GST
         lineItems.push({
@@ -116,4 +111,5 @@ router.post('/refund/:orderId', protect, restrictTo('vendor'), async (req, res) 
         res.status(500).json({ message: 'Refund failed' });
     }
 });
+
 module.exports = router;
