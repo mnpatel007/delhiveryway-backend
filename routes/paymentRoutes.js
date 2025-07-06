@@ -61,8 +61,8 @@ router.post(
                 payment_method_types: ['card'],
                 line_items: lineItems,
                 mode: 'payment',
-                success_url: `${process.env.CLIENT_CUSTOMER_URL}/order-success`,
-                cancel_url: `${process.env.CLIENT_CUSTOMER_URL}/cart`,
+                success_url: `${process.env.FRONTEND_URL}/order-success`,
+                cancel_url: `${process.env.FRONTEND_URL}/cart`,
                 metadata: {
                     customData: JSON.stringify({
                         items,
