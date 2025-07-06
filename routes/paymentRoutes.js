@@ -1,90 +1,85 @@
 const express = require('express');
 const router = express.Router();
-const { protect, restrictTo } = require('../middleware/authMiddleware');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const Order = require('../models/Order');
+const { protect, restrictTo } = require('../middleware/authMiddleware');
 
-router.post('/create-checkout-session', protect, restrictTo('customer'), async (req, res) => {
-    try {
-        const { items, address } = req.body;
+router.post(
+    '/create-checkout-session',
+    protect,
+    restrictTo('customer'),
+    async (req, res) => {
+        try {
+            const { items, address } = req.body;
 
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ error: 'Invalid items in request' });
-        }
-
-        let itemTotal = 0;
-        const shopSet = new Set();
-
-        const lineItems = items.map(item => {
-            if (!item.product || !item.product.name || !item.product.price || !item.quantity) {
-                throw new Error('Invalid product structure in items');
+            if (!items || !Array.isArray(items) || items.length === 0) {
+                return res.status(400).json({ error: 'Invalid items in request' });
             }
 
-            itemTotal += item.product.price * item.quantity;
-            shopSet.add(item.product.shopId);
+            let itemTotal = 0;
+            const shopSet = new Set();
 
-            return {
-                price_data: {
-                    currency: 'inr',
-                    product_data: {
-                        name: item.product.name,
+            const lineItems = items.map((item) => {
+                if (
+                    !item.product ||
+                    typeof item.product.name !== 'string' ||
+                    typeof item.product.price !== 'number' ||
+                    typeof item.quantity !== 'number'
+                ) {
+                    throw new Error('Invalid product structure in items');
+                }
+
+                itemTotal += item.product.price * item.quantity;
+
+                // ✅ Add shopId to shopSet to count unique shops
+                const shopId = item.product.shopId;
+                if (shopId) {
+                    if (typeof shopId === 'object' && shopId._id) {
+                        shopSet.add(shopId._id.toString());
+                    } else {
+                        shopSet.add(shopId.toString());
+                    }
+                }
+
+                return {
+                    price_data: {
+                        currency: 'inr',
+                        product_data: {
+                            name: item.product.name,
+                        },
+                        unit_amount: item.product.price * 100,
                     },
-                    unit_amount: Math.round(item.product.price * 100),
-                },
-                quantity: item.quantity,
-            };
-        });
+                    quantity: item.quantity,
+                };
+            });
 
-        const gst = itemTotal * 0.05;
-        const deliveryCharge = shopSet.size * 10;
+            const tax = Math.round(itemTotal * 0.05);
+            const deliveryCharge = shopSet.size * 10; // ✅ shop-based charge
 
-        // GST
-        lineItems.push({
-            price_data: {
-                currency: 'inr',
-                product_data: { name: 'GST (5%)' },
-                unit_amount: Math.round(gst * 100),
-            },
-            quantity: 1,
-        });
+            const totalAmount = itemTotal + tax + deliveryCharge;
 
-        // Delivery
-        lineItems.push({
-            price_data: {
-                currency: 'inr',
-                product_data: { name: 'Delivery Charges' },
-                unit_amount: Math.round(deliveryCharge * 100),
-            },
-            quantity: 1,
-        });
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ['card'],
+                line_items: lineItems,
+                mode: 'payment',
+                success_url: `${process.env.CLIENT_CUSTOMER_URL}/order-success`,
+                cancel_url: `${process.env.CLIENT_CUSTOMER_URL}/cart`,
+                metadata: {
+                    customData: JSON.stringify({
+                        items,
+                        address,
+                        userId: req.user._id,
+                        deliveryCharge
+                    })
+                }
+            });
 
-        const formattedItems = items.map(i => ({
-            productId: i.product._id,
-            quantity: i.quantity
-        }));
-
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            mode: 'payment',
-            line_items: lineItems,
-            success_url: `${process.env.FRONTEND_URL}/order-success`,
-            cancel_url: `${process.env.FRONTEND_URL}/cart`,
-            metadata: {
-                customData: JSON.stringify({
-                    items: formattedItems,
-                    address,
-                    userId: req.user.id
-                })
-            }
-        });
-
-        res.json({ id: session.id });
-
-    } catch (err) {
-        console.error('❌ Stripe session error:', err.message);
-        res.status(500).json({ error: 'Payment session failed' });
+            res.status(200).json({ id: session.id });
+        } catch (err) {
+            console.error('❌ Stripe session error:', err);
+            res.status(500).json({ error: 'Failed to create Stripe session' });
+        }
     }
-});
+);
 
 router.post('/refund/:orderId', protect, restrictTo('vendor'), async (req, res) => {
     try {
