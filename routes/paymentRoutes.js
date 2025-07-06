@@ -36,7 +36,7 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
         });
 
         const gst = itemTotal * 0.05;
-        const deliveryCharge = shopSet.size * 10;
+        const deliveryCharge = 30;
 
         // GST
         lineItems.push({
