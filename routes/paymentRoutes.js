@@ -34,7 +34,11 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
         });
 
         const gst = itemTotal * 0.05;
-        const deliveryCharge = parseInt(req.body.deliveryCharge);  // ✅ use delivery charge from frontend
+        const deliveryCharge = Number(req.body.deliveryCharge);
+        if (isNaN(deliveryCharge)) {
+            console.error('❌ Invalid deliveryCharge:', req.body.deliveryCharge);
+            return res.status(400).json({ error: 'Invalid delivery charge' });
+        }
 
         lineItems.push({
             price_data: {
