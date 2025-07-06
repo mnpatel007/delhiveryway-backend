@@ -30,7 +30,7 @@ router.post(
 
                 itemTotal += item.product.price * item.quantity;
 
-                // ✅ Add shopId to shopSet to count unique shops
+                // ✅ Track unique shop IDs
                 const shopId = item.product.shopId;
                 if (shopId) {
                     if (typeof shopId === 'object' && shopId._id) {
@@ -53,23 +53,19 @@ router.post(
             });
 
             const tax = Math.round(itemTotal * 0.05);
-            const deliveryCharge = shopSet.size * 10; // ✅ shop-based charge
-
+            const deliveryCharge = shopSet.size * 10;
             const totalAmount = itemTotal + tax + deliveryCharge;
 
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ['card'],
                 line_items: lineItems,
                 mode: 'payment',
-                success_url: `${process.env.FRONTEND_URL}/order-success`,
-                cancel_url: `${process.env.FRONTEND_URL}/cart`,
+                success_url: 'https://delhiveryway-customer.vercel.app/order-success',
+                cancel_url: 'https://delhiveryway-customer.vercel.app/cart',
                 metadata: {
-                    metadata: {
-                        address,
-                        userId: req.user._id.toString(),
-                        deliveryCharge: deliveryCharge.toString(),
-                    }
-
+                    address: address || '',
+                    deliveryCharge: deliveryCharge.toString(),
+                    userId: req.user && req.user._id ? req.user._id.toString() : 'unknown'
                 }
             });
 
