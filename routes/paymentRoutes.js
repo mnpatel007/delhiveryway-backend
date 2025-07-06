@@ -51,6 +51,11 @@ router.post(
                     quantity: item.quantity,
                 };
             });
+
+
+            const tax = Math.round(itemTotal * 0.05);
+            const deliveryCharge = shopSet.size * 10;
+
             // ✅ Append GST
             lineItems.push({
                 price_data: {
@@ -75,10 +80,6 @@ router.post(
                 quantity: 1
             });
 
-
-            const tax = Math.round(itemTotal * 0.05);
-            const deliveryCharge = shopSet.size * 10;
-            const totalAmount = itemTotal + tax + deliveryCharge;
 
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ['card'],
