@@ -34,7 +34,7 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
         });
 
         const gst = itemTotal * 0.05;
-        const deliveryCharge = parseInt(req.body.deliveryCharge); // ✅ from frontend
+        const deliveryCharge = parseInt(req.body.deliveryCharge);  // ✅ use delivery charge from frontend
 
         lineItems.push({
             price_data: {
