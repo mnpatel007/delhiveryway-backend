@@ -64,12 +64,12 @@ router.post(
                 success_url: `${process.env.FRONTEND_URL}/order-success`,
                 cancel_url: `${process.env.FRONTEND_URL}/cart`,
                 metadata: {
-                    customData: JSON.stringify({
-                        items,
+                    metadata: {
                         address,
-                        userId: req.user._id,
-                        deliveryCharge
-                    })
+                        userId: req.user._id.toString(),
+                        deliveryCharge: deliveryCharge.toString(),
+                    }
+
                 }
             });
 
