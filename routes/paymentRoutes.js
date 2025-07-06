@@ -26,7 +26,9 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
             return {
                 price_data: {
                     currency: 'inr',
-                    product_data: { name: item.product.name },
+                    product_data: {
+                        name: item.product.name,
+                    },
                     unit_amount: Math.round(item.product.price * 100),
                 },
                 quantity: item.quantity,
@@ -34,12 +36,9 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
         });
 
         const gst = itemTotal * 0.05;
-        const deliveryCharge = Number(req.body.deliveryCharge);
-        if (isNaN(deliveryCharge)) {
-            console.error('❌ Invalid deliveryCharge:', req.body.deliveryCharge);
-            return res.status(400).json({ error: 'Invalid delivery charge' });
-        }
+        const deliveryCharge = shopSet.size * 10;
 
+        // GST
         lineItems.push({
             price_data: {
                 currency: 'inr',
@@ -49,6 +48,7 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
             quantity: 1,
         });
 
+        // Delivery
         lineItems.push({
             price_data: {
                 currency: 'inr',
@@ -83,6 +83,32 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
     } catch (err) {
         console.error('❌ Stripe session error:', err.message);
         res.status(500).json({ error: 'Payment session failed' });
+    }
+});
+
+router.post('/refund/:orderId', protect, restrictTo('vendor'), async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.orderId);
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+
+        if (!order.paymentIntentId) {
+            return res.status(400).json({ message: 'No payment intent associated with this order' });
+        }
+
+        const refund = await stripe.refunds.create({
+            payment_intent: order.paymentIntentId
+        });
+
+        console.log(`✅ Refund processed for PaymentIntent: ${order.paymentIntentId}`);
+
+        order.status = 'cancelled';
+        order.reason = 'Refund issued by vendor';
+        await order.save();
+
+        res.json({ message: 'Refund issued and order cancelled', refund });
+    } catch (err) {
+        console.error('❌ Error processing refund:', err.message);
+        res.status(500).json({ message: 'Refund failed' });
     }
 });
 
