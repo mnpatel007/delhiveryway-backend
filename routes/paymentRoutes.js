@@ -51,6 +51,30 @@ router.post(
                     quantity: item.quantity,
                 };
             });
+            // ✅ Append GST
+            lineItems.push({
+                price_data: {
+                    currency: 'inr',
+                    product_data: {
+                        name: 'GST (5%)'
+                    },
+                    unit_amount: tax * 100
+                },
+                quantity: 1
+            });
+
+            // ✅ Append Delivery
+            lineItems.push({
+                price_data: {
+                    currency: 'inr',
+                    product_data: {
+                        name: 'Delivery Charge'
+                    },
+                    unit_amount: deliveryCharge * 100
+                },
+                quantity: 1
+            });
+
 
             const tax = Math.round(itemTotal * 0.05);
             const deliveryCharge = shopSet.size * 10;
