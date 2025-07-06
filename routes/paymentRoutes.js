@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const Order = require('../models/Order'); // ✅ You missed this import!
+const Order = require('../models/Order');
 
 router.post('/create-checkout-session', protect, restrictTo('customer'), async (req, res) => {
     try {
@@ -36,14 +36,17 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
         });
 
         const gst = itemTotal * 0.05;
+        const platformFee = itemTotal * 0.029;
         const deliveryCharge = 30;
 
-        // GST
+        // Taxes (GST + Platform Fee)
+        const taxes = gst + platformFee;
+
         lineItems.push({
             price_data: {
                 currency: 'inr',
-                product_data: { name: 'GST (5%)' },
-                unit_amount: Math.round(gst * 100),
+                product_data: { name: 'Taxes and Other Charges' },
+                unit_amount: Math.round(taxes * 100),
             },
             quantity: 1,
         });
@@ -52,7 +55,7 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
         lineItems.push({
             price_data: {
                 currency: 'inr',
-                product_data: { name: 'Delivery Charges' },
+                product_data: { name: 'Delivery Charge' },
                 unit_amount: Math.round(deliveryCharge * 100),
             },
             quantity: 1,
