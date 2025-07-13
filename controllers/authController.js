@@ -171,3 +171,68 @@ exports.googleLogin = async (req, res) => {
         res.status(500).json({ message: 'Google login failed', error: err.message });
     }
 };
+
+exports.forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ message: 'Email is required' });
+
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'No user found with this email' });
+
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 1000 * 60 * 30; // 30 minutes
+        await user.save();
+
+        const frontendURL = user.role === 'vendor'
+            ? process.env.VENDOR_FRONTEND_URL
+            : process.env.FRONTEND_URL;
+
+        const resetLink = `${frontendURL}/reset-password?token=${resetToken}&email=${email}`;
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'meetnp007@gmail.com',
+                pass: 'rjnhzyswdyphnpsr',
+            },
+        });
+
+        await transporter.sendMail({
+            from: 'meetnp007@gmail.com',
+            to: email,
+            subject: 'Password Reset - DelhiveryWay',
+            html: `<p>Click below to reset your password:</p><a href="${resetLink}">${resetLink}</a>`
+        });
+
+        res.json({ message: 'Password reset email sent' });
+    } catch (err) {
+        console.error('Forgot Password Error:', err);
+        res.status(500).json({ message: 'Something went wrong', error: err.message });
+    }
+};
+
+exports.resetPassword = async (req, res) => {
+    try {
+        const { token, email, newPassword } = req.body;
+
+        const user = await User.findOne({
+            email,
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) return res.status(400).json({ message: 'Invalid or expired reset token' });
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        res.json({ message: 'Password reset successful' });
+    } catch (err) {
+        console.error('Reset Password Error:', err);
+        res.status(500).json({ message: 'Failed to reset password', error: err.message });
+    }
+};

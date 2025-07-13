@@ -8,7 +8,10 @@ const userSchema = new mongoose.Schema({
     role: { type: String, enum: ['customer', 'vendor', 'admin'], required: true },
     isVerified: { type: Boolean, default: false },
     verificationToken: { type: String },
-    googleId: { type: String, unique: true, sparse: true }  // <-- added googleId here
+    googleId: { type: String, unique: true, sparse: true },  // <-- added googleId here
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
