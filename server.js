@@ -13,7 +13,7 @@ const server = http.createServer(app);
 
 const io = socketIo(server, {
     cors: {
-        origin: ['http://localhost:3000', 'http://localhost:3001', 'https://delhiveryway-vendor.vercel.app', 'https://delhiveryway-customer.vercel.app'],
+        origin: ['http://localhost:3000', 'http://localhost:3001', 'https://delhiveryway-deliveryboy.vercel.app', 'https://delhiveryway-vendor.vercel.app', 'https://delhiveryway-customer.vercel.app'],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true
     }
@@ -29,7 +29,8 @@ app.use(cors({
     origin: [
         'http://localhost:3000',
         'https://delhiveryway-vendor.vercel.app',
-        'https://delhiveryway-customer.vercel.app'
+        'https://delhiveryway-customer.vercel.app',
+        'https://delhiveryway-deliveryboy.vercel.app'
     ],
     credentials: true
 }));
