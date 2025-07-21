@@ -157,18 +157,38 @@ router.patch('/confirm/:orderId', protect, restrictTo('vendor'), async (req, res
         await order.save();
 
         const io = req.app.get('io');
+
+        // 🔔 Emit to customer
         if (io) {
             io.to(order.customerId.toString()).emit('orderStatusUpdate', {
                 orderId: order._id,
                 status: 'confirmed'
             });
+
+            // 🚴 Emit to delivery boys
+            const shop = await Shop.findById(order.items[0].shopId).populate('vendorId');
+
+            const deliveryPayload = {
+                orderId: order._id,
+                address: order.address,
+                items: order.items,
+                customerId: order.customerId,
+                earnAmount: (order.totalAmount * 0.1).toFixed(2),
+                shopDetails: shop ? {
+                    name: shop.name,
+                    location: shop.location || 'Unknown',
+                    vendorName: shop.vendorId?.name || 'Vendor'
+                } : {}
+            };
+
+            console.log('📢 Emitting delivery assignment to deliveryBoys:', deliveryPayload);
+            io.to('deliveryBoys').emit('newDeliveryAssignment', deliveryPayload);
         }
 
         res.status(200).json({ message: 'Order confirmed' });
     } catch (err) {
-        console.error('❌ Confirm staged order FULL ERROR:', err);
-        res.status(500).json({ message: 'Failed to confirm staged order', error: err.message });
+        console.error('❌ Error confirming order:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
-
 module.exports = router;

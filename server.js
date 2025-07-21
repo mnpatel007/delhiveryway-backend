@@ -52,6 +52,10 @@ io.on('connection', (socket) => {
         console.log(`👤 Customer ${customerId} joined their socket room`);
     });
 
+    socket.on('registerDelivery', (deliveryBoyId) => {
+        socket.join('deliveryBoys');
+        console.log(`🚴 Delivery boy ${deliveryBoyId} joined deliveryBoys room`);
+    });
 
     socket.on('disconnect', () => {
         console.log('🔌 Socket disconnected:', socket.id);
@@ -72,6 +76,7 @@ mongoose.connect(process.env.MONGO_URI)
         const paymentRoutes = require('./routes/paymentRoutes');
         const vendorStatsRoutes = require('./routes/vendorStatsRoutes');
         const tempOrderRoutes = require('./routes/tempOrderRoutes');
+        const deliveryAuthRoutes = require('./routes/deliveryAuthRoutes');
 
         app.use('/api/auth', authRoutes);
         app.use('/api/shops', shopRoutes);
@@ -81,6 +86,7 @@ mongoose.connect(process.env.MONGO_URI)
         app.use('/api/vendor', vendorStatsRoutes);
         app.use('/api/payment', paymentRoutes);
         app.use('/api/temp-orders', tempOrderRoutes);
+        app.use('/api/delivery/auth', deliveryAuthRoutes);
 
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');
