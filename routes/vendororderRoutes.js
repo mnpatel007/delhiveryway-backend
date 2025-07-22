@@ -168,10 +168,16 @@ router.patch('/confirm/:orderId', protect, restrictTo('vendor'), async (req, res
             // 🚴 Emit to delivery boys
             const shop = await Shop.findById(order.items[0].shopId).populate('vendorId');
 
+            // Populate product details for each item
+            await order.populate('items.productId');
             const deliveryPayload = {
                 orderId: order._id,
                 address: order.address,
-                items: order.items,
+                items: order.items.map(item => ({
+                    productId: item.productId._id,
+                    name: item.productId.name,
+                    quantity: item.quantity
+                })),
                 customerId: order.customerId,
                 earnAmount: (order.totalAmount * 0.1).toFixed(2),
                 shopDetails: shop ? {
