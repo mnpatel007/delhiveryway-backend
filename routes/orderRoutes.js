@@ -5,7 +5,8 @@ const {
     getCustomerOrders,
     updateOrderStatus,
     acceptOrderByDeliveryBoy,
-    completeOrderByDeliveryBoy
+    completeOrderByDeliveryBoy,
+    getAssignedOrdersForDeliveryBoy
 } = require('../controllers/OrderController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -23,5 +24,8 @@ router.put('/:id/accept', protect, restrictTo('delivery'), acceptOrderByDelivery
 
 // Delivery boy completes an order
 router.put('/:id/complete', protect, restrictTo('delivery'), completeOrderByDeliveryBoy);
+
+// Get all assigned (not yet delivered) orders for the logged-in delivery boy
+router.get('/assigned', protect, restrictTo('delivery'), getAssignedOrdersForDeliveryBoy);
 
 module.exports = router;

@@ -147,3 +147,21 @@ exports.completeOrderByDeliveryBoy = async (req, res) => {
         res.status(500).json({ message: 'Failed to complete order', error: err.message });
     }
 };
+
+// Get all assigned (not yet delivered) orders for the logged-in delivery boy
+exports.getAssignedOrdersForDeliveryBoy = async (req, res) => {
+    try {
+        const orders = await Order.find({
+            deliveryBoyId: req.user.id,
+            status: { $ne: 'delivered' }
+        })
+        .populate({
+            path: 'items.productId',
+            populate: { path: 'shopId', model: 'Shop' }
+        })
+        .populate('customerId', 'name email');
+        res.status(200).json(orders);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch assigned orders', error: err.message });
+    }
+};
