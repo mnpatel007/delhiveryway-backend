@@ -116,3 +116,34 @@ exports.updateOrderStatus = async (req, res) => {
         res.status(500).json({ message: 'Failed to update order', error: err.message });
     }
 };
+
+// Delivery boy accepts an order
+exports.acceptOrderByDeliveryBoy = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+        if (order.deliveryBoyId) return res.status(400).json({ message: 'Order already assigned' });
+        order.deliveryBoyId = req.user.id;
+        order.status = 'out for delivery';
+        await order.save();
+        res.status(200).json({ message: 'Order accepted by delivery boy', order });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to accept order', error: err.message });
+    }
+};
+
+// Delivery boy completes an order
+exports.completeOrderByDeliveryBoy = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+        if (!order.deliveryBoyId || order.deliveryBoyId.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to complete this order' });
+        }
+        order.status = 'delivered';
+        await order.save();
+        res.status(200).json({ message: 'Order marked as delivered', order });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to complete order', error: err.message });
+    }
+};

@@ -35,6 +35,10 @@ const orderSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    deliveryBoyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'DeliveryBoy',
+    },
     status: {
         type: String,
         enum: ['pending_vendor', 'confirmed_by_vendor', 'confirmed', 'pending', 'preparing', 'out for delivery', 'delivered', 'staged', 'cancelled'],

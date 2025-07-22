@@ -3,7 +3,9 @@ const router = express.Router();
 const {
     placeOrder,
     getCustomerOrders,
-    updateOrderStatus
+    updateOrderStatus,
+    acceptOrderByDeliveryBoy,
+    completeOrderByDeliveryBoy
 } = require('../controllers/OrderController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -15,5 +17,11 @@ router.get('/customer', protect, restrictTo('customer'), getCustomerOrders);
 
 // Update order status (used by vendor or customer actions)
 router.put('/:id', protect, updateOrderStatus);
+
+// Delivery boy accepts an order
+router.put('/:id/accept', protect, restrictTo('delivery'), acceptOrderByDeliveryBoy);
+
+// Delivery boy completes an order
+router.put('/:id/complete', protect, restrictTo('delivery'), completeOrderByDeliveryBoy);
 
 module.exports = router;
