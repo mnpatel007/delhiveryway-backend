@@ -126,6 +126,12 @@ exports.acceptOrderByDeliveryBoy = async (req, res) => {
         order.deliveryBoyId = req.user.id;
         order.status = 'out for delivery';
         await order.save();
+        // Populate product and shop info
+        await order.populate({
+            path: 'items.productId',
+            populate: { path: 'shopId', model: 'Shop' }
+        });
+        await order.populate('customerId', 'name email');
         res.status(200).json({ message: 'Order accepted by delivery boy', order });
     } catch (err) {
         res.status(500).json({ message: 'Failed to accept order', error: err.message });
