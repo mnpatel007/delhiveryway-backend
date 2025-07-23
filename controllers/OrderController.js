@@ -192,6 +192,9 @@ exports.getAssignedOrdersForDeliveryBoy = async (req, res) => {
     }
 };
 
+const Order = require('../models/Order');
+
+// GET full populated order by ID (used for delivery app refresh)
 exports.getOrderById = async (req, res) => {
     try {
         const order = await Order.findById(req.params.orderId)
