@@ -138,6 +138,22 @@ exports.acceptOrderByDeliveryBoy = async (req, res) => {
     }
 };
 
+// Delivery boy marks an order as picked up
+exports.pickupOrderByDeliveryBoy = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+        if (!order.deliveryBoyId || order.deliveryBoyId.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to pick up this order' });
+        }
+        order.status = 'picked up';
+        await order.save();
+        res.status(200).json({ message: 'Order marked as picked up', order });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to mark order as picked up', error: err.message });
+    }
+};
+
 // Delivery boy completes an order
 exports.completeOrderByDeliveryBoy = async (req, res) => {
     try {

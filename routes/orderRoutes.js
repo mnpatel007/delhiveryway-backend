@@ -6,7 +6,8 @@ const {
     updateOrderStatus,
     acceptOrderByDeliveryBoy,
     completeOrderByDeliveryBoy,
-    getAssignedOrdersForDeliveryBoy
+    getAssignedOrdersForDeliveryBoy,
+    pickupOrderByDeliveryBoy
 } = require('../controllers/OrderController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -24,6 +25,9 @@ router.put('/:id/accept', protect, restrictTo('delivery'), acceptOrderByDelivery
 
 // Delivery boy completes an order
 router.put('/:id/complete', protect, restrictTo('delivery'), completeOrderByDeliveryBoy);
+
+// Delivery boy marks an order as picked up
+router.put('/:id/pickup', protect, restrictTo('delivery'), pickupOrderByDeliveryBoy);
 
 // Get all assigned (not yet delivered) orders for the logged-in delivery boy
 router.get('/assigned', protect, restrictTo('delivery'), getAssignedOrdersForDeliveryBoy);
