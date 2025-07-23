@@ -7,7 +7,8 @@ const {
     acceptOrderByDeliveryBoy,
     completeOrderByDeliveryBoy,
     getAssignedOrdersForDeliveryBoy,
-    pickupOrderByDeliveryBoy
+    pickupOrderByDeliveryBoy,
+    getOrderById
 } = require('../controllers/OrderController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -31,5 +32,9 @@ router.put('/:id/pickup', protect, restrictTo('delivery'), pickupOrderByDelivery
 
 // Get all assigned (not yet delivered) orders for the logged-in delivery boy
 router.get('/assigned', protect, restrictTo('delivery'), getAssignedOrdersForDeliveryBoy);
+
+// Get single order by ID (used to restore state after refresh)
+router.get('/:orderId', protect, getOrderById);
+
 
 module.exports = router;
