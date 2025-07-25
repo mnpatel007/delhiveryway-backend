@@ -4,46 +4,56 @@ const router = express.Router();
 const DeliveryRecord = require('../models/DeliveryRecord');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
-// Accept order
+/* Accept order */
 router.post('/accept/:orderId', protect, restrictTo('delivery'), async (req, res) => {
-    const { orderId } = req.params;
-    const deliveryBoyId = req.user.id;
-    const { shopLocation, customerLocation } = req.body;
+    try {
+        const { orderId } = req.params;
+        const deliveryBoyId = req.user.id;
+        const { customerId, shopLocation, customerLocation } = req.body;
 
-    const record = await DeliveryRecord.create({
-        orderId,
-        deliveryBoyId,
-        customerId: req.body.customerId,
-        shopLocation,
-        customerLocation
-    });
+        if (!customerId || !shopLocation || !customerLocation) {
+            return res.status(400).json({ message: 'Missing body fields' });
+        }
 
-    res.json({ message: 'Order accepted', record });
+        const record = await DeliveryRecord.create({
+            orderId,
+            deliveryBoyId,
+            customerId,
+            shopLocation,
+            customerLocation
+        });
+
+        res.json({ message: 'Order accepted', record });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
-// Pick-up
+/* Mark picked-up */
 router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res) => {
-    const record = await DeliveryRecord.findOneAndUpdate(
+    await DeliveryRecord.findOneAndUpdate(
         { orderId: req.params.orderId, deliveryBoyId: req.user.id },
         { status: 'pickedUp', pickedUpAt: new Date() },
         { new: true }
     );
-    res.json(record);
+    res.json({ message: 'Picked up' });
 });
 
-// Deliver
+/* Mark delivered */
 router.put('/deliver/:orderId', protect, restrictTo('delivery'), async (req, res) => {
-    const record = await DeliveryRecord.findOneAndUpdate(
+    await DeliveryRecord.findOneAndUpdate(
         { orderId: req.params.orderId, deliveryBoyId: req.user.id },
         { status: 'delivered', deliveredAt: new Date() },
         { new: true }
     );
-    res.json(record);
+    res.json({ message: 'Marked delivered ₹30 added' });
 });
 
-// Get my deliveries
+/* Get my deliveries */
 router.get('/my-deliveries', protect, restrictTo('delivery'), async (req, res) => {
-    const records = await DeliveryRecord.find({ deliveryBoyId: req.user.id }).populate('orderId');
+    const records = await DeliveryRecord.find({ deliveryBoyId: req.user.id })
+        .populate('orderId customerId');
     res.json(records);
 });
 
