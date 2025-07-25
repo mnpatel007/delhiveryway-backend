@@ -124,7 +124,7 @@ exports.acceptOrderByDeliveryBoy = async (req, res) => {
         if (!order) return res.status(404).json({ message: 'Order not found' });
         if (order.deliveryBoyId) return res.status(400).json({ message: 'Order already assigned' });
         order.deliveryBoyId = req.user.id;
-        order.status = 'out for delivery';
+        order.status = 'assigned delivery driver';
         // Save delivery boy's current location if provided
         if (req.body.deliveryBoyStartLocation && req.body.deliveryBoyStartLocation.lat && req.body.deliveryBoyStartLocation.lng) {
             order.deliveryBoyStartLocation = req.body.deliveryBoyStartLocation;
