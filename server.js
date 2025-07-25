@@ -89,6 +89,8 @@ mongoose.connect(process.env.MONGO_URI)
         app.use('/api/temp-orders', tempOrderRoutes);
         app.use('/api/delivery/auth', deliveryAuthRoutes);
 
+        app.use('/api/delivery', require('./routes/deliveryRoutes'));
+
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');
         });
