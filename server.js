@@ -1,3 +1,4 @@
+// backend/server.js
 const express = require('express');
 const http = require('http');
 const mongoose = require('mongoose');
@@ -13,35 +14,50 @@ const server = http.createServer(app);
 
 const io = socketIo(server, {
     cors: {
-        origin: ['http://localhost:3000', 'http://localhost:3001', 'https://delhiveryway-deliveryboy.vercel.app', 'https://delhiveryway-vendor.vercel.app', 'https://delhiveryway-customer.vercel.app'],
+        origin: [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'https://delhiveryway-deliveryboy.vercel.app',
+            'https://delhiveryway-vendor.vercel.app',
+            'https://delhiveryway-customer.vercel.app',
+        ],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
-        credentials: true
-    }
+        credentials: true,
+    },
 });
 
-// ✅ Make io accessible in routes like webhook.js
+// Make io accessible in routes
 app.set('io', io);
 
-// ✅ Stripe webhook must be registered before body parsers
+// Stripe webhook must be registered before body parsers
 app.use('/api/webhook', require('./routes/webhook'));
 
-app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://delhiveryway-vendor.vercel.app',
-        'https://delhiveryway-customer.vercel.app',
-        'https://delhiveryway-deliveryboy.vercel.app'
-    ],
-    credentials: true
-}));
-
+app.use(
+    cors({
+        origin: [
+            'http://localhost:3000',
+            'https://delhiveryway-vendor.vercel.app',
+            'https://delhiveryway-customer.vercel.app',
+            'https://delhiveryway-deliveryboy.vercel.app',
+        ],
+        credentials: true,
+    })
+);
 
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ✅ Socket.IO logic
+/* ------------------------------------------------------------------ */
+/*  Socket.IO logic                                                   */
+/* ------------------------------------------------------------------ */
 io.on('connection', (socket) => {
     console.log('🟢 Socket connected:', socket.id);
+
+    // NEW: join user-id room automatically after login
+    socket.on('authenticate', ({ userId }) => {
+        socket.join(userId);
+        console.log(`✅ User ${userId} joined room ${userId}`);
+    });
 
     socket.on('registerVendor', (vendorId) => {
         socket.join(vendorId);
@@ -63,32 +79,24 @@ io.on('connection', (socket) => {
     });
 });
 
-// ✅ MongoDB and route setup
-mongoose.connect(process.env.MONGO_URI)
+/* ------------------------------------------------------------------ */
+/*  MongoDB & routes                                                  */
+/* ------------------------------------------------------------------ */
+mongoose
+    .connect(process.env.MONGO_URI)
     .then(() => {
         console.log('✅ Connected to MongoDB');
 
         // All routes after DB connection
-        const authRoutes = require('./routes/authRoutes');
-        const shopRoutes = require('./routes/shopRoutes');
-        const productRoutes = require('./routes/productRoutes');
-        const orderRoutes = require('./routes/orderRoutes');
-        const vendorOrderRoutes = require('./routes/vendororderRoutes');
-        const paymentRoutes = require('./routes/paymentRoutes');
-        const vendorStatsRoutes = require('./routes/vendorStatsRoutes');
-        const tempOrderRoutes = require('./routes/tempOrderRoutes');
-        const deliveryAuthRoutes = require('./routes/deliveryAuthRoutes');
-
-        app.use('/api/auth', authRoutes);
-        app.use('/api/shops', shopRoutes);
-        app.use('/api/products', productRoutes);
-        app.use('/api/orders', orderRoutes);
-        app.use('/api/vendor/orders', vendorOrderRoutes);
-        app.use('/api/vendor', vendorStatsRoutes);
-        app.use('/api/payment', paymentRoutes);
-        app.use('/api/temp-orders', tempOrderRoutes);
-        app.use('/api/delivery/auth', deliveryAuthRoutes);
-
+        app.use('/api/auth', require('./routes/authRoutes'));
+        app.use('/api/shops', require('./routes/shopRoutes'));
+        app.use('/api/products', require('./routes/productRoutes'));
+        app.use('/api/orders', require('./routes/orderRoutes'));
+        app.use('/api/vendor/orders', require('./routes/vendororderRoutes'));
+        app.use('/api/payment', require('./routes/paymentRoutes'));
+        app.use('/api/vendor', require('./routes/vendorStatsRoutes'));
+        app.use('/api/temp-orders', require('./routes/tempOrderRoutes'));
+        app.use('/api/delivery/auth', require('./routes/deliveryAuthRoutes'));
         app.use('/api/delivery', require('./routes/deliveryRoutes'));
 
         app.get('/', (req, res) => {
