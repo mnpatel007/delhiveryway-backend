@@ -190,7 +190,7 @@ router.post('/accept/:orderId', protect, restrictTo('delivery'), async (req, res
 
         // Update order with delivery boy
         order.deliveryBoyId = deliveryBoyId;
-        order.status = 'out for delivery';
+        order.status = 'assigned';
         if (currentLocation) {
             order.deliveryBoyStartLocation = currentLocation;
         }
@@ -227,7 +227,7 @@ router.post('/accept/:orderId', protect, restrictTo('delivery'), async (req, res
         if (io) {
             io.to(order.customerId._id.toString()).emit('orderStatusUpdate', {
                 orderId: order._id,
-                status: 'out for delivery',
+                status: 'assigned',
                 deliveryBoy: {
                     name: (await DeliveryBoy.findById(deliveryBoyId)).name,
                     phone: (await DeliveryBoy.findById(deliveryBoyId)).phone
@@ -308,7 +308,7 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
         const order = await Order.findOneAndUpdate(
             { _id: orderId, deliveryBoyId },
             {
-                status: 'picked up',
+                status: 'picked_up',
                 pickedUpAt: new Date()
             },
             { new: true }
@@ -336,7 +336,7 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
             // Notify customer
             io.to(`customer_${order.customerId._id}`).emit('orderStatusUpdate', {
                 orderId: order._id,
-                status: 'picked up',
+                status: 'picked_up',
                 message: 'Your order has been picked up and is on the way!',
                 deliveryBoyLocation: req.user.currentLocation,
                 timestamp: new Date()
@@ -346,7 +346,7 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
             if (order.shopId) {
                 io.to(`vendor_${order.shopId._id}`).emit('orderStatusUpdate', {
                     orderId: order._id,
-                    status: 'picked up',
+                    status: 'picked_up',
                     message: 'Order has been picked up by delivery partner',
                     timestamp: new Date()
                 });
