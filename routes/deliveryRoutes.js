@@ -311,7 +311,7 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
             },
             { new: true }
         ).populate('customerId', 'name email phone')
-            .populate('shopId', 'name');
+            
 
         if (!order) {
             return res.status(404).json({ message: 'Order not found or not assigned to you' });
@@ -387,7 +387,7 @@ router.put('/deliver/:orderId', protect, restrictTo('delivery'), async (req, res
             },
             { new: true }
         ).populate('customerId', 'name email phone')
-            .populate('shopId', 'name');
+            
 
         if (!order) {
             return res.status(404).json({ message: 'Order not found or not assigned to you' });
