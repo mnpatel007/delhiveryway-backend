@@ -53,7 +53,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 io.on('connection', (socket) => {
     console.log('🟢 Socket connected:', socket.id);
 
-    // NEW: join user-id room automatically after login
+    // Generic join room handler
+    socket.on('join', (roomName) => {
+        socket.join(roomName);
+        console.log(`✅ Socket ${socket.id} joined room: ${roomName}`);
+    });
+
+    // Legacy handlers for backward compatibility
     socket.on('authenticate', ({ userId }) => {
         socket.join(userId);
         console.log(`✅ User ${userId} joined room ${userId}`);
@@ -61,17 +67,20 @@ io.on('connection', (socket) => {
 
     socket.on('registerVendor', (vendorId) => {
         socket.join(vendorId);
-        console.log(`📦 Vendor ${vendorId} joined their socket room`);
+        socket.join(`vendor_${vendorId}`);
+        console.log(`📦 Vendor ${vendorId} joined their socket rooms`);
     });
 
     socket.on('registerCustomer', (customerId) => {
         socket.join(customerId);
-        console.log(`👤 Customer ${customerId} joined their socket room`);
+        socket.join(`customer_${customerId}`);
+        console.log(`👤 Customer ${customerId} joined their socket rooms`);
     });
 
     socket.on('registerDelivery', (deliveryBoyId) => {
         socket.join('deliveryBoys');
-        console.log(`🚴 Delivery boy ${deliveryBoyId} joined deliveryBoys room`);
+        socket.join(`delivery_${deliveryBoyId}`);
+        console.log(`🚴 Delivery boy ${deliveryBoyId} joined delivery rooms`);
     });
 
     socket.on('disconnect', () => {
