@@ -122,7 +122,8 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
     try {
         const orders = await Order.find({
             status: 'confirmed',
-            deliveryBoyId: { $exists: false }
+            deliveryBoyId: { $exists: false },
+            'declinedBy.deliveryBoyId': { $ne: req.user.id }
         })
             .populate({
                 path: 'items.productId',
@@ -288,6 +289,7 @@ router.post('/decline/:orderId', protect, restrictTo('delivery'), async (req, re
         }
 
         res.json({
+            success: true,
             message: 'Order declined successfully'
         });
     } catch (err) {
