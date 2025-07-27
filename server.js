@@ -17,6 +17,7 @@ const io = socketIo(server, {
         origin: [
             'http://localhost:3000',
             'http://localhost:3001',
+            'http://localhost:3002',
             'https://delhiveryway-deliveryboy.vercel.app',
             'https://delhiveryway-vendor.vercel.app',
             'https://delhiveryway-customer.vercel.app',
@@ -37,6 +38,7 @@ app.use(
         origin: [
             'http://localhost:3000',
             'http://localhost:3001',
+            'http://localhost:3002',
             'https://delhiveryway-vendor.vercel.app',
             'https://delhiveryway-customer.vercel.app',
             'https://delhiveryway-deliveryboy.vercel.app',
