@@ -308,7 +308,7 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
         const order = await Order.findOneAndUpdate(
             { _id: orderId, deliveryBoyId },
             {
-                status: 'picked_up',
+                status: 'picked up',
                 pickedUpAt: new Date()
             },
             { new: true }
@@ -336,7 +336,7 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
             // Notify customer
             io.to(`customer_${order.customerId._id}`).emit('orderStatusUpdate', {
                 orderId: order._id,
-                status: 'picked_up',
+                status: 'picked up',
                 message: 'Your order has been picked up and is on the way!',
                 deliveryBoyLocation: req.user.currentLocation,
                 timestamp: new Date()
@@ -346,7 +346,7 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
             if (order.shopId) {
                 io.to(`vendor_${order.shopId._id}`).emit('orderStatusUpdate', {
                     orderId: order._id,
-                    status: 'picked_up',
+                    status: 'picked up',
                     message: 'Order has been picked up by delivery partner',
                     timestamp: new Date()
                 });

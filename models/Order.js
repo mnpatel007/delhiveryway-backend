@@ -23,8 +23,9 @@ const orderSchema = new mongoose.Schema({
     items: [orderItemSchema],
     totalAmount: {
         type: Number,
-        required: true,
+        required: [true, 'Total amount is required'],
         default: 0,
+        min: [0, 'Total amount cannot be negative']
     },
     deliveryCharge: {
         type: Number,
@@ -33,7 +34,9 @@ const orderSchema = new mongoose.Schema({
     },
     address: {
         type: String,
-        required: true,
+        required: [true, 'Delivery address is required'],
+        trim: true,
+        minlength: [10, 'Address must be at least 10 characters']
     },
     customerLocation: {
         lat: { type: Number },
@@ -49,7 +52,7 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending_vendor', 'confirmed_by_vendor', 'confirmed', 'pending', 'preparing', 'out for delivery', 'picked up', 'delivered', 'staged', 'cancelled'],
+        enum: ['pending_vendor', 'confirmed_by_vendor', 'confirmed', 'pending', 'preparing', 'out_for_delivery', 'picked_up', 'delivered', 'staged', 'cancelled'],
         default: 'pending',
     },
     reason: {
