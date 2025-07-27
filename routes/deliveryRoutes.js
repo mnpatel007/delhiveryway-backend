@@ -311,7 +311,7 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
             },
             { new: true }
         ).populate('customerId', 'name email phone')
-            
+
 
         if (!order) {
             return res.status(404).json({ message: 'Order not found or not assigned to you' });
@@ -374,7 +374,7 @@ router.put('/deliver/:orderId', protect, restrictTo('delivery'), async (req, res
     try {
         const { orderId } = req.params;
         const deliveryBoyId = req.user.id;
-        const { customerFeedback, rating } = req.body;
+        const { customerFeedback, rating } = req.body || {};
 
         // Update order status in Order collection
         const order = await Order.findOneAndUpdate(
@@ -387,7 +387,7 @@ router.put('/deliver/:orderId', protect, restrictTo('delivery'), async (req, res
             },
             { new: true }
         ).populate('customerId', 'name email phone')
-            
+
 
         if (!order) {
             return res.status(404).json({ message: 'Order not found or not assigned to you' });
