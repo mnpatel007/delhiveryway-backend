@@ -67,7 +67,18 @@ const orderSchema = new mongoose.Schema({
     },
     paymentIntentId: {
         type: String, // This is necessary to issue refunds
-    }
+    },
+    declinedBy: [{
+        deliveryBoyId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'DeliveryBoy'
+        },
+        reason: String,
+        declinedAt: {
+            type: Date,
+            default: Date.now
+        }
+    }]
 }, {
     timestamps: true
 });

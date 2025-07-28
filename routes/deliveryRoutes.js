@@ -1,5 +1,6 @@
 // backend/routes/deliveryRoutes.js
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const DeliveryRecord = require('../models/DeliveryRecord');
 const DeliveryBoy = require('../models/DeliveryBoy');
@@ -120,6 +121,8 @@ router.get('/debug-orders', protect, restrictTo('delivery'), async (req, res) =>
 /* Get available orders for delivery */
 router.get('/available-orders', protect, restrictTo('delivery'), async (req, res) => {
     try {
+        console.log(`Fetching available orders for delivery boy: ${req.user.id}`);
+
         const orders = await Order.find({
             status: 'confirmed',
             deliveryBoyId: { $exists: false },
@@ -131,6 +134,11 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
             })
             .populate('customerId', 'name phone email')
             .sort({ createdAt: -1 });
+
+        console.log(`Found ${orders.length} available orders for delivery boy ${req.user.id}`);
+        orders.forEach(order => {
+            console.log(`Order ${order._id}: status=${order.status}, declinedBy=${JSON.stringify(order.declinedBy)}`);
+        });
 
         // Format orders for delivery boy app
         const formattedOrders = orders.map(order => ({
@@ -274,11 +282,13 @@ router.post('/decline/:orderId', protect, restrictTo('delivery'), async (req, re
             order.declinedBy = [];
         }
         order.declinedBy.push({
-            deliveryBoyId,
+            deliveryBoyId: new mongoose.Types.ObjectId(deliveryBoyId),
             reason,
             declinedAt: new Date()
         });
         await order.save();
+
+        console.log(`Order ${orderId} declined by ${deliveryBoyId}. DeclinedBy array:`, order.declinedBy);
 
         // Emit real-time update to notify other delivery boys
         const io = req.app.get('io');
