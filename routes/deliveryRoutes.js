@@ -148,6 +148,7 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
                     quantity: item.quantity || 1,
                     price: item.price || item.totalPrice || 0,
                     shopName: item.shopName || item.productId?.shopId?.name || 'Shop',
+                    shopAddress: item.productId?.shopId?.address || 'Not available',
                     productId: item.productId?._id || item.productId
                 };
             }) || [],
