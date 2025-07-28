@@ -148,7 +148,7 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
                     quantity: item.quantity || 1,
                     price: item.price || item.totalPrice || 0,
                     shopName: item.shopName || item.productId?.shopId?.name || 'Shop',
-                    shopAddress: item.productId?.shopId?.address || 'Not available',
+                    shopAddress: item.shopAddress || item.productId?.shopId?.address || 'Not available',
                     productId: item.productId?._id || item.productId
                 };
             }) || [],
@@ -507,7 +507,8 @@ router.get('/active-deliveries', protect, restrictTo('delivery'), async (req, re
                 name: item.name || item.productId?.name || 'Product',
                 quantity: item.quantity || 1,
                 price: item.price || 0,
-                shopName: item.shopName || item.productId?.shopId?.name || 'Shop'
+                shopName: item.shopName || item.productId?.shopId?.name || 'Shop',
+                shopAddress: item.shopAddress || item.productId?.shopId?.address || 'Not available'
             })) || [],
             totalAmount: record.orderId.totalAmount || 0,
             deliveryCharge: record.orderId.deliveryCharge || 0,

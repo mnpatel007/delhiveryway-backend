@@ -12,7 +12,8 @@ const orderItemSchema = new mongoose.Schema({
     name: String,
     price: Number,
     quantity: Number,
-    shopName: String
+    shopName: String,
+    shopAddress: String
 });
 
 const orderSchema = new mongoose.Schema({

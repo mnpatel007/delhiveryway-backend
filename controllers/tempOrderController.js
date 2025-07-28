@@ -26,7 +26,8 @@ exports.createTempOrder = async (req, res) => {
                 quantity: item.quantity,
                 name: product.name,
                 price: product.price,
-                shopName: product.shopId.name
+                shopName: product.shopId.name,
+                shopAddress: product.shopId.address || 'Address not available'
             });
 
             const vendorId = product.shopId.vendorId.toString();

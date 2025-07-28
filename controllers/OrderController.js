@@ -27,6 +27,10 @@ exports.placeOrder = async (req, res) => {
                 productId: product._id,
                 shopId: product.shopId._id,
                 quantity: item.quantity,
+                name: product.name,
+                price: product.price,
+                shopName: product.shopId.name,
+                shopAddress: product.shopId.address || 'Address not available'
             });
 
             const vendorId = product.shopId.vendorId._id.toString();
