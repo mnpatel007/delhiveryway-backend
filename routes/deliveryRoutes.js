@@ -7,6 +7,11 @@ const DeliveryBoy = require('../models/DeliveryBoy');
 const Order = require('../models/Order');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
+// Utility function to generate OTP
+const generateOTP = () => {
+    return Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit OTP
+};
+
 /* Get delivery boy profile */
 router.get('/profile', protect, restrictTo('delivery'), async (req, res) => {
     try {
@@ -315,12 +320,24 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
         const { orderId } = req.params;
         const deliveryBoyId = req.user.id;
 
+        // Generate OTP for delivery confirmation
+        const otpCode = generateOTP();
+        const otpExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
+
+        console.log(`🔐 Generated OTP ${otpCode} for order ${orderId} (expires at ${otpExpiresAt})`);
+
         // Update order status in Order collection
         const order = await Order.findOneAndUpdate(
             { _id: orderId, deliveryBoyId },
             {
                 status: 'picked_up',
-                pickedUpAt: new Date()
+                pickedUpAt: new Date(),
+                deliveryOTP: {
+                    code: otpCode,
+                    generatedAt: new Date(),
+                    expiresAt: otpExpiresAt,
+                    isUsed: false
+                }
             },
             { new: true }
         ).populate('customerId', 'name email phone')
@@ -344,11 +361,12 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
         // Emit real-time updates to all relevant parties
         const io = req.app.get('io');
         if (io) {
-            // Notify customer
+            // Notify customer with OTP
             io.to(`customer_${order.customerId._id}`).emit('orderStatusUpdate', {
                 orderId: order._id,
                 status: 'picked_up',
-                message: 'Your order has been picked up and is on the way!',
+                message: `Your order has been picked up and is on the way! Your delivery OTP is: ${otpCode}`,
+                deliveryOTP: otpCode,
                 deliveryBoyLocation: req.user.currentLocation,
                 timestamp: new Date()
             });
@@ -372,9 +390,11 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
         }
 
         res.json({
-            message: 'Order marked as picked up successfully',
+            message: 'Order marked as picked up successfully. OTP sent to customer.',
             order,
-            deliveryRecord: record
+            deliveryRecord: record,
+            otpGenerated: true,
+            otpMessage: `OTP ${otpCode} has been sent to the customer for delivery confirmation.`
         });
     } catch (err) {
         console.error('Pickup error:', err);
@@ -695,6 +715,104 @@ router.put('/location', protect, restrictTo('delivery'), async (req, res) => {
         });
     } catch (err) {
         console.error('Location update error:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+/* Verify OTP and mark as delivered */
+router.put('/deliver/:orderId', protect, restrictTo('delivery'), async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { otp } = req.body;
+        const deliveryBoyId = req.user.id;
+
+        if (!otp) {
+            return res.status(400).json({ message: 'OTP is required' });
+        }
+
+        // Find the order
+        const order = await Order.findOne({
+            _id: orderId,
+            deliveryBoyId,
+            status: 'picked_up'
+        }).populate('customerId', 'name email phone');
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found or not in picked up status' });
+        }
+
+        // Check if OTP exists and is valid
+        if (!order.deliveryOTP || !order.deliveryOTP.code) {
+            return res.status(400).json({ message: 'No OTP found for this order' });
+        }
+
+        if (order.deliveryOTP.isUsed) {
+            return res.status(400).json({ message: 'OTP has already been used' });
+        }
+
+        if (new Date() > order.deliveryOTP.expiresAt) {
+            return res.status(400).json({ message: 'OTP has expired' });
+        }
+
+        if (order.deliveryOTP.code !== otp.toString()) {
+            console.log(`❌ Invalid OTP for order ${orderId}. Expected: ${order.deliveryOTP.code}, Received: ${otp}`);
+            return res.status(400).json({ message: 'Invalid OTP' });
+        }
+
+        console.log(`✅ OTP verified successfully for order ${orderId}`);
+
+        // Mark OTP as used and update order status
+        const updatedOrder = await Order.findByIdAndUpdate(
+            orderId,
+            {
+                status: 'delivered',
+                deliveredAt: new Date(),
+                'deliveryOTP.isUsed': true
+            },
+            { new: true }
+        ).populate('customerId', 'name email phone');
+
+        // Update delivery record
+        const record = await DeliveryRecord.findOneAndUpdate(
+            { orderId, deliveryBoyId },
+            {
+                status: 'delivered',
+                deliveredAt: new Date(),
+                deliveryBoyLocation: req.user.currentLocation || null
+            },
+            { new: true }
+        );
+
+        // Emit real-time updates
+        const io = req.app.get('io');
+        if (io) {
+            // Notify customer
+            io.to(`customer_${updatedOrder.customerId._id}`).emit('orderStatusUpdate', {
+                orderId: updatedOrder._id,
+                status: 'delivered',
+                message: 'Your order has been delivered successfully!',
+                timestamp: new Date()
+            });
+
+            // Notify vendor/shop
+            if (updatedOrder.shopId) {
+                io.to(`vendor_${updatedOrder.shopId._id}`).emit('orderStatusUpdate', {
+                    orderId: updatedOrder._id,
+                    status: 'delivered',
+                    message: 'Order has been delivered successfully',
+                    timestamp: new Date()
+                });
+            }
+        }
+
+        res.json({
+            message: 'Order delivered successfully!',
+            order: updatedOrder,
+            deliveryRecord: record
+        });
+
+    } catch (err) {
+        console.error('Delivery confirmation error:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });

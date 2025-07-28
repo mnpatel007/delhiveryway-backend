@@ -78,7 +78,16 @@ const orderSchema = new mongoose.Schema({
             type: Date,
             default: Date.now
         }
-    }]
+    }],
+    deliveryOTP: {
+        code: String,
+        generatedAt: Date,
+        expiresAt: Date,
+        isUsed: {
+            type: Boolean,
+            default: false
+        }
+    }
 }, {
     timestamps: true
 });
