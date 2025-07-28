@@ -213,7 +213,7 @@ router.post('/accept/:orderId', protect, restrictTo('delivery'), async (req, res
             shopLocation: {
                 lat: shopLocation.lat,
                 lng: shopLocation.lng,
-                address: order.items[0]?.productId?.shopId?.address || 'Shop Address Not Found'
+                address: order.items[0]?.productId?.shopId?.name || 'Shop'
             },
             customerLocation: {
                 lat: customerLocation.lat,
@@ -506,8 +506,7 @@ router.get('/active-deliveries', protect, restrictTo('delivery'), async (req, re
                 name: item.name || item.productId?.name || 'Product',
                 quantity: item.quantity || 1,
                 price: item.price || 0,
-                shopName: item.shopName || item.productId?.shopId?.name || 'Shop',
-                shopAddress: item.productId?.shopId?.address || 'Address not available'
+                shopName: item.shopName || item.productId?.shopId?.name || 'Shop'
             })) || [],
             totalAmount: record.orderId.totalAmount || 0,
             deliveryCharge: record.orderId.deliveryCharge || 0,
