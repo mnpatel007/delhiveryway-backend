@@ -516,7 +516,8 @@ router.get('/active-deliveries', protect, restrictTo('delivery'), async (req, re
             deliveredAt: record.deliveredAt,
             tips: record.tips || 0,
             customerLocation: record.orderId.customerLocation,
-            shopLocation: record.shopLocation
+            shopLocation: record.shopLocation,
+            shopAddress: record.shopLocation?.address
         }));
 
         res.json(formattedRecords);
