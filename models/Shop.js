@@ -8,7 +8,9 @@ const shopSchema = new mongoose.Schema({
         lat: { type: Number },
         lng: { type: Number }
     },
+    address: { type: String },
     image: String
 }, { timestamps: true });
 
 module.exports = mongoose.model('Shop', shopSchema);
+

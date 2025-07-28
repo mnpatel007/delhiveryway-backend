@@ -2,12 +2,13 @@ const Shop = require('../models/Shop');
 
 exports.createShop = async (req, res) => {
     try {
-        const { name, description, location } = req.body;
+        const { name, description, location, address } = req.body;
         const shop = await Shop.create({
             vendorId: req.user.id,
             name,
             description,
-            location
+            location,
+            address
         });
         res.status(201).json(shop);
     } catch (err) {
