@@ -342,6 +342,8 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
             { new: true }
         ).populate('customerId', 'name email phone')
 
+        console.log(`📋 Order details: ID=${order._id}, Customer=${order.customerId?._id}, Status=${order.status}`);
+
 
         if (!order) {
             return res.status(404).json({ message: 'Order not found or not assigned to you' });
@@ -362,6 +364,7 @@ router.put('/pickup/:orderId', protect, restrictTo('delivery'), async (req, res)
         const io = req.app.get('io');
         if (io) {
             // Notify customer with OTP
+            console.log(`📱 Sending OTP notification to customer ${order.customerId._id} in room customer_${order.customerId._id}`);
             io.to(`customer_${order.customerId._id}`).emit('orderStatusUpdate', {
                 orderId: order._id,
                 status: 'picked_up',
@@ -813,6 +816,31 @@ router.put('/deliver/:orderId', protect, restrictTo('delivery'), async (req, res
 
     } catch (err) {
         console.error('Delivery confirmation error:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+/* Test OTP notification - REMOVE IN PRODUCTION */
+router.post('/test-otp/:customerId', async (req, res) => {
+    try {
+        const { customerId } = req.params;
+        const testOTP = '1234';
+
+        const io = req.app.get('io');
+        if (io) {
+            console.log(`🧪 Sending test OTP notification to customer ${customerId}`);
+            io.to(`customer_${customerId}`).emit('orderStatusUpdate', {
+                orderId: 'test-order-id',
+                status: 'picked_up',
+                message: `Test: Your delivery OTP is: ${testOTP}`,
+                deliveryOTP: testOTP,
+                timestamp: new Date()
+            });
+        }
+
+        res.json({ message: 'Test OTP notification sent', otp: testOTP });
+    } catch (err) {
+        console.error('Test OTP error:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });
