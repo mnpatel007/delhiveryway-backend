@@ -101,14 +101,25 @@ router.get('/session/:sessionId', protect, async (req, res) => {
         // Parse the custom data from metadata
         const customData = JSON.parse(session.metadata.customData);
 
-        res.json({
+        // Try to find the actual order created by webhook
+        let actualOrder = null;
+
+        if (session.payment_intent) {
+            actualOrder = await Order.findOne({ paymentIntentId: session.payment_intent });
+            console.log('Found order by payment intent:', actualOrder ? actualOrder._id : 'Not found');
+        }
+
+        const responseData = {
             sessionId: session.id,
-            orderId: session.id, // Use session ID as order ID for now
+            orderId: actualOrder ? actualOrder._id : session.id,
             totalAmount: session.amount_total / 100, // Convert from cents
             paymentStatus: session.payment_status,
             customerEmail: session.customer_details?.email,
             ...customData
-        });
+        };
+
+        console.log('Sending session response:', responseData);
+        res.json(responseData);
     } catch (error) {
         console.error('Error retrieving session:', error);
         res.status(500).json({ message: 'Failed to retrieve session details' });

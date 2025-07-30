@@ -38,20 +38,23 @@ exports.handleStripeWebhook = async (req, res) => {
                 }
             }
 
+            const createdOrders = [];
             for (const shopId of shopSet) {
                 const shopItems = items.filter((item) => {
                     const product = item.productDetails;
                     return product.shopId === shopId;
                 });
 
-                await Order.create({
+                const newOrder = await Order.create({
                     customer: customerId,
                     items: shopItems,
                     shop: shopId,
                     totalAmount,
                     address,
                     status: 'pending',
+                    paymentIntentId: session.payment_intent, // Store payment intent for reference
                 });
+                createdOrders.push(newOrder);
             }
 
             console.log('✅ Order(s) created successfully after Stripe payment.');
