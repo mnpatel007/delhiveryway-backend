@@ -103,6 +103,7 @@ router.get('/session/:sessionId', protect, async (req, res) => {
 
         res.json({
             sessionId: session.id,
+            orderId: session.id, // Use session ID as order ID for now
             totalAmount: session.amount_total / 100, // Convert from cents
             paymentStatus: session.payment_status,
             customerEmail: session.customer_details?.email,
