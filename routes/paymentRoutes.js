@@ -106,7 +106,6 @@ router.get('/session/:sessionId', protect, async (req, res) => {
 
         if (session.payment_intent) {
             actualOrder = await Order.findOne({ paymentIntentId: session.payment_intent });
-            console.log('Found order by payment intent:', actualOrder ? actualOrder._id : 'Not found');
         }
 
         const responseData = {
@@ -118,7 +117,6 @@ router.get('/session/:sessionId', protect, async (req, res) => {
             ...customData
         };
 
-        console.log('Sending session response:', responseData);
         res.json(responseData);
     } catch (error) {
         console.error('Error retrieving session:', error);
