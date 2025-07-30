@@ -70,7 +70,7 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
             payment_method_types: ['card'],
             mode: 'payment',
             line_items: lineItems,
-            success_url: `${process.env.FRONTEND_URL}/order-success`,
+            success_url: `${process.env.FRONTEND_URL}/order-success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.FRONTEND_URL}/cart`,
             metadata: {
                 customData: JSON.stringify({
@@ -86,6 +86,31 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
     } catch (err) {
         console.error('❌ Stripe session error:', err.message);
         res.status(500).json({ error: 'Payment session failed' });
+    }
+});
+
+// Get session details for success page
+router.get('/session/:sessionId', protect, async (req, res) => {
+    try {
+        const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
+
+        // Parse the custom data from metadata
+        const customData = JSON.parse(session.metadata.customData);
+
+        res.json({
+            sessionId: session.id,
+            totalAmount: session.amount_total / 100, // Convert from cents
+            paymentStatus: session.payment_status,
+            customerEmail: session.customer_details?.email,
+            ...customData
+        });
+    } catch (error) {
+        console.error('Error retrieving session:', error);
+        res.status(500).json({ message: 'Failed to retrieve session details' });
     }
 });
 
