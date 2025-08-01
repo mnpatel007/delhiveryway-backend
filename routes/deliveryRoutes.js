@@ -905,42 +905,71 @@ const calculateDeliveryCharge = (distance) => {
  * Geocode an address to get coordinates with fallback support
  */
 const geocodeAddress = async (address) => {
+    console.log('🔍 Geocoding address:', address);
+
     try {
         // Try Google Maps API first if key is available and valid
         if (process.env.GOOGLE_MAPS_API_KEY &&
             process.env.GOOGLE_MAPS_API_KEY !== 'your_google_maps_api_key_here') {
 
-            const response = await axios.get(
-                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
-            );
-            const data = response.data;
+            console.log('🗺️ Trying Google Maps API...');
+            try {
+                const response = await axios.get(
+                    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+                );
+                const data = response.data;
+                console.log('Google Maps API response status:', data.status);
 
-            if (data.status === 'OK' && data.results.length > 0) {
-                const location = data.results[0].geometry.location;
-                return {
-                    lat: location.lat,
-                    lng: location.lng
-                };
+                if (data.status === 'OK' && data.results.length > 0) {
+                    const location = data.results[0].geometry.location;
+                    const coords = {
+                        lat: location.lat,
+                        lng: location.lng
+                    };
+                    console.log('✅ Google Maps found coordinates:', coords);
+                    return coords;
+                } else {
+                    console.log('❌ Google Maps failed:', data.status, data.error_message);
+                }
+            } catch (gmError) {
+                console.log('❌ Google Maps API error:', gmError.message);
             }
+        } else {
+            console.log('⚠️ Google Maps API key not available or invalid');
         }
 
         // Fallback to free geocoding service
-        console.log('Using fallback geocoding service...');
-        const response = await axios.get(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
-        );
-        const data = response.data;
+        console.log('🌍 Using fallback geocoding service (OpenStreetMap)...');
+        try {
+            const response = await axios.get(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+                {
+                    headers: {
+                        'User-Agent': 'DelhiveryWay-App/1.0'
+                    }
+                }
+            );
+            const data = response.data;
+            console.log('OpenStreetMap response:', data.length, 'results');
 
-        if (data && data.length > 0) {
-            return {
-                lat: parseFloat(data[0].lat),
-                lng: parseFloat(data[0].lon)
-            };
-        } else {
-            throw new Error('Address not found');
+            if (data && data.length > 0) {
+                const coords = {
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon)
+                };
+                console.log('✅ OpenStreetMap found coordinates:', coords);
+                return coords;
+            } else {
+                console.log('❌ OpenStreetMap: No results found');
+                throw new Error('Address not found');
+            }
+        } catch (osmError) {
+            console.log('❌ OpenStreetMap error:', osmError.message);
+            throw osmError;
         }
     } catch (error) {
-        console.error('Geocoding error:', error);
+        console.error('🚨 All geocoding methods failed:', error.message);
+        console.log('🔄 Falling back to default Delhi coordinates');
         // Fallback to default coordinates (Delhi)
         return {
             lat: 28.6139,
@@ -948,6 +977,29 @@ const geocodeAddress = async (address) => {
         };
     }
 };
+
+// Test geocoding endpoint for debugging
+router.post('/test-geocoding', protect, restrictTo('customer'), async (req, res) => {
+    try {
+        const { address } = req.body;
+        if (!address) {
+            return res.status(400).json({ message: 'Address is required' });
+        }
+
+        const coords = await geocodeAddress(address);
+        res.json({
+            address,
+            coordinates: coords,
+            message: 'Geocoding test successful'
+        });
+    } catch (error) {
+        console.error('Geocoding test error:', error);
+        res.status(500).json({
+            message: 'Geocoding test failed',
+            error: error.message
+        });
+    }
+});
 
 // Calculate delivery charges for given address and shop IDs
 router.post('/calculate-charges', protect, restrictTo('customer'), async (req, res) => {
