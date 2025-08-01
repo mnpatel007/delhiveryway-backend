@@ -149,6 +149,10 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
 
         // Format orders for delivery boy app
         const formattedOrders = orders.map(order => {
+            console.log(`Processing order ${order._id}:`);
+            console.log(`- deliveryCharge: ${order.deliveryCharge}`);
+            console.log(`- deliveryChargesBreakdown: ${JSON.stringify(order.deliveryChargesBreakdown)}`);
+
             // Calculate total distance from deliveryChargesBreakdown
             let totalDistance = 0;
             let deliveryEarnings = order.deliveryCharge || 30; // Delivery boy earns the full delivery charge
@@ -157,6 +161,7 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
                 const breakdown = order.deliveryChargesBreakdown;
                 const distances = Object.values(breakdown).map(shop => shop.distance || 0);
                 totalDistance = Math.max(...distances, 0); // Use the longest distance for delivery boy
+                console.log(`- Using breakdown distances: ${distances}, max: ${totalDistance}`);
             } else {
                 // Fallback for old orders without deliveryChargesBreakdown
                 // Estimate distance based on delivery charge using our pricing tiers
@@ -165,7 +170,11 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
                 else if (charge >= 50) totalDistance = 8.5; // 5-10km tier  
                 else if (charge >= 40) totalDistance = 3.5; // 2-5km tier
                 else totalDistance = 1.5; // 0-2km tier
+                console.log(`- Using fallback distance for charge ${charge}: ${totalDistance} km`);
             }
+
+            console.log(`- Final: distance=${totalDistance}, earnings=${deliveryEarnings}`);
+            console.log('---');
 
             return {
                 _id: order._id,
