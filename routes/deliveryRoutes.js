@@ -157,6 +157,14 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
                 const breakdown = order.deliveryChargesBreakdown;
                 const distances = Object.values(breakdown).map(shop => shop.distance || 0);
                 totalDistance = Math.max(...distances, 0); // Use the longest distance for delivery boy
+            } else {
+                // Fallback for old orders without deliveryChargesBreakdown
+                // Estimate distance based on delivery charge using our pricing tiers
+                const charge = order.deliveryCharge || 30;
+                if (charge >= 60) totalDistance = 13.8; // 10-15km tier
+                else if (charge >= 50) totalDistance = 8.5; // 5-10km tier  
+                else if (charge >= 40) totalDistance = 3.5; // 2-5km tier
+                else totalDistance = 1.5; // 0-2km tier
             }
 
             return {
