@@ -148,33 +148,46 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
         });
 
         // Format orders for delivery boy app
-        const formattedOrders = orders.map(order => ({
-            _id: order._id,
-            customer: {
-                name: order.customerId?.name || 'Customer',
-                phone: order.customerId?.phone || null,
-                email: order.customerId?.email || null
-            },
-            deliveryAddress: order.address || 'Address not provided',
-            items: order.items?.map(item => {
-                console.log('Processing item:', item);
-                return {
-                    name: item.name || item.productId?.name || item.productName || 'Product',
-                    quantity: item.quantity || 1,
-                    price: item.price || item.totalPrice || 0,
-                    shopName: item.shopName || item.productId?.shopId?.name || 'Shop',
-                    shopAddress: item.shopAddress || item.productId?.shopId?.address || 'Not available',
-                    productId: item.productId?._id || item.productId
-                };
-            }) || [],
-            totalAmount: order.totalAmount || 0,
-            deliveryCharge: order.deliveryCharge || 0,
-            status: order.status,
-            createdAt: order.createdAt,
-            distance: order.distance || null,
-            estimatedTime: order.estimatedTime || null,
-            customerLocation: order.customerLocation
-        }));
+        const formattedOrders = orders.map(order => {
+            // Calculate total distance from deliveryChargesBreakdown
+            let totalDistance = 0;
+            let deliveryEarnings = order.deliveryCharge || 30; // Delivery boy earns the full delivery charge
+
+            if (order.deliveryChargesBreakdown && typeof order.deliveryChargesBreakdown === 'object') {
+                const breakdown = order.deliveryChargesBreakdown;
+                const distances = Object.values(breakdown).map(shop => shop.distance || 0);
+                totalDistance = Math.max(...distances, 0); // Use the longest distance for delivery boy
+            }
+
+            return {
+                _id: order._id,
+                customer: {
+                    name: order.customerId?.name || 'Customer',
+                    phone: order.customerId?.phone || null,
+                    email: order.customerId?.email || null
+                },
+                deliveryAddress: order.address || 'Address not provided',
+                items: order.items?.map(item => {
+                    console.log('Processing item:', item);
+                    return {
+                        name: item.name || item.productId?.name || item.productName || 'Product',
+                        quantity: item.quantity || 1,
+                        price: item.price || item.totalPrice || 0,
+                        shopName: item.shopName || item.productId?.shopId?.name || 'Shop',
+                        shopAddress: item.shopAddress || item.productId?.shopId?.address || 'Not available',
+                        productId: item.productId?._id || item.productId
+                    };
+                }) || [],
+                totalAmount: order.totalAmount || 0,
+                deliveryCharge: order.deliveryCharge || 0,
+                deliveryEarnings: deliveryEarnings,
+                status: order.status,
+                createdAt: order.createdAt,
+                distance: totalDistance,
+                estimatedTime: order.estimatedTime || null,
+                customerLocation: order.customerLocation
+            };
+        });
 
         res.json(formattedOrders);
     } catch (err) {
