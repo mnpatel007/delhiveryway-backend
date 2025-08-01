@@ -887,22 +887,25 @@ const calculateDeliveryCharge = (distance) => {
 };
 
 /**
- * Geocode an address to get coordinates
+ * Geocode an address to get coordinates using Google Maps API (same as vendor app)
  */
 const geocodeAddress = async (address) => {
     try {
         const response = await axios.get(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
         );
         const data = response.data;
 
-        if (data && data.length > 0) {
+        if (data.status === 'OK' && data.results.length > 0) {
+            const location = data.results[0].geometry.location;
             return {
-                lat: parseFloat(data[0].lat),
-                lng: parseFloat(data[0].lon)
+                lat: location.lat,
+                lng: location.lng
             };
-        } else {
+        } else if (data.status === 'ZERO_RESULTS') {
             throw new Error('Address not found');
+        } else {
+            throw new Error(`Geocoding failed: ${data.status}`);
         }
     } catch (error) {
         console.error('Geocoding error:', error);
