@@ -5,7 +5,9 @@ const router = express.Router();
 const DeliveryRecord = require('../models/DeliveryRecord');
 const DeliveryBoy = require('../models/DeliveryBoy');
 const Order = require('../models/Order');
+const Shop = require('../models/Shop');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
+const axios = require('axios');
 
 // Utility function to generate OTP
 const generateOTP = () => {
@@ -842,6 +844,193 @@ router.post('/test-otp/:customerId', async (req, res) => {
     } catch (err) {
         console.error('Test OTP error:', err);
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// ==================== DELIVERY CHARGE CALCULATION ENDPOINTS ====================
+
+/**
+ * Calculate distance between two coordinates using Haversine formula
+ */
+const calculateDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    return distance;
+};
+
+/**
+ * Calculate delivery charge based on distance
+ */
+const calculateDeliveryCharge = (distance) => {
+    const baseCharge = 20;
+
+    if (distance <= 2) {
+        return baseCharge; // ₹20 for up to 2km
+    } else if (distance <= 5) {
+        return baseCharge + 10; // ₹30 for 2-5km
+    } else if (distance <= 10) {
+        return baseCharge + 25; // ₹45 for 5-10km
+    } else if (distance <= 15) {
+        return baseCharge + 40; // ₹60 for 10-15km
+    } else if (distance <= 25) {
+        return baseCharge + 60; // ₹80 for 15-25km
+    } else {
+        return baseCharge + 80; // ₹100 for 25km+
+    }
+};
+
+/**
+ * Geocode an address to get coordinates
+ */
+const geocodeAddress = async (address) => {
+    try {
+        const response = await axios.get(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+        );
+        const data = response.data;
+
+        if (data && data.length > 0) {
+            return {
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon)
+            };
+        } else {
+            throw new Error('Address not found');
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        // Fallback to default coordinates (Delhi)
+        return {
+            lat: 28.6139,
+            lng: 77.2090
+        };
+    }
+};
+
+// Calculate delivery charges for given address and shop IDs
+router.post('/calculate-charges', protect, restrictTo('customer'), async (req, res) => {
+    try {
+        const { address, shopIds } = req.body;
+
+        if (!address || !shopIds || !Array.isArray(shopIds)) {
+            return res.status(400).json({
+                message: 'Address and shopIds array are required'
+            });
+        }
+
+        // Geocode customer address
+        const customerCoords = await geocodeAddress(address);
+
+        // Get shop details with coordinates
+        const shops = await Shop.find({ _id: { $in: shopIds } });
+
+        // Calculate delivery charges for each shop
+        const deliveryCharges = {};
+
+        for (const shop of shops) {
+            if (shop.location && shop.location.lat && shop.location.lng) {
+                const distance = calculateDistance(
+                    customerCoords.lat,
+                    customerCoords.lng,
+                    shop.location.lat,
+                    shop.location.lng
+                );
+
+                deliveryCharges[shop._id] = {
+                    shopName: shop.name,
+                    distance: Math.round(distance * 10) / 10, // Round to 1 decimal place
+                    charge: calculateDeliveryCharge(distance),
+                    shopCoords: shop.location
+                };
+            } else {
+                // Fallback charge if shop doesn't have coordinates
+                deliveryCharges[shop._id] = {
+                    shopName: shop.name,
+                    distance: 0,
+                    charge: 30, // Default charge
+                    shopCoords: null
+                };
+            }
+        }
+
+        res.json({
+            customerCoords,
+            deliveryCharges,
+            totalShops: shops.length
+        });
+
+    } catch (error) {
+        console.error('Error calculating delivery charges:', error);
+        res.status(500).json({
+            message: 'Failed to calculate delivery charges',
+            error: error.message
+        });
+    }
+});
+
+// Get delivery charge for a single shop
+router.post('/calculate-single', protect, restrictTo('customer'), async (req, res) => {
+    try {
+        const { address, shopId } = req.body;
+
+        if (!address || !shopId) {
+            return res.status(400).json({
+                message: 'Address and shopId are required'
+            });
+        }
+
+        // Geocode customer address
+        const customerCoords = await geocodeAddress(address);
+
+        // Get shop details
+        const shop = await Shop.findById(shopId);
+        if (!shop) {
+            return res.status(404).json({ message: 'Shop not found' });
+        }
+
+        let deliveryInfo;
+
+        if (shop.location && shop.location.lat && shop.location.lng) {
+            const distance = calculateDistance(
+                customerCoords.lat,
+                customerCoords.lng,
+                shop.location.lat,
+                shop.location.lng
+            );
+
+            deliveryInfo = {
+                shopName: shop.name,
+                distance: Math.round(distance * 10) / 10,
+                charge: calculateDeliveryCharge(distance),
+                shopCoords: shop.location
+            };
+        } else {
+            deliveryInfo = {
+                shopName: shop.name,
+                distance: 0,
+                charge: 30, // Default charge
+                shopCoords: null
+            };
+        }
+
+        res.json({
+            customerCoords,
+            deliveryInfo
+        });
+
+    } catch (error) {
+        console.error('Error calculating single delivery charge:', error);
+        res.status(500).json({
+            message: 'Failed to calculate delivery charge',
+            error: error.message
+        });
     }
 });
 

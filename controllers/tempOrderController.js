@@ -3,7 +3,7 @@ const Product = require('../models/Product');
 
 exports.createTempOrder = async (req, res) => {
     try {
-        const { items, address } = req.body;
+        const { items, address, deliveryCharges } = req.body;
         if (!items || items.length === 0 || !address) {
             return res.status(400).json({ message: 'Missing items or address' });
         }
@@ -42,16 +42,27 @@ exports.createTempOrder = async (req, res) => {
 
         }
 
-        const deliveryCharge = shopSet.size * 10;
+        // Calculate total delivery charges from the provided delivery charges object
+        let totalDeliveryCharge = 0;
+        if (deliveryCharges && typeof deliveryCharges === 'object') {
+            totalDeliveryCharge = Object.values(deliveryCharges).reduce((sum, charge) => {
+                return sum + (charge.charge || 0);
+            }, 0);
+        } else {
+            // Fallback to old calculation if no delivery charges provided
+            totalDeliveryCharge = shopSet.size * 30;
+        }
+
         const tax = total * 0.05;
-        const grandTotal = total + tax + deliveryCharge;
+        const grandTotal = total + tax + totalDeliveryCharge;
 
         const tempOrder = await Order.create({
             customerId: req.user.id,
             items: orderItems,
             address,
             totalAmount: grandTotal,
-            deliveryCharge,
+            deliveryCharge: totalDeliveryCharge,
+            deliveryChargesBreakdown: deliveryCharges || {},
             status: 'pending_vendor'
         });
 

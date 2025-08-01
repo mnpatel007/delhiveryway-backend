@@ -6,7 +6,7 @@ const Order = require('../models/Order');
 
 router.post('/create-checkout-session', protect, restrictTo('customer'), async (req, res) => {
     try {
-        const { items, address } = req.body;
+        const { items, address, deliveryCharge } = req.body;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'Invalid items in request' });
@@ -37,7 +37,9 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
 
         const gst = itemTotal * 0.05;
         const platformFee = itemTotal * 0.029;
-        const deliveryCharge = 30;
+
+        // Use provided delivery charge or fallback to 30
+        const finalDeliveryCharge = deliveryCharge || 30;
 
         // Taxes (GST + Platform Fee)
         const taxes = gst + platformFee;
@@ -56,7 +58,7 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
             price_data: {
                 currency: 'inr',
                 product_data: { name: 'Delivery Charge' },
-                unit_amount: Math.round(deliveryCharge * 100),
+                unit_amount: Math.round(finalDeliveryCharge * 100),
             },
             quantity: 1,
         });

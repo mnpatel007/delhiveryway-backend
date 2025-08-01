@@ -33,6 +33,10 @@ const orderSchema = new mongoose.Schema({
         required: true,
         default: 0,
     },
+    deliveryChargesBreakdown: {
+        type: mongoose.Schema.Types.Mixed, // Stores the detailed breakdown by shop
+        default: {}
+    },
     address: {
         type: String,
         required: [true, 'Delivery address is required'],
