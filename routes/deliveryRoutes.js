@@ -1030,20 +1030,26 @@ router.post('/calculate-charges', protect, restrictTo('customer'), async (req, r
                     shop: shop.location
                 });
 
-                const distance = calculateDistance(
+                const straightLineDistance = calculateDistance(
                     customerCoords.lat,
                     customerCoords.lng,
                     shop.location.lat,
                     shop.location.lng
                 );
 
-                console.log(`Distance calculated: ${distance}km`);
+                // Apply road distance multiplier (typical urban factor is 1.4-1.6x)
+                const roadDistanceMultiplier = 1.5;
+                const estimatedRoadDistance = straightLineDistance * roadDistanceMultiplier;
+
+                console.log(`Straight-line distance: ${straightLineDistance.toFixed(2)}km`);
+                console.log(`Estimated road distance: ${estimatedRoadDistance.toFixed(2)}km (${roadDistanceMultiplier}x multiplier)`);
 
                 deliveryCharges[shop._id] = {
                     shopName: shop.name,
-                    distance: Math.round(distance * 10) / 10, // Round to 1 decimal place
-                    charge: calculateDeliveryCharge(distance),
-                    shopCoords: shop.location
+                    distance: Math.round(estimatedRoadDistance * 10) / 10, // Round to 1 decimal place
+                    charge: calculateDeliveryCharge(estimatedRoadDistance),
+                    shopCoords: shop.location,
+                    straightLineDistance: Math.round(straightLineDistance * 10) / 10
                 };
             } else {
                 console.log(`Shop ${shop.name} has no coordinates, using default charge`);
