@@ -122,7 +122,10 @@ router.put('/:id/confirm', protect, restrictTo('vendor'), async (req, res) => {
             return res.status(400).json({ message: 'Not a rehearsal order' });
         }
 
-        order.items = items;
+        // Use items from request body if provided, otherwise keep original order items
+        const finalItems = items && items.length > 0 ? items : order.items;
+
+        order.items = finalItems;
         order.status = 'confirmed_by_vendor';
         await order.save();
 
@@ -130,7 +133,7 @@ router.put('/:id/confirm', protect, restrictTo('vendor'), async (req, res) => {
         if (io) {
             io.to(order.customerId.toString()).emit('vendorConfirmedOrder', {
                 orderId: order._id,
-                items,
+                items: finalItems,
                 address: order.address,
                 totalAmount: order.totalAmount,
                 deliveryCharge: order.deliveryCharge
