@@ -156,12 +156,27 @@ router.put('/:id/confirm', protect, restrictTo('vendor'), async (req, res) => {
 
         const io = req.app.get('io');
         if (io) {
+            // Notify customer
             io.to(order.customerId.toString()).emit('vendorConfirmedOrder', {
                 orderId: order._id,
                 items: finalItems,
                 address: order.address,
                 totalAmount: newTotalAmount,
                 deliveryCharge: order.deliveryCharge
+            });
+
+            // Notify all delivery boys about new order
+            console.log('📢 Notifying delivery boys about new order:', order._id);
+            io.to('deliveryBoys').emit('newOrderAvailable', {
+                orderId: order._id,
+                items: finalItems,
+                address: order.address,
+                totalAmount: newTotalAmount,
+                deliveryCharge: order.deliveryCharge,
+                customerName: order.customerName || 'Customer',
+                customerPhone: order.customerPhone || '',
+                status: 'confirmed_by_vendor',
+                createdAt: order.createdAt
             });
         }
 
