@@ -134,10 +134,9 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
         const allOrders = await Order.find({}).select('_id status deliveryBoyId declinedBy');
         console.log('All orders in database:', allOrders.map(o => ({ id: o._id, status: o.status, deliveryBoyId: o.deliveryBoyId, declined: o.declinedBy?.length || 0 })));
 
+        // TEMPORARY: Show ALL orders to debug the issue
         const orders = await Order.find({
-            status: 'confirmed_by_vendor', // Only show vendor-confirmed orders
-            deliveryBoyId: { $exists: false },
-            'declinedBy.deliveryBoyId': { $ne: req.user.id }
+            // Remove all filters temporarily
         })
             .populate({
                 path: 'items.productId',
