@@ -130,6 +130,10 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
     try {
         console.log(`Fetching available orders for delivery boy: ${req.user.id}`);
 
+        // Debug: Check all orders first
+        const allOrders = await Order.find({}).select('_id status deliveryBoyId declinedBy');
+        console.log('All orders in database:', allOrders.map(o => ({ id: o._id, status: o.status, deliveryBoyId: o.deliveryBoyId, declined: o.declinedBy?.length || 0 })));
+
         const orders = await Order.find({
             status: 'confirmed_by_vendor', // Only show vendor-confirmed orders
             deliveryBoyId: { $exists: false },
@@ -144,8 +148,12 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
 
         console.log(`Found ${orders.length} available orders for delivery boy ${req.user.id}`);
         orders.forEach(order => {
-            console.log(`Order ${order._id}: status=${order.status}, declinedBy=${JSON.stringify(order.declinedBy)}`);
+            console.log(`Order ${order._id}: status=${order.status}, deliveryBoyId=${order.deliveryBoyId}, declinedBy=${JSON.stringify(order.declinedBy)}`);
         });
+        
+        // Debug: Also check orders with status 'confirmed_by_vendor'
+        const confirmedOrders = await Order.find({ status: 'confirmed_by_vendor' }).select('_id status deliveryBoyId');
+        console.log('Orders with confirmed_by_vendor status:', confirmedOrders.map(o => ({ id: o._id, status: o.status, deliveryBoyId: o.deliveryBoyId })));
 
         // Format orders for delivery boy app
         const formattedOrders = orders.map(order => {
