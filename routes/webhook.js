@@ -46,16 +46,37 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
             const tax = totalAmount * 0.05;
             const grandTotal = totalAmount + tax + deliveryCharge;
 
-            const newOrder = await Order.create({
+            // Check if there's an existing rehearsal order for this customer
+            let existingOrder = await Order.findOne({
                 customerId: userId,
-                items: populatedItems,
-                address,
-                totalAmount: grandTotal,
-                deliveryCharge,
-                status: 'staged',
-                paymentStatus: 'paid',
-                paymentIntentId: session.payment_intent
-            });
+                status: 'confirmed_by_vendor',
+                address: address
+            }).sort({ createdAt: -1 });
+
+            let finalOrder;
+            if (existingOrder) {
+                // Update existing rehearsal order
+                existingOrder.status = 'staged';
+                existingOrder.paymentStatus = 'paid';
+                existingOrder.paymentIntentId = session.payment_intent;
+                existingOrder.totalAmount = grandTotal;
+                await existingOrder.save();
+                finalOrder = existingOrder;
+                console.log('✅ Updated existing rehearsal order:', finalOrder._id);
+            } else {
+                // Create new order if no rehearsal order found
+                finalOrder = await Order.create({
+                    customerId: userId,
+                    items: populatedItems,
+                    address,
+                    totalAmount: grandTotal,
+                    deliveryCharge,
+                    status: 'staged',
+                    paymentStatus: 'paid',
+                    paymentIntentId: session.payment_intent
+                });
+                console.log('✅ Created new order:', finalOrder._id);
+            }
 
             console.log('✅ Order created in DB');
 
@@ -81,7 +102,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                     );
 
                     io.to(shop.vendorId.toString()).emit('newStagedOrder', {
-                        orderId: newOrder._id,
+                        orderId: finalOrder._id,
                         address,
                         items: itemsForShop
                     });
@@ -106,7 +127,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                 );
 
                 io.to('deliveryBoys').emit('newOrderAvailable', {
-                    orderId: newOrder._id,
+                    orderId: finalOrder._id,
                     items: allItemsForDelivery,
                     address: address,
                     totalAmount: grandTotal,
@@ -114,7 +135,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                     customerName: 'Customer', // You can get this from user data if needed
                     customerPhone: '', // You can get this from user data if needed
                     status: 'staged', // This is a PAID order ready for delivery
-                    createdAt: newOrder.createdAt,
+                    createdAt: finalOrder.createdAt,
                     needsAcceptance: true // This tells delivery boy they need to Accept/Decline
                 });
             }

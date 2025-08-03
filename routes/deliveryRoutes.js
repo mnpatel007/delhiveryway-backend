@@ -131,7 +131,7 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
         console.log(`Fetching available orders for delivery boy: ${req.user.id}`);
 
         const orders = await Order.find({
-            status: { $in: ['staged', 'confirmed_by_vendor'] }, // Include both staged (paid) and vendor-confirmed orders
+            status: 'confirmed_by_vendor', // Only show vendor-confirmed orders
             deliveryBoyId: { $exists: false },
             'declinedBy.deliveryBoyId': { $ne: req.user.id }
         })
@@ -251,7 +251,7 @@ router.post('/accept/:orderId', protect, restrictTo('delivery'), async (req, res
             return res.status(400).json({ message: 'Order already assigned to another delivery boy' });
         }
 
-        if (!['staged', 'confirmed_by_vendor'].includes(order.status)) {
+        if (order.status !== 'confirmed_by_vendor') {
             return res.status(400).json({ message: 'Order is not ready for delivery' });
         }
 
@@ -327,7 +327,7 @@ router.post('/decline/:orderId', protect, restrictTo('delivery'), async (req, re
         }
 
         // Check if order is available for assignment
-        if (!['staged', 'confirmed_by_vendor', 'confirmed', 'pending'].includes(order.status)) {
+        if (order.status !== 'confirmed_by_vendor') {
             return res.status(400).json({ message: 'Order is not available for decline' });
         }
 
