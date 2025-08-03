@@ -134,9 +134,10 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
         const allOrders = await Order.find({}).select('_id status deliveryBoyId declinedBy');
         console.log('All orders in database:', allOrders.map(o => ({ id: o._id, status: o.status, deliveryBoyId: o.deliveryBoyId, declined: o.declinedBy?.length || 0 })));
 
-        // TEMPORARY: Show ALL orders to debug the issue
         const orders = await Order.find({
-            // Remove all filters temporarily
+            status: { $in: ['confirmed_by_vendor', 'staged', 'confirmed'] },
+            deliveryBoyId: { $exists: false },
+            'declinedBy.deliveryBoyId': { $ne: req.user.id }
         })
             .populate({
                 path: 'items.productId',
@@ -258,8 +259,10 @@ router.post('/accept/:orderId', protect, restrictTo('delivery'), async (req, res
             return res.status(400).json({ message: 'Order already assigned to another delivery boy' });
         }
 
-        if (order.status !== 'confirmed_by_vendor') {
-            return res.status(400).json({ message: 'Order is not ready for delivery' });
+        // Accept orders in any of these statuses
+        const acceptableStatuses = ['confirmed_by_vendor', 'staged', 'confirmed', 'pending'];
+        if (!acceptableStatuses.includes(order.status)) {
+            return res.status(400).json({ message: `Order status '${order.status}' is not ready for delivery. Expected one of: ${acceptableStatuses.join(', ')}` });
         }
 
         // Update order with delivery boy
@@ -334,8 +337,9 @@ router.post('/decline/:orderId', protect, restrictTo('delivery'), async (req, re
         }
 
         // Check if order is available for assignment
-        if (order.status !== 'confirmed_by_vendor') {
-            return res.status(400).json({ message: 'Order is not available for decline' });
+        const declinableStatuses = ['confirmed_by_vendor', 'staged', 'confirmed', 'pending'];
+        if (!declinableStatuses.includes(order.status)) {
+            return res.status(400).json({ message: `Order status '${order.status}' cannot be declined. Current status: ${order.status}` });
         }
 
         // Log the decline reason
