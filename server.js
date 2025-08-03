@@ -6,6 +6,9 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
 const socketIo = require('socket.io');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
+const { csrfProtection, getCsrfToken } = require('./middleware/csrfProtection');
 
 dotenv.config();
 
@@ -47,8 +50,26 @@ app.use(
     })
 );
 
+// Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-session-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI
+    }),
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// CSRF token endpoint
+app.get('/api/csrf-token', getCsrfToken);
 
 /* ------------------------------------------------------------------ */
 /*  Socket.IO logic                                                   */
@@ -99,17 +120,17 @@ mongoose
     .then(() => {
         console.log('✅ Connected to MongoDB');
 
-        // All routes after DB connection
-        app.use('/api/auth', require('./routes/authRoutes'));
-        app.use('/api/shops', require('./routes/shopRoutes'));
-        app.use('/api/products', require('./routes/productRoutes'));
-        app.use('/api/orders', require('./routes/orderRoutes'));
-        app.use('/api/vendor/orders', require('./routes/vendororderRoutes'));
-        app.use('/api/payment', require('./routes/paymentRoutes'));
-        app.use('/api/vendor', require('./routes/vendorStatsRoutes'));
-        app.use('/api/temp-orders', require('./routes/tempOrderRoutes'));
-        app.use('/api/delivery/auth', require('./routes/deliveryAuthRoutes'));
-        app.use('/api/delivery', require('./routes/deliveryRoutes'));
+        // All routes after DB connection with CSRF protection
+        app.use('/api/auth', csrfProtection, require('./routes/authRoutes'));
+        app.use('/api/shops', csrfProtection, require('./routes/shopRoutes'));
+        app.use('/api/products', csrfProtection, require('./routes/productRoutes'));
+        app.use('/api/orders', csrfProtection, require('./routes/orderRoutes'));
+        app.use('/api/vendor/orders', csrfProtection, require('./routes/vendororderRoutes'));
+        app.use('/api/payment', csrfProtection, require('./routes/paymentRoutes'));
+        app.use('/api/vendor', csrfProtection, require('./routes/vendorStatsRoutes'));
+        app.use('/api/temp-orders', csrfProtection, require('./routes/tempOrderRoutes'));
+        app.use('/api/delivery/auth', csrfProtection, require('./routes/deliveryAuthRoutes'));
+        app.use('/api/delivery', csrfProtection, require('./routes/deliveryRoutes'));
 
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');

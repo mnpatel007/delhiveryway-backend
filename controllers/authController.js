@@ -4,6 +4,14 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
+// Utility function to sanitize log inputs
+const sanitizeForLog = (input) => {
+    if (typeof input === 'string') {
+        return encodeURIComponent(input).replace(/[\r\n]/g, '');
+    }
+    return JSON.stringify(input).replace(/[\r\n]/g, '');
+};
+
 const generateToken = (user) => {
     return jwt.sign(
         { id: user._id, role: user.role },
@@ -17,7 +25,7 @@ exports.signup = async (req, res) => {
 
     try {
         const { name, email, password, role } = req.body;
-        console.log('📩 Incoming data:', { name, email, role });
+        console.log('📩 Incoming data:', { name: sanitizeForLog(name), email: sanitizeForLog(email), role: sanitizeForLog(role) });
 
         if (!name || !email || !password || !role) {
             console.log('❌ Missing fields in signup request');
@@ -26,15 +34,14 @@ exports.signup = async (req, res) => {
 
         const existing = await User.findOne({ email });
         if (existing) {
-            console.log('🚫 User already exists:', email);
+            console.log('🚫 User already exists:', sanitizeForLog(email));
             return res.status(400).json({ message: 'User already exists' });
         }
 
         const hashed = await bcrypt.hash(password, 10);
         console.log('🔐 Password hashed');
 
-        const crypto = require('crypto');
-        const nodemailer = require('nodemailer');
+
 
         const verificationToken = crypto.randomBytes(32).toString('hex');
         console.log('🔑 Verification token generated');
@@ -47,7 +54,7 @@ exports.signup = async (req, res) => {
             isVerified: false,
             verificationToken
         });
-        console.log('✅ User created in MongoDB:', user._id);
+        console.log('✅ User created in MongoDB:', sanitizeForLog(user._id.toString()));
         const customerURL = process.env.FRONTEND_URL;
         const vendorURL = process.env.VENDOR_FRONTEND_URL;
 
@@ -55,29 +62,29 @@ exports.signup = async (req, res) => {
 
         const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${email}`;
 
-        console.log('🔗 Verification link generated:', verificationLink);
+        console.log('🔗 Verification link generated for user:', sanitizeForLog(email));
 
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'meetnp007@gmail.com',        // replace with real gmail
-                pass: 'rjnhzyswdyphnpsr'           // replace with real app password
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
             }
         });
 
         await transporter.sendMail({
-            from: 'meetnp007@gmail.com',
+            from: process.env.EMAIL_USER,
             to: email,
             subject: 'Verify your email - DelhiveryWay',
             html: `<p>Click the link to verify your email:</p><a href="${verificationLink}">${verificationLink}</a>`
         });
 
-        console.log('📧 Email sent successfully to:', email);
+        console.log('📧 Email sent successfully to:', sanitizeForLog(email));
 
         res.status(201).json({ message: 'Verification email sent to your email address' });
 
     } catch (err) {
-        console.error('🔥 Signup failed:', err.message);
+        console.error('🔥 Signup failed:', sanitizeForLog(err.message));
         res.status(500).json({ message: 'Signup failed', error: err.message });
     }
 };
@@ -86,7 +93,7 @@ exports.signup = async (req, res) => {
 exports.verifyEmail = async (req, res) => {
     try {
         const { token, email } = req.query;
-        console.log('🔍 Incoming verification request:', { email, token });
+        console.log('🔍 Incoming verification request for email:', sanitizeForLog(email));
 
         const user = await User.findOne({ email, verificationToken: token });
 
@@ -99,11 +106,11 @@ exports.verifyEmail = async (req, res) => {
         user.verificationToken = undefined;
         await user.save();
 
-        console.log('✅ Email verified successfully for:', user.email);
+        console.log('✅ Email verified successfully for:', sanitizeForLog(user.email));
 
         res.status(200).json({ message: 'Email verified successfully', user });
     } catch (err) {
-        console.error('🔥 Verification failed:', err.message);
+        console.error('🔥 Verification failed:', sanitizeForLog(err.message));
         res.status(500).json({ message: 'Verification failed', error: err.message });
     }
 };
@@ -194,13 +201,13 @@ exports.forgotPassword = async (req, res) => {
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'meetnp007@gmail.com',
-                pass: 'rjnhzyswdyphnpsr',
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
             },
         });
 
         await transporter.sendMail({
-            from: 'meetnp007@gmail.com',
+            from: process.env.EMAIL_USER,
             to: email,
             subject: 'Password Reset - DelhiveryWay',
             html: `<p>Click below to reset your password:</p><a href="${resetLink}">${resetLink}</a>`

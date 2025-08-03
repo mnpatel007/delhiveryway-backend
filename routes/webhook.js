@@ -12,7 +12,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     try {
         event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
-        console.error('❌ Stripe webhook signature verification failed:', err.message);
+        console.error('❌ Stripe webhook signature verification failed');
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
@@ -57,7 +57,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                 paymentIntentId: session.payment_intent
             });
 
-            console.log('✅ Order created in DB:', newOrder._id);
+            console.log('✅ Order created in DB');
 
             const io = req.app.get('io');
             if (io) {
@@ -86,11 +86,11 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                         items: itemsForShop
                     });
 
-                    console.log(`📡 newStagedOrder emitted to vendor ${shop.vendorId}`);
+                    console.log('📡 newStagedOrder emitted to vendor');
                 }
 
                 // 🚨 NOW notify delivery boys about PAID order (with Accept/Decline)
-                console.log('📢 Notifying delivery boys about PAID order:', newOrder._id);
+                console.log('📢 Notifying delivery boys about PAID order');
 
                 // Get all items with full details for delivery boys
                 const allItemsForDelivery = await Promise.all(
