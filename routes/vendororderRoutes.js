@@ -125,7 +125,32 @@ router.put('/:id/confirm', protect, restrictTo('vendor'), async (req, res) => {
         // Use items from request body if provided, otherwise keep original order items
         const finalItems = items && items.length > 0 ? items : order.items;
 
+        // Recalculate total amount based on final items
+        let newTotalAmount = order.totalAmount;
+        if (items && items.length > 0) {
+            const itemsTotal = finalItems.reduce((sum, item) => {
+                const price = parseFloat(item.product?.price || item.price || 0);
+                const quantity = parseInt(item.quantity || 0);
+                return sum + (price * quantity);
+            }, 0);
+
+            // Add delivery charge and taxes (5% GST + 2.9% platform fee)
+            const deliveryCharge = order.deliveryCharge || 30;
+            const gst = itemsTotal * 0.05;
+            const platformFee = itemsTotal * 0.029;
+            newTotalAmount = itemsTotal + gst + platformFee + deliveryCharge;
+
+            console.log('💰 Recalculated totals:', {
+                itemsTotal,
+                gst,
+                platformFee,
+                deliveryCharge,
+                newTotalAmount
+            });
+        }
+
         order.items = finalItems;
+        order.totalAmount = newTotalAmount;
         order.status = 'confirmed_by_vendor';
         await order.save();
 
@@ -135,7 +160,7 @@ router.put('/:id/confirm', protect, restrictTo('vendor'), async (req, res) => {
                 orderId: order._id,
                 items: finalItems,
                 address: order.address,
-                totalAmount: order.totalAmount,
+                totalAmount: newTotalAmount,
                 deliveryCharge: order.deliveryCharge
             });
         }
