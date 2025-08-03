@@ -120,17 +120,17 @@ mongoose
     .then(() => {
         console.log('✅ Connected to MongoDB');
 
-        // All routes after DB connection with CSRF protection
-        app.use('/api/auth', csrfProtection, require('./routes/authRoutes'));
-        app.use('/api/shops', csrfProtection, require('./routes/shopRoutes'));
-        app.use('/api/products', csrfProtection, require('./routes/productRoutes'));
-        app.use('/api/orders', csrfProtection, require('./routes/orderRoutes'));
-        app.use('/api/vendor/orders', csrfProtection, require('./routes/vendororderRoutes'));
-        app.use('/api/payment', csrfProtection, require('./routes/paymentRoutes'));
-        app.use('/api/vendor', csrfProtection, require('./routes/vendorStatsRoutes'));
-        app.use('/api/temp-orders', csrfProtection, require('./routes/tempOrderRoutes'));
-        app.use('/api/delivery/auth', csrfProtection, require('./routes/deliveryAuthRoutes'));
-        app.use('/api/delivery', csrfProtection, require('./routes/deliveryRoutes'));
+        // All routes after DB connection (CSRF temporarily disabled)
+        app.use('/api/auth', require('./routes/authRoutes'));
+        app.use('/api/shops', require('./routes/shopRoutes'));
+        app.use('/api/products', require('./routes/productRoutes'));
+        app.use('/api/orders', require('./routes/orderRoutes'));
+        app.use('/api/vendor/orders', require('./routes/vendororderRoutes'));
+        app.use('/api/payment', require('./routes/paymentRoutes'));
+        app.use('/api/vendor', require('./routes/vendorStatsRoutes'));
+        app.use('/api/temp-orders', require('./routes/tempOrderRoutes'));
+        app.use('/api/delivery/auth', require('./routes/deliveryAuthRoutes'));
+        app.use('/api/delivery', require('./routes/deliveryRoutes'));
 
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');
