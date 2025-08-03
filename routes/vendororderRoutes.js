@@ -184,7 +184,7 @@ router.patch('/confirm/:orderId', protect, restrictTo('vendor'), async (req, res
             return res.status(400).json({ message: 'Order not in confirmable state' });
         }
 
-        order.status = 'confirmed';
+        order.status = 'confirmed_by_vendor';
         await order.save();
 
         const io = req.app.get('io');
@@ -193,7 +193,7 @@ router.patch('/confirm/:orderId', protect, restrictTo('vendor'), async (req, res
         if (io) {
             io.to(order.customerId.toString()).emit('orderStatusUpdate', {
                 orderId: order._id,
-                status: 'confirmed'
+                status: 'confirmed_by_vendor'
             });
 
             // 🚴 Emit to delivery boys
