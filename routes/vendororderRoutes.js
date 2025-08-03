@@ -165,19 +165,7 @@ router.put('/:id/confirm', protect, restrictTo('vendor'), async (req, res) => {
                 deliveryCharge: order.deliveryCharge
             });
 
-            // Notify all delivery boys about new order
-            console.log('📢 Notifying delivery boys about new order:', order._id);
-            io.to('deliveryBoys').emit('newOrderAvailable', {
-                orderId: order._id,
-                items: finalItems,
-                address: order.address,
-                totalAmount: newTotalAmount,
-                deliveryCharge: order.deliveryCharge,
-                customerName: order.customerName || 'Customer',
-                customerPhone: order.customerPhone || '',
-                status: 'confirmed_by_vendor',
-                createdAt: order.createdAt
-            });
+            // DO NOT notify delivery boys here - only after payment!
         }
 
         res.json({ message: 'Order confirmed by vendor', order });

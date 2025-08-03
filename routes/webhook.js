@@ -61,6 +61,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
 
             const io = req.app.get('io');
             if (io) {
+                // Notify vendors about staged order
                 for (const shopId of shopSet) {
                     const shop = await Shop.findById(shopId);
                     if (!shop) continue;
@@ -87,6 +88,35 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
 
                     console.log(`📡 newStagedOrder emitted to vendor ${shop.vendorId}`);
                 }
+
+                // 🚨 NOW notify delivery boys about PAID order (with Accept/Decline)
+                console.log('📢 Notifying delivery boys about PAID order:', newOrder._id);
+
+                // Get all items with full details for delivery boys
+                const allItemsForDelivery = await Promise.all(
+                    populatedItems.map(async (item) => {
+                        const product = await Product.findById(item.productId).populate('shopId');
+                        return {
+                            name: product?.name || 'Unknown',
+                            quantity: item.quantity,
+                            shopName: product?.shopId?.name || 'Unknown Shop',
+                            price: product?.price || 0
+                        };
+                    })
+                );
+
+                io.to('deliveryBoys').emit('newOrderAvailable', {
+                    orderId: newOrder._id,
+                    items: allItemsForDelivery,
+                    address: address,
+                    totalAmount: grandTotal,
+                    deliveryCharge: deliveryCharge,
+                    customerName: 'Customer', // You can get this from user data if needed
+                    customerPhone: '', // You can get this from user data if needed
+                    status: 'staged', // This is a PAID order ready for delivery
+                    createdAt: newOrder.createdAt,
+                    needsAcceptance: true // This tells delivery boy they need to Accept/Decline
+                });
             }
 
             return res.status(200).json({ received: true });
