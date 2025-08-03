@@ -131,7 +131,7 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
         console.log(`Fetching available orders for delivery boy: ${req.user.id}`);
 
         const orders = await Order.find({
-            status: 'confirmed',
+            status: { $in: ['staged', 'confirmed_by_vendor'] }, // Include both staged (paid) and vendor-confirmed orders
             deliveryBoyId: { $exists: false },
             'declinedBy.deliveryBoyId': { $ne: req.user.id }
         })
@@ -251,7 +251,7 @@ router.post('/accept/:orderId', protect, restrictTo('delivery'), async (req, res
             return res.status(400).json({ message: 'Order already assigned to another delivery boy' });
         }
 
-        if (order.status !== 'confirmed') {
+        if (!['staged', 'confirmed_by_vendor'].includes(order.status)) {
             return res.status(400).json({ message: 'Order is not ready for delivery' });
         }
 
