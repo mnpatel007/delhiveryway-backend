@@ -327,7 +327,7 @@ router.post('/decline/:orderId', protect, restrictTo('delivery'), async (req, re
         }
 
         // Check if order is available for assignment
-        if (order.status !== 'confirmed' && order.status !== 'pending') {
+        if (!['staged', 'confirmed_by_vendor', 'confirmed', 'pending'].includes(order.status)) {
             return res.status(400).json({ message: 'Order is not available for decline' });
         }
 
