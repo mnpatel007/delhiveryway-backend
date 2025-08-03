@@ -135,7 +135,7 @@ router.get('/available-orders', protect, restrictTo('delivery'), async (req, res
         console.log('All orders in database:', allOrders.map(o => ({ id: o._id, status: o.status, deliveryBoyId: o.deliveryBoyId, declined: o.declinedBy?.length || 0 })));
 
         const orders = await Order.find({
-            status: { $in: ['confirmed_by_vendor', 'staged', 'confirmed'] },
+            status: { $in: ['confirmed_by_vendor', 'staged', 'confirmed', 'preparing'] },
             deliveryBoyId: { $exists: false },
             'declinedBy.deliveryBoyId': { $ne: req.user.id }
         })
@@ -260,7 +260,7 @@ router.post('/accept/:orderId', protect, restrictTo('delivery'), async (req, res
         }
 
         // Accept orders in any of these statuses
-        const acceptableStatuses = ['confirmed_by_vendor', 'staged', 'confirmed', 'pending'];
+        const acceptableStatuses = ['confirmed_by_vendor', 'staged', 'confirmed', 'pending', 'preparing'];
         if (!acceptableStatuses.includes(order.status)) {
             return res.status(400).json({ message: `Order status '${order.status}' is not ready for delivery. Expected one of: ${acceptableStatuses.join(', ')}` });
         }
@@ -337,7 +337,7 @@ router.post('/decline/:orderId', protect, restrictTo('delivery'), async (req, re
         }
 
         // Check if order is available for assignment
-        const declinableStatuses = ['confirmed_by_vendor', 'staged', 'confirmed', 'pending'];
+        const declinableStatuses = ['confirmed_by_vendor', 'staged', 'confirmed', 'pending', 'preparing'];
         if (!declinableStatuses.includes(order.status)) {
             return res.status(400).json({ message: `Order status '${order.status}' cannot be declined. Current status: ${order.status}` });
         }
