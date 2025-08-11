@@ -3,6 +3,42 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const User = require('../models/User');
 const PersonalShopper = require('../models/PersonalShopper');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+// Admin login
+exports.adminLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // For demo purposes, we'll use hardcoded admin credentials
+        // In production, you would check against a database
+        if (email === 'admin@delhiveryway.com' && password === 'admin123') {
+            const adminUser = {
+                id: 'admin1',
+                name: 'Admin',
+                email: 'admin@delhiveryway.com',
+                role: 'admin'
+            };
+
+            const token = jwt.sign(
+                { id: adminUser.id, role: adminUser.role },
+                process.env.JWT_SECRET,
+                { expiresIn: '7d' }
+            );
+
+            return res.status(200).json({
+                token,
+                user: adminUser
+            });
+        }
+
+        res.status(401).json({ message: 'Invalid credentials' });
+    } catch (err) {
+        console.error('❌ Error during admin login:', err.message);
+        res.status(500).json({ message: 'Login failed', error: err.message });
+    }
+};
 
 // Get dashboard statistics
 exports.getDashboardStats = async (req, res) => {

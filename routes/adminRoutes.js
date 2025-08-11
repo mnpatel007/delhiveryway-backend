@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { getDashboardStats, getAllShops, createShop, deleteShop, getAllProducts, createProduct, deleteProduct, getAllOrders, getAllUsers, getAllShoppers } = require('../controllers/adminController');
+const { adminLogin, getDashboardStats, getAllShops, createShop, deleteShop, getAllProducts, createProduct, deleteProduct, getAllOrders, getAllUsers, getAllShoppers } = require('../controllers/adminController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
-// All admin routes require authentication and admin role
+// Admin login route (no authentication required)
+router.post('/login', adminLogin);
+
+// All other admin routes require authentication and admin role
 router.use(protect);
 router.use(restrictTo('admin'));
 
