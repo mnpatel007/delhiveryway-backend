@@ -24,8 +24,10 @@ const io = socketIo(server, {
             'https://delhiveryway-customer.vercel.app',
             'https://delhiveryway-shopper.vercel.app',
             'https://delhiveryway-admin.vercel.app',
+            // Add wildcard for Vercel preview deployments
+            /https:\/\/delhiveryway-.*\.vercel\.app$/,
         ],
-        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         credentials: true,
     },
 });
@@ -45,8 +47,12 @@ app.use(
             'https://delhiveryway-customer.vercel.app',
             'https://delhiveryway-shopper.vercel.app',
             'https://delhiveryway-admin.vercel.app',
+            // Add wildcard for Vercel preview deployments
+            /https:\/\/delhiveryway-.*\.vercel\.app$/,
         ],
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     })
 );
 

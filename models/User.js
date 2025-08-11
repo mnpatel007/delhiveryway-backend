@@ -34,7 +34,15 @@ const userSchema = new mongoose.Schema({
     profilePicture: String,
     isVerified: {
         type: Boolean,
-        default: false
+        default: true  // Set to true by default for now
+    },
+    verificationToken: String,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    role: {
+        type: String,
+        enum: ['customer', 'vendor', 'admin'],
+        default: 'customer'
     },
     totalOrders: {
         type: Number,
