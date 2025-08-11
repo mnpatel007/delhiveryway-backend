@@ -22,6 +22,8 @@ const io = socketIo(server, {
             'http://localhost:3001', // Admin app
             'http://localhost:3002', // Personal Shopper app
             'https://delhiveryway-customer.vercel.app',
+            'https://delhiveryway-shopper.vercel.app',
+            'https://delhiveryway-admin.vercel.app',
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true,
@@ -41,6 +43,8 @@ app.use(
             'http://localhost:3001', // Admin app
             'http://localhost:3002', // Personal Shopper app
             'https://delhiveryway-customer.vercel.app',
+            'https://delhiveryway-shopper.vercel.app',
+            'https://delhiveryway-admin.vercel.app',
         ],
         credentials: true,
     })
