@@ -18,11 +18,9 @@ const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
         origin: [
-            'http://localhost:3000',
-            'http://localhost:3001',
-            'http://localhost:3002',
-            'https://delhiveryway-deliveryboy.vercel.app',
-            'https://delhiveryway-vendor.vercel.app',
+            'http://localhost:3000', // Customer app
+            'http://localhost:3001', // Admin app
+            'http://localhost:3002', // Personal Shopper app
             'https://delhiveryway-customer.vercel.app',
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -39,12 +37,10 @@ app.use('/api/webhook', require('./routes/webhook'));
 app.use(
     cors({
         origin: [
-            'http://localhost:3000',
-            'http://localhost:3001',
-            'http://localhost:3002',
-            'https://delhiveryway-vendor.vercel.app',
+            'http://localhost:3000', // Customer app
+            'http://localhost:3001', // Admin app
+            'http://localhost:3002', // Personal Shopper app
             'https://delhiveryway-customer.vercel.app',
-            'https://delhiveryway-deliveryboy.vercel.app',
         ],
         credentials: true,
     })
@@ -89,22 +85,16 @@ io.on('connection', (socket) => {
         console.log(`✅ User ${userId} joined room ${userId}`);
     });
 
-    socket.on('registerVendor', (vendorId) => {
-        socket.join(vendorId);
-        socket.join(`vendor_${vendorId}`);
-        console.log(`📦 Vendor ${vendorId} joined their socket rooms`);
-    });
-
     socket.on('registerCustomer', (customerId) => {
         socket.join(customerId);
         socket.join(`customer_${customerId}`);
         console.log(`👤 Customer ${customerId} joined their socket rooms`);
     });
 
-    socket.on('registerDelivery', (deliveryBoyId) => {
-        socket.join('deliveryBoys');
-        socket.join(`delivery_${deliveryBoyId}`);
-        console.log(`🚴 Delivery boy ${deliveryBoyId} joined delivery rooms`);
+    socket.on('registerPersonalShopper', (shopperId) => {
+        socket.join('personalShoppers');
+        socket.join(`shopper_${shopperId}`);
+        console.log(`🛒 Personal Shopper ${shopperId} joined shopper rooms`);
     });
 
     socket.on('disconnect', () => {
@@ -125,12 +115,10 @@ mongoose
         app.use('/api/shops', require('./routes/shopRoutes'));
         app.use('/api/products', require('./routes/productRoutes'));
         app.use('/api/orders', require('./routes/orderRoutes'));
-        app.use('/api/vendor/orders', require('./routes/vendororderRoutes'));
         app.use('/api/payment', require('./routes/paymentRoutes'));
-        app.use('/api/vendor', require('./routes/vendorStatsRoutes'));
         app.use('/api/temp-orders', require('./routes/tempOrderRoutes'));
-        app.use('/api/delivery/auth', require('./routes/deliveryAuthRoutes'));
-        app.use('/api/delivery', require('./routes/deliveryRoutes'));
+        app.use('/api/shopper/auth', require('./routes/shopperAuthRoutes'));
+        app.use('/api/shopper/orders', require('./routes/shopperOrderRoutes'));
 
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');

@@ -51,14 +51,28 @@ const orderSchema = new mongoose.Schema({
         lat: { type: Number },
         lng: { type: Number }
     },
-    deliveryBoyId: {
+    personalShopperId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'DeliveryBoy',
+        ref: 'PersonalShopper',
     },
     status: {
         type: String,
-        enum: ['pending_vendor', 'confirmed_by_vendor', 'confirmed', 'pending', 'preparing', 'assigned', 'out_for_delivery', 'picked_up', 'in_transit', 'delivered', 'staged', 'cancelled'],
-        default: 'pending',
+        enum: ['pending_shopper', 'accepted_by_shopper', 'shopping', 'bill_sent', 'bill_approved', 'out_for_delivery', 'delivered', 'cancelled'],
+        default: 'pending_shopper',
+    },
+    billPhoto: {
+        type: String, // URL to the bill photo
+    },
+    billAmount: {
+        type: Number, // Actual amount from the bill
+    },
+    billApproved: {
+        type: Boolean,
+        default: false
+    },
+    shopperEarnings: {
+        type: Number,
+        default: 0
     },
     reason: {
         type: String,
@@ -73,9 +87,9 @@ const orderSchema = new mongoose.Schema({
         type: String, // This is necessary to issue refunds
     },
     declinedBy: [{
-        deliveryBoyId: {
+        personalShopperId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'DeliveryBoy'
+            ref: 'PersonalShopper'
         },
         reason: String,
         declinedAt: {
