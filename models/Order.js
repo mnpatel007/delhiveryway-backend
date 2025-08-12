@@ -220,12 +220,11 @@ const orderSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Indexes
+// Indexes (orderNumber index is created by unique: true)
 orderSchema.index({ customerId: 1, createdAt: -1 });
 orderSchema.index({ personalShopperId: 1, status: 1 });
 orderSchema.index({ shopId: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
-orderSchema.index({ orderNumber: 1 });
 
 // Pre-save middleware to generate order number
 orderSchema.pre('save', async function (next) {
