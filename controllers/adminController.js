@@ -349,6 +349,59 @@ exports.getAllOrders = async (req, res) => {
     }
 };
 
+// Get all products
+exports.getAllProducts = async (req, res) => {
+    try {
+        const { page = 1, limit = 20, category, shopId, search } = req.query;
+        const skip = (page - 1) * limit;
+
+        const filter = {};
+
+        if (category && category !== 'all') {
+            filter.category = category;
+        }
+
+        if (shopId) {
+            filter.shopId = shopId;
+        }
+
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } },
+                { tags: { $in: [new RegExp(search, 'i')] } }
+            ];
+        }
+
+        const products = await Product.find(filter)
+            .populate('shopId', 'name category')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const total = await Product.countDocuments(filter);
+
+        res.json({
+            success: true,
+            data: {
+                products,
+                pagination: {
+                    current: parseInt(page),
+                    pages: Math.ceil(total / limit),
+                    total
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Get all products error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch products'
+        });
+    }
+};
+
 // Get all personal shoppers
 exports.getAllShoppers = async (req, res) => {
     try {
