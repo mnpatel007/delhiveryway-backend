@@ -1,35 +1,51 @@
 const express = require('express');
 const router = express.Router();
-const { adminLogin, getDashboardStats, getAllShops, createShop, deleteShop, getAllProducts, createProduct, deleteProduct, getAllOrders, getAllUsers, getAllShoppers } = require('../controllers/adminController');
-const { protect, restrictTo } = require('../middleware/authMiddleware');
+const {
+    getUsers,
+    getShoppers,
+    updateShopper,
+    deleteShopper,
+    getShops,
+    createShop,
+    deleteShop,
+    getProducts,
+    createProduct,
+    deleteProduct,
+    getOrders
+} = require('../controllers/adminController');
 
-// Admin login route (no authentication required)
-router.post('/login', adminLogin);
+// Simple admin auth middleware (for demo purposes)
+const adminAuth = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token && token.startsWith('admin-token')) {
+        next();
+    } else {
+        res.status(401).json({ message: 'Unauthorized' });
+    }
+};
 
-// All other admin routes require authentication and admin role
-router.use(protect);
-router.use(restrictTo('admin'));
+// Apply admin auth to all routes
+router.use(adminAuth);
 
-// Dashboard statistics
-router.get('/stats', getDashboardStats);
+// User routes
+router.get('/users', getUsers);
 
-// Shops management
-router.get('/shops', getAllShops);
+// Shopper routes
+router.get('/shoppers', getShoppers);
+router.put('/shoppers/:id', updateShopper);
+router.delete('/shoppers/:id', deleteShopper);
+
+// Shop routes
+router.get('/shops', getShops);
 router.post('/shops', createShop);
 router.delete('/shops/:id', deleteShop);
 
-// Products management
-router.get('/products', getAllProducts);
+// Product routes
+router.get('/products', getProducts);
 router.post('/products', createProduct);
 router.delete('/products/:id', deleteProduct);
 
-// Orders management
-router.get('/orders', getAllOrders);
-
-// Users management
-router.get('/users', getAllUsers);
-
-// Personal shoppers management
-router.get('/shoppers', getAllShoppers);
+// Order routes
+router.get('/orders', getOrders);
 
 module.exports = router;
