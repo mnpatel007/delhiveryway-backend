@@ -50,8 +50,9 @@ exports.signup = async (req, res) => {
             name,
             email,
             password: hashed,
-            role,
-            isVerified: false,
+            phone: req.body.phone || '',
+            role: role || 'customer',
+            isVerified: true, // Set to true for demo
             verificationToken
         });
         console.log('✅ User created in MongoDB:', sanitizeForLog(user._id.toString()));
@@ -168,7 +169,9 @@ exports.googleLogin = async (req, res) => {
             name,
             email,
             password: hashedPassword,
-            role,
+            phone: '',
+            role: role || 'customer',
+            isVerified: true
         });
 
         const token = generateToken(user);
