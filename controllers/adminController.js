@@ -213,3 +213,26 @@ exports.getOrders = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// Get dashboard stats
+exports.getStats = async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments();
+        const totalShoppers = await PersonalShopper.countDocuments();
+        const totalShops = await Shop.countDocuments();
+        const totalProducts = await Product.countDocuments();
+        const totalOrders = await Order.countDocuments();
+        const onlineShoppers = await PersonalShopper.countDocuments({ isOnline: true });
+        
+        res.json({
+            totalUsers,
+            totalShoppers,
+            totalShops,
+            totalProducts,
+            totalOrders,
+            onlineShoppers
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};

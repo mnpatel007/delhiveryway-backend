@@ -11,7 +11,8 @@ const {
     getProducts,
     createProduct,
     deleteProduct,
-    getOrders
+    getOrders,
+    getStats
 } = require('../controllers/adminController');
 
 // Simple admin auth middleware (for demo purposes)
@@ -47,5 +48,8 @@ router.delete('/products/:id', deleteProduct);
 
 // Order routes
 router.get('/orders', getOrders);
+
+// Stats route
+router.get('/stats', getStats);
 
 module.exports = router;
