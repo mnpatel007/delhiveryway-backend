@@ -14,26 +14,26 @@ const {
     deleteShop,
     getAnalytics
 } = require('../controllers/adminController');
-const { protect, restrictTo } = require('../middleware/authMiddleware');
+const { adminProtect } = require('../middleware/authMiddleware');
 
 // Public admin routes
 router.post('/login', adminLogin);
 
 // Protected admin routes
-router.get('/dashboard', protect, restrictTo('admin'), getDashboardStats);
-router.get('/users', protect, restrictTo('admin'), getAllUsers);
-router.get('/shops', protect, restrictTo('admin'), getAllShops);
-router.get('/orders', protect, restrictTo('admin'), getAllOrders);
-router.get('/shoppers', protect, restrictTo('admin'), getAllShoppers);
-router.get('/analytics', protect, restrictTo('admin'), getAnalytics);
+router.get('/dashboard', adminProtect, getDashboardStats);
+router.get('/users', adminProtect, getAllUsers);
+router.get('/shops', adminProtect, getAllShops);
+router.get('/orders', adminProtect, getAllOrders);
+router.get('/shoppers', adminProtect, getAllShoppers);
+router.get('/analytics', adminProtect, getAnalytics);
 
 // Update operations
-router.put('/users/:userId/status', protect, restrictTo('admin'), updateUserStatus);
-router.put('/shops/:shopId/status', protect, restrictTo('admin'), updateShopStatus);
-router.put('/orders/:orderId/status', protect, restrictTo('admin'), updateOrderStatus);
+router.put('/users/:userId/status', adminProtect, updateUserStatus);
+router.put('/shops/:shopId/status', adminProtect, updateShopStatus);
+router.put('/orders/:orderId/status', adminProtect, updateOrderStatus);
 
 // Delete operations
-router.delete('/users/:userId', protect, restrictTo('admin'), deleteUser);
-router.delete('/shops/:shopId', protect, restrictTo('admin'), deleteShop);
+router.delete('/users/:userId', adminProtect, deleteUser);
+router.delete('/shops/:shopId', adminProtect, deleteShop);
 
 module.exports = router;

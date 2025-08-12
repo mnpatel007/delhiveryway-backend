@@ -21,7 +21,7 @@ exports.adminLogin = async (req, res) => {
 
             const jwt = require('jsonwebtoken');
             const token = jwt.sign(
-                { id: 'admin', role: 'admin' },
+                { id: 'admin', role: 'admin', isSystemAdmin: true },
                 process.env.JWT_SECRET,
                 { expiresIn: '7d' }
             );

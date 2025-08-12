@@ -58,6 +58,63 @@ exports.restrictTo = (...roles) => {
     };
 };
 
+// Special admin authentication middleware
+exports.adminProtect = async (req, res, next) => {
+    try {
+        let token;
+
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: 'Access denied. No token provided.'
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Handle system admin (hardcoded admin)
+        if (decoded.id === 'admin' && decoded.role === 'admin' && decoded.isSystemAdmin) {
+            req.user = {
+                _id: 'admin',
+                name: 'System Admin',
+                email: 'admin@delhiveryway.com',
+                role: 'admin',
+                isVerified: true
+            };
+            return next();
+        }
+
+        // Handle regular admin users from database
+        const user = await User.findById(decoded.id).select('-password');
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'User no longer exists.'
+            });
+        }
+
+        if (user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. Admin role required.'
+            });
+        }
+
+        req.user = user;
+        next();
+    } catch (error) {
+        console.error('Admin auth middleware error:', error);
+        return res.status(401).json({
+            success: false,
+            message: 'Invalid token.'
+        });
+    }
+};
+
 exports.optionalAuth = async (req, res, next) => {
     try {
         let token;
