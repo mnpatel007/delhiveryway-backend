@@ -14,17 +14,18 @@ exports.adminLogin = async (req, res) => {
         if (email === 'admin@delhiveryway.com' && password === 'admin123') {
             const adminUser = {
                 _id: 'admin',
-                name: 'Admin',
+                name: 'System Admin',
                 email: 'admin@delhiveryway.com',
                 role: 'admin'
             };
 
             const jwt = require('jsonwebtoken');
-            const token = jwt.sign(
-                { id: 'admin', role: 'admin', isSystemAdmin: true },
-                process.env.JWT_SECRET,
-                { expiresIn: '7d' }
-            );
+            const tokenPayload = { id: 'admin', role: 'admin', isSystemAdmin: true };
+            const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+            console.log('✅ Admin login successful for system admin');
+            console.log('🔍 Token payload:', tokenPayload);
+            console.log('🔍 JWT Secret exists:', !!process.env.JWT_SECRET);
 
             return res.json({
                 success: true,

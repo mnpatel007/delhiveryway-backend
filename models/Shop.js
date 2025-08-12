@@ -183,11 +183,12 @@ shopSchema.virtual('fullAddress').get(function () {
 // Method to check if shop is open
 shopSchema.methods.isOpenNow = function () {
     const now = new Date();
-    const day = now.toLocaleDateString('en-US', { weekday: 'lowercase' });
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const day = dayNames[now.getDay()];
     const currentTime = now.toTimeString().slice(0, 5);
 
     const todayHours = this.operatingHours[day];
-    if (todayHours.closed) return false;
+    if (!todayHours || todayHours.closed) return false;
 
     return currentTime >= todayHours.open && currentTime <= todayHours.close;
 };

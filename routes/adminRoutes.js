@@ -19,6 +19,15 @@ const { adminProtect } = require('../middleware/authMiddleware');
 // Public admin routes
 router.post('/login', adminLogin);
 
+// Test route for debugging auth
+router.get('/test-auth', adminProtect, (req, res) => {
+    res.json({
+        success: true,
+        message: 'Admin authentication working',
+        user: req.user
+    });
+});
+
 // Protected admin routes
 router.get('/dashboard', adminProtect, getDashboardStats);
 router.get('/users', adminProtect, getAllUsers);
