@@ -3,82 +3,205 @@ const mongoose = require('mongoose');
 const shopSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
-        trim: true
+        required: [true, 'Shop name is required'],
+        trim: true,
+        minlength: [2, 'Shop name must be at least 2 characters'],
+        maxlength: [100, 'Shop name cannot exceed 100 characters']
     },
-    description: String,
+    description: {
+        type: String,
+        maxlength: [500, 'Description cannot exceed 500 characters']
+    },
+    vendorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: [true, 'Vendor ID is required']
+    },
     category: {
         type: String,
-        required: true,
-        enum: ['grocery', 'pharmacy', 'electronics', 'clothing', 'restaurant', 'bakery', 'other']
+        required: [true, 'Category is required'],
+        enum: {
+            values: ['grocery', 'pharmacy', 'electronics', 'clothing', 'restaurant', 'bakery', 'books', 'sports', 'beauty', 'home', 'other'],
+            message: 'Invalid category'
+        }
     },
     address: {
         street: {
             type: String,
-            required: true
+            required: [true, 'Street address is required']
         },
         city: {
             type: String,
-            required: true
+            required: [true, 'City is required']
         },
         state: {
             type: String,
-            required: true
+            required: [true, 'State is required']
         },
-        zipCode: String,
+        zipCode: {
+            type: String,
+            match: [/^\d{6}$/, 'Please enter a valid 6-digit zip code']
+        },
         coordinates: {
             lat: {
                 type: Number,
-                required: true
+                required: [true, 'Latitude is required'],
+                min: [-90, 'Latitude must be between -90 and 90'],
+                max: [90, 'Latitude must be between -90 and 90']
             },
             lng: {
                 type: Number,
-                required: true
+                required: [true, 'Longitude is required'],
+                min: [-180, 'Longitude must be between -180 and 180'],
+                max: [180, 'Longitude must be between -180 and 180']
             }
         }
     },
     contact: {
-        phone: String,
-        email: String,
+        phone: {
+            type: String,
+            match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number']
+        },
+        email: {
+            type: String,
+            match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+        },
         website: String
     },
-    images: [String],
+    images: [{
+        type: String,
+        validate: {
+            validator: function (v) {
+                return /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(v);
+            },
+            message: 'Please provide a valid image URL'
+        }
+    }],
     operatingHours: {
-        monday: { open: String, close: String, closed: Boolean },
-        tuesday: { open: String, close: String, closed: Boolean },
-        wednesday: { open: String, close: String, closed: Boolean },
-        thursday: { open: String, close: String, closed: Boolean },
-        friday: { open: String, close: String, closed: Boolean },
-        saturday: { open: String, close: String, closed: Boolean },
-        sunday: { open: String, close: String, closed: Boolean }
+        monday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '21:00' },
+            closed: { type: Boolean, default: false }
+        },
+        tuesday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '21:00' },
+            closed: { type: Boolean, default: false }
+        },
+        wednesday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '21:00' },
+            closed: { type: Boolean, default: false }
+        },
+        thursday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '21:00' },
+            closed: { type: Boolean, default: false }
+        },
+        friday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '21:00' },
+            closed: { type: Boolean, default: false }
+        },
+        saturday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '21:00' },
+            closed: { type: Boolean, default: false }
+        },
+        sunday: {
+            open: { type: String, default: '10:00' },
+            close: { type: String, default: '20:00' },
+            closed: { type: Boolean, default: false }
+        }
     },
     rating: {
         average: {
             type: Number,
             default: 4.0,
-            min: 1,
-            max: 5
+            min: [1, 'Rating must be at least 1'],
+            max: [5, 'Rating cannot exceed 5']
         },
         count: {
             type: Number,
-            default: 0
+            default: 0,
+            min: [0, 'Rating count cannot be negative']
         }
     },
     isActive: {
         type: Boolean,
         default: true
     },
-    tags: [String],
+    tags: [{
+        type: String,
+        trim: true,
+        maxlength: [20, 'Tag cannot exceed 20 characters']
+    }],
     deliveryFee: {
+        type: Number,
+        default: 0,
+        min: [0, 'Delivery fee cannot be negative']
+    },
+    minOrderValue: {
+        type: Number,
+        default: 0,
+        min: [0, 'Minimum order value cannot be negative']
+    },
+    maxOrderValue: {
+        type: Number,
+        default: 10000,
+        min: [0, 'Maximum order value cannot be negative']
+    },
+    preparationTime: {
+        type: Number,
+        default: 30, // minutes
+        min: [5, 'Preparation time must be at least 5 minutes']
+    },
+    totalOrders: {
         type: Number,
         default: 0
     },
-    minOrderValue: {
+    totalRevenue: {
         type: Number,
         default: 0
     }
 }, {
     timestamps: true
 });
+
+// Indexes
+shopSchema.index({ vendorId: 1 });
+shopSchema.index({ category: 1 });
+shopSchema.index({ isActive: 1 });
+shopSchema.index({ 'address.coordinates': '2dsphere' });
+shopSchema.index({ name: 'text', description: 'text', tags: 'text' });
+
+// Virtual for full address
+shopSchema.virtual('fullAddress').get(function () {
+    return `${this.address.street}, ${this.address.city}, ${this.address.state} ${this.address.zipCode}`;
+});
+
+// Method to check if shop is open
+shopSchema.methods.isOpenNow = function () {
+    const now = new Date();
+    const day = now.toLocaleDateString('en-US', { weekday: 'lowercase' });
+    const currentTime = now.toTimeString().slice(0, 5);
+
+    const todayHours = this.operatingHours[day];
+    if (todayHours.closed) return false;
+
+    return currentTime >= todayHours.open && currentTime <= todayHours.close;
+};
+
+// Method to calculate distance from coordinates
+shopSchema.methods.distanceFrom = function (lat, lng) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat - this.address.coordinates.lat) * Math.PI / 180;
+    const dLng = (lng - this.address.coordinates.lng) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(this.address.coordinates.lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
 
 module.exports = mongoose.model('Shop', shopSchema);

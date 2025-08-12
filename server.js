@@ -8,25 +8,27 @@ const path = require('path');
 const socketIo = require('socket.io');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
-const { csrfProtection, getCsrfToken } = require('./middleware/csrfProtection');
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins = [
+    'http://localhost:3000', // Customer app
+    'http://localhost:3001', // Admin app
+    'http://localhost:3002', // Personal Shopper app
+    'https://delhiveryway-customer.vercel.app',
+    'https://delhiveryway-shopper.vercel.app',
+    'https://delhiveryway-admin.vercel.app',
+    process.env.FRONTEND_URL,
+    process.env.ADMIN_FRONTEND_URL,
+    process.env.SHOPPER_FRONTEND_URL
+].filter(Boolean);
+
 const io = socketIo(server, {
     cors: {
-        origin: [
-            'http://localhost:3000', // Customer app
-            'http://localhost:3001', // Admin app
-            'http://localhost:3002', // Personal Shopper app
-            'https://delhiveryway-customer.vercel.app',
-            'https://delhiveryway-shopper.vercel.app',
-            'https://delhiveryway-admin.vercel.app',
-            // Add wildcard for Vercel preview deployments
-            /https:\/\/delhiveryway-.*\.vercel\.app$/,
-        ],
+        origin: allowedOrigins,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         credentials: true,
     },
@@ -40,19 +42,10 @@ app.use('/api/webhook', require('./routes/webhook'));
 
 app.use(
     cors({
-        origin: [
-            'http://localhost:3000', // Customer app
-            'http://localhost:3001', // Admin app
-            'http://localhost:3002', // Personal Shopper app
-            'https://delhiveryway-customer.vercel.app',
-            'https://delhiveryway-shopper.vercel.app',
-            'https://delhiveryway-admin.vercel.app',
-            // Add wildcard for Vercel preview deployments
-            /https:\/\/delhiveryway-.*\.vercel\.app$/,
-        ],
+        origin: allowedOrigins,
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
     })
 );
 
@@ -71,11 +64,9 @@ app.use(session({
     }
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// CSRF token endpoint
-app.get('/api/csrf-token', getCsrfToken);
 
 /* ------------------------------------------------------------------ */
 /*  Socket.IO logic                                                   */
@@ -120,16 +111,14 @@ mongoose
     .then(() => {
         console.log('✅ Connected to MongoDB');
 
-        // All routes after DB connection (CSRF temporarily disabled)
+        // API Routes
         app.use('/api/auth', require('./routes/authRoutes'));
         app.use('/api/shops', require('./routes/shopRoutes'));
         app.use('/api/products', require('./routes/productRoutes'));
         app.use('/api/orders', require('./routes/orderRoutes'));
         app.use('/api/payment', require('./routes/paymentRoutes'));
-        app.use('/api/temp-orders', require('./routes/tempOrderRoutes'));
         app.use('/api/shopper/auth', require('./routes/shopperAuthRoutes'));
         app.use('/api/shopper/orders', require('./routes/shopperOrderRoutes'));
-        app.use('/api/admin', require('./routes/adminRoutes'));
         app.use('/api/admin', require('./routes/adminRoutes'));
 
         app.get('/', (req, res) => {

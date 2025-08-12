@@ -1,56 +1,39 @@
 const express = require('express');
 const router = express.Router();
 const {
-    getUsers,
-    getShoppers,
-    updateShopper,
-    deleteShopper,
-    getShops,
-    createShop,
+    adminLogin,
+    getDashboardStats,
+    getAllUsers,
+    getAllShops,
+    getAllOrders,
+    getAllShoppers,
+    updateUserStatus,
+    updateShopStatus,
+    updateOrderStatus,
+    deleteUser,
     deleteShop,
-    getProducts,
-    createProduct,
-    deleteProduct,
-    getOrders,
-    getStats
+    getAnalytics
 } = require('../controllers/adminController');
+const { protect, restrictTo } = require('../middleware/authMiddleware');
 
-// Simple admin auth middleware (for demo purposes)
-const adminAuth = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (token && (token.startsWith('admin-token') || token === 'demo-admin')) {
-        next();
-    } else {
-        // For demo, allow requests without token
-        next();
-    }
-};
+// Public admin routes
+router.post('/login', adminLogin);
 
-// Apply admin auth to all routes
-router.use(adminAuth);
+// Protected admin routes
+router.get('/dashboard', protect, restrictTo('admin'), getDashboardStats);
+router.get('/users', protect, restrictTo('admin'), getAllUsers);
+router.get('/shops', protect, restrictTo('admin'), getAllShops);
+router.get('/orders', protect, restrictTo('admin'), getAllOrders);
+router.get('/shoppers', protect, restrictTo('admin'), getAllShoppers);
+router.get('/analytics', protect, restrictTo('admin'), getAnalytics);
 
-// User routes
-router.get('/users', getUsers);
+// Update operations
+router.put('/users/:userId/status', protect, restrictTo('admin'), updateUserStatus);
+router.put('/shops/:shopId/status', protect, restrictTo('admin'), updateShopStatus);
+router.put('/orders/:orderId/status', protect, restrictTo('admin'), updateOrderStatus);
 
-// Shopper routes
-router.get('/shoppers', getShoppers);
-router.put('/shoppers/:id', updateShopper);
-router.delete('/shoppers/:id', deleteShopper);
-
-// Shop routes
-router.get('/shops', getShops);
-router.post('/shops', createShop);
-router.delete('/shops/:id', deleteShop);
-
-// Product routes
-router.get('/products', getProducts);
-router.post('/products', createProduct);
-router.delete('/products/:id', deleteProduct);
-
-// Order routes
-router.get('/orders', getOrders);
-
-// Stats route
-router.get('/stats', getStats);
+// Delete operations
+router.delete('/users/:userId', protect, restrictTo('admin'), deleteUser);
+router.delete('/shops/:shopId', protect, restrictTo('admin'), deleteShop);
 
 module.exports = router;
