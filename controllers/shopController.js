@@ -279,9 +279,11 @@ exports.getAllShops = async (req, res) => {
 
     } catch (error) {
         console.error('Get all shops error:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch shops'
+            message: 'Failed to fetch shops',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };

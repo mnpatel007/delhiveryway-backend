@@ -182,15 +182,28 @@ shopSchema.virtual('fullAddress').get(function () {
 
 // Method to check if shop is open
 shopSchema.methods.isOpenNow = function () {
-    const now = new Date();
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const day = dayNames[now.getDay()];
-    const currentTime = now.toTimeString().slice(0, 5);
+    try {
+        const now = new Date();
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const day = dayNames[now.getDay()];
+        const currentTime = now.toTimeString().slice(0, 5);
 
-    const todayHours = this.operatingHours[day];
-    if (!todayHours || todayHours.closed) return false;
+        // Check if operating hours exist
+        if (!this.operatingHours || typeof this.operatingHours !== 'object') {
+            return true; // Default to open if no operating hours defined
+        }
 
-    return currentTime >= todayHours.open && currentTime <= todayHours.close;
+        const todayHours = this.operatingHours[day];
+        if (!todayHours || todayHours.closed) return false;
+
+        // Ensure open and close times exist
+        if (!todayHours.open || !todayHours.close) return true;
+
+        return currentTime >= todayHours.open && currentTime <= todayHours.close;
+    } catch (error) {
+        console.error('Error in isOpenNow method:', error);
+        return true; // Default to open if there's an error
+    }
 };
 
 // Method to calculate distance from coordinates

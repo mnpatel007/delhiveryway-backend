@@ -27,7 +27,16 @@ const sampleShops = [
         tags: ['grocery', 'fresh', 'vegetables', 'fruits'],
         deliveryFee: 0,
         minOrderValue: 200,
-        isActive: true
+        isActive: true,
+        operatingHours: {
+            monday: { open: '08:00', close: '22:00', closed: false },
+            tuesday: { open: '08:00', close: '22:00', closed: false },
+            wednesday: { open: '08:00', close: '22:00', closed: false },
+            thursday: { open: '08:00', close: '22:00', closed: false },
+            friday: { open: '08:00', close: '22:00', closed: false },
+            saturday: { open: '08:00', close: '22:00', closed: false },
+            sunday: { open: '09:00', close: '21:00', closed: false }
+        }
     },
     {
         name: 'MedPlus Pharmacy',
@@ -51,7 +60,16 @@ const sampleShops = [
         tags: ['pharmacy', 'medicines', 'health'],
         deliveryFee: 25,
         minOrderValue: 100,
-        isActive: true
+        isActive: true,
+        operatingHours: {
+            monday: { open: '09:00', close: '21:00', closed: false },
+            tuesday: { open: '09:00', close: '21:00', closed: false },
+            wednesday: { open: '09:00', close: '21:00', closed: false },
+            thursday: { open: '09:00', close: '21:00', closed: false },
+            friday: { open: '09:00', close: '21:00', closed: false },
+            saturday: { open: '09:00', close: '21:00', closed: false },
+            sunday: { open: '10:00', close: '20:00', closed: false }
+        }
     },
     {
         name: 'TechZone Electronics',
@@ -75,7 +93,16 @@ const sampleShops = [
         tags: ['electronics', 'gadgets', 'mobile', 'laptop'],
         deliveryFee: 50,
         minOrderValue: 500,
-        isActive: true
+        isActive: true,
+        operatingHours: {
+            monday: { open: '10:00', close: '20:00', closed: false },
+            tuesday: { open: '10:00', close: '20:00', closed: false },
+            wednesday: { open: '10:00', close: '20:00', closed: false },
+            thursday: { open: '10:00', close: '20:00', closed: false },
+            friday: { open: '10:00', close: '20:00', closed: false },
+            saturday: { open: '10:00', close: '20:00', closed: false },
+            sunday: { open: '11:00', close: '19:00', closed: false }
+        }
     },
     {
         name: 'Fashion Hub',
@@ -99,7 +126,16 @@ const sampleShops = [
         tags: ['clothing', 'fashion', 'accessories'],
         deliveryFee: 30,
         minOrderValue: 300,
-        isActive: true
+        isActive: true,
+        operatingHours: {
+            monday: { open: '10:00', close: '21:00', closed: false },
+            tuesday: { open: '10:00', close: '21:00', closed: false },
+            wednesday: { open: '10:00', close: '21:00', closed: false },
+            thursday: { open: '10:00', close: '21:00', closed: false },
+            friday: { open: '10:00', close: '22:00', closed: false },
+            saturday: { open: '10:00', close: '22:00', closed: false },
+            sunday: { open: '11:00', close: '21:00', closed: false }
+        }
     },
     {
         name: 'Spice Garden Restaurant',
@@ -123,7 +159,16 @@ const sampleShops = [
         tags: ['restaurant', 'indian', 'food', 'spicy'],
         deliveryFee: 40,
         minOrderValue: 250,
-        isActive: true
+        isActive: true,
+        operatingHours: {
+            monday: { open: '11:00', close: '23:00', closed: false },
+            tuesday: { open: '11:00', close: '23:00', closed: false },
+            wednesday: { open: '11:00', close: '23:00', closed: false },
+            thursday: { open: '11:00', close: '23:00', closed: false },
+            friday: { open: '11:00', close: '23:30', closed: false },
+            saturday: { open: '11:00', close: '23:30', closed: false },
+            sunday: { open: '12:00', close: '22:00', closed: false }
+        }
     }
 ];
 
