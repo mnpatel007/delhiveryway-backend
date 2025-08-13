@@ -172,7 +172,7 @@ const sampleProducts = [
         images: [],
         inStock: true,
         stockQuantity: 100,
-        unit: 'strip',
+        unit: 'pack',
         tags: ['medicine', 'painkiller', 'fever']
     },
     {
@@ -248,7 +248,7 @@ const sampleProducts = [
         images: [],
         inStock: true,
         stockQuantity: 999,
-        unit: 'plate',
+        unit: 'piece',
         tags: ['chicken', 'curry', 'indian', 'spicy']
     },
     {
@@ -259,7 +259,7 @@ const sampleProducts = [
         images: [],
         inStock: true,
         stockQuantity: 999,
-        unit: 'plate',
+        unit: 'piece',
         tags: ['biryani', 'vegetarian', 'rice', 'spicy']
     }
 ];

@@ -629,6 +629,81 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
+// Update shopper status
+exports.updateShopperStatus = async (req, res) => {
+    try {
+        const { shopperId } = req.params;
+        const { isOnline } = req.body;
+
+        const shopper = await PersonalShopper.findByIdAndUpdate(
+            shopperId,
+            { isOnline },
+            { new: true }
+        );
+
+        if (!shopper) {
+            return res.status(404).json({
+                success: false,
+                message: 'Personal shopper not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Shopper status updated successfully`,
+            data: { shopper }
+        });
+
+    } catch (error) {
+        console.error('Update shopper status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update shopper status'
+        });
+    }
+};
+
+// Delete personal shopper
+exports.deletePersonalShopper = async (req, res) => {
+    try {
+        const { shopperId } = req.params;
+
+        // Check if shopper has active orders
+        const activeOrders = await Order.countDocuments({
+            personalShopperId: shopperId,
+            status: { $nin: ['delivered', 'cancelled', 'refunded'] }
+        });
+
+        if (activeOrders > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete shopper with active orders'
+            });
+        }
+
+        const shopper = await PersonalShopper.findByIdAndDelete(shopperId);
+
+        if (!shopper) {
+            return res.status(404).json({
+                success: false,
+                message: 'Personal shopper not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Personal shopper deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('Delete personal shopper error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete personal shopper'
+        });
+    }
+};
+
 // Delete shop
 exports.deleteShop = async (req, res) => {
     try {

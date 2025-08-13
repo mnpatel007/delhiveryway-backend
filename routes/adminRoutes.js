@@ -11,8 +11,10 @@ const {
     updateUserStatus,
     updateShopStatus,
     updateOrderStatus,
+    updateShopperStatus,
     deleteUser,
     deleteShop,
+    deletePersonalShopper,
     getAnalytics
 } = require('../controllers/adminController');
 const { adminProtect } = require('../middleware/authMiddleware');
@@ -71,9 +73,11 @@ router.get('/analytics', adminProtect, getAnalytics);
 router.put('/users/:userId/status', adminProtect, updateUserStatus);
 router.put('/shops/:shopId/status', adminProtect, updateShopStatus);
 router.put('/orders/:orderId/status', adminProtect, updateOrderStatus);
+router.put('/shoppers/:shopperId/status', adminProtect, updateShopperStatus);
 
 // Delete operations
 router.delete('/users/:userId', adminProtect, deleteUser);
 router.delete('/shops/:shopId', adminProtect, deleteShop);
+router.delete('/shoppers/:shopperId', adminProtect, deletePersonalShopper);
 
 module.exports = router;
