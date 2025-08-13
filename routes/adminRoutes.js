@@ -73,7 +73,7 @@ router.get('/analytics', adminProtect, getAnalytics);
 router.put('/users/:userId/status', adminProtect, updateUserStatus);
 router.put('/shops/:shopId/status', adminProtect, updateShopStatus);
 router.put('/orders/:orderId/status', adminProtect, updateOrderStatus);
-router.put('/shoppers/:shopperId/status', adminProtect, updateShopperStatus);
+router.put('/shoppers/:shopperId', adminProtect, updateShopperStatus);
 
 // Delete operations
 router.delete('/users/:userId', adminProtect, deleteUser);

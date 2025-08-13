@@ -651,6 +651,7 @@ exports.updateShopperStatus = async (req, res) => {
         res.json({
             success: true,
             message: `Shopper status updated successfully`,
+            isOnline: shopper.isOnline,
             data: { shopper }
         });
 
