@@ -91,11 +91,14 @@ exports.adminProtect = async (req, res, next) => {
 
         if (!token) {
             console.log('❌ Admin auth: No token provided');
+            console.log('🔍 Admin auth: Authorization header:', req.headers.authorization);
             return res.status(401).json({
                 success: false,
                 message: 'Access denied. No token provided.'
             });
         }
+
+        console.log('🔍 Admin auth: Token received:', token.substring(0, 20) + '...');
 
         console.log('🔍 Admin auth: Verifying token...');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
