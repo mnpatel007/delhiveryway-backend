@@ -648,6 +648,26 @@ exports.updateShopperStatus = async (req, res) => {
             });
         }
 
+        // Emit Socket.IO event to force shopper status update
+        const io = req.app.get('io');
+        if (io) {
+            // Notify the specific shopper about status change
+            io.to(`shopper_${shopperId}`).emit('adminStatusUpdate', {
+                isOnline,
+                message: isOnline ? 'Admin set you online' : 'Admin set you offline',
+                forceStatus: true
+            });
+
+            // Also notify all connected clients about shopper status change
+            io.emit('shopperStatusChanged', {
+                shopperId,
+                isOnline,
+                shopperName: shopper.name
+            });
+
+            console.log(`📡 Admin ${isOnline ? 'enabled' : 'disabled'} shopper ${shopper.name}`);
+        }
+
         res.json({
             success: true,
             message: `Shopper status updated successfully`,
