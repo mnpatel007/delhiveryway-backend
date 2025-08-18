@@ -120,17 +120,6 @@ mongoose
         app.use('/api/shopper/auth', require('./routes/shopperAuthRoutes'));
         app.use('/api/shopper/orders', require('./routes/shopperOrderRoutes'));
         app.use('/api/admin', require('./routes/adminRoutes'));
-        
-        // Public shops endpoint
-        app.get('/api/shops', async (req, res) => {
-            try {
-                const Shop = require('./models/Shop');
-                const shops = await Shop.find({ isActive: true }).limit(20);
-                res.json(shops);
-            } catch (error) {
-                res.status(500).json({ message: 'Error fetching shops' });
-            }
-        });
 
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');
