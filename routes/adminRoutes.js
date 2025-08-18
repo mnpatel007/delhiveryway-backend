@@ -5,6 +5,7 @@ const {
     getDashboardStats,
     getAllUsers,
     getAllShops,
+    createShop,
     getAllOrders,
     getAllShoppers,
     getAllProducts,
@@ -64,6 +65,7 @@ router.get('/debug-token', (req, res) => {
 router.get('/dashboard', adminProtect, getDashboardStats);
 router.get('/users', adminProtect, getAllUsers);
 router.get('/shops', adminProtect, getAllShops);
+router.post('/shops', adminProtect, createShop);
 router.get('/products', adminProtect, getAllProducts);
 router.get('/orders', adminProtect, getAllOrders);
 router.get('/shoppers', adminProtect, getAllShoppers);

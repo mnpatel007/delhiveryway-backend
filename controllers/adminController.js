@@ -300,6 +300,90 @@ exports.getAllShops = async (req, res) => {
     }
 };
 
+// Create shop (Admin)
+exports.createShop = async (req, res) => {
+    try {
+        const {
+            name,
+            description,
+            category,
+            address,
+            contact,
+            images,
+            operatingHours,
+            tags,
+            deliveryFee,
+            minOrderValue,
+            maxOrderValue,
+            vendorId
+        } = req.body;
+
+        // Validate required fields
+        if (!name || !category || !address || !vendorId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name, category, address, and vendor ID are required'
+            });
+        }
+
+        // Validate vendor exists
+        const vendor = await User.findById(vendorId);
+        if (!vendor || vendor.role !== 'vendor') {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid vendor ID'
+            });
+        }
+
+        // Validate address structure
+        if (!address.street || !address.city || !address.state) {
+            return res.status(400).json({
+                success: false,
+                message: 'Complete address is required'
+            });
+        }
+
+        // Create shop
+        const shop = new Shop({
+            name,
+            description,
+            category,
+            address,
+            contact: contact || {},
+            images: images || [],
+            operatingHours: operatingHours || {},
+            tags: tags || [],
+            deliveryFee: deliveryFee || 0,
+            minOrderValue: minOrderValue || 0,
+            maxOrderValue: maxOrderValue || 10000,
+            vendorId,
+            isActive: true,
+            createdBy: 'admin'
+        });
+
+        await shop.save();
+
+        // Populate vendor info
+        await shop.populate('vendorId', 'name email phone');
+
+        console.log('✅ Shop created by admin:', shop.name);
+
+        res.status(201).json({
+            success: true,
+            message: 'Shop created successfully',
+            data: shop
+        });
+
+    } catch (error) {
+        console.error('❌ Error creating shop:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create shop',
+            error: error.message
+        });
+    }
+};
+
 // Get all orders
 exports.getAllOrders = async (req, res) => {
     try {
