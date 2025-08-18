@@ -188,7 +188,7 @@ const resetDatabase = async () => {
         console.log('📦 Created sample products');
 
         // Create sample users
-        const hashedPassword = await bcrypt.hash('123456', 12);
+        const hashedPassword = await bcrypt.hash('SAMPLE_PASSWORD', 12);
         
         const users = await User.insertMany([
             {

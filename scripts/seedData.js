@@ -321,7 +321,7 @@ async function seedDatabase() {
             vendor = new User({
                 name: 'Sample Vendor',
                 email: 'vendor@example.com',
-                password: 'password123',
+                password: 'SAMPLE_PASSWORD',
                 phone: '9876543200',
                 role: 'vendor',
                 isVerified: true
