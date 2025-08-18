@@ -2,6 +2,97 @@ const Shop = require('../models/Shop');
 const Product = require('../models/Product');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const axios = require('axios');
+
+// Location validation function using Google Maps Geocoding API
+const validateLocationAccuracy = async (address) => {
+    try {
+        const { street, city, state, zipCode, coordinates } = address;
+        const fullAddress = `${street}, ${city}, ${state} ${zipCode}`.trim();
+
+        // Skip validation if no Google Maps API key
+        if (!process.env.GOOGLE_MAPS_API_KEY) {
+            console.warn('⚠️ Google Maps API key not found, skipping location validation');
+            return { isValid: true };
+        }
+
+        // Geocode the address
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+
+        const response = await axios.get(geocodeUrl);
+
+        if (response.data.status !== 'OK' || !response.data.results.length) {
+            return {
+                isValid: false,
+                message: 'Address not found or invalid. Please provide a valid, complete address.'
+            };
+        }
+
+        const result = response.data.results[0];
+        const geocodedLocation = result.geometry.location;
+
+        // Calculate distance between provided coordinates and geocoded coordinates
+        const distance = calculateDistance(
+            coordinates.lat,
+            coordinates.lng,
+            geocodedLocation.lat,
+            geocodedLocation.lng
+        );
+
+        // Allow up to 100 meters tolerance
+        if (distance > 0.1) { // 0.1 km = 100 meters
+            return {
+                isValid: false,
+                message: `Location coordinates don't match the provided address. Distance: ${(distance * 1000).toFixed(0)}m. Please ensure coordinates are accurate.`
+            };
+        }
+
+        // Validate address components
+        const components = result.address_components;
+        const hasStreetNumber = components.some(comp => comp.types.includes('street_number'));
+        const hasRoute = components.some(comp => comp.types.includes('route'));
+        const hasLocality = components.some(comp => comp.types.includes('locality') || comp.types.includes('sublocality'));
+
+        if (!hasStreetNumber || !hasRoute) {
+            return {
+                isValid: false,
+                message: 'Please provide a complete street address with street number and name.'
+            };
+        }
+
+        if (!hasLocality) {
+            return {
+                isValid: false,
+                message: 'Please provide a valid city/locality in the address.'
+            };
+        }
+
+        return {
+            isValid: true,
+            geocodedAddress: result.formatted_address,
+            placeId: result.place_id
+        };
+
+    } catch (error) {
+        console.error('❌ Location validation error:', error);
+        // Don't block shop creation if validation service fails
+        return { isValid: true };
+    }
+};
+
+// Calculate distance between two coordinates using Haversine formula
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c; // Distance in kilometers
+    return distance;
+};
 
 // Create a new shop (Vendor only)
 exports.createShop = async (req, res) => {
@@ -39,6 +130,40 @@ exports.createShop = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Latitude and longitude are required'
+            });
+        }
+
+        // Validate coordinate ranges
+        const lat = parseFloat(address.coordinates.lat);
+        const lng = parseFloat(address.coordinates.lng);
+
+        if (isNaN(lat) || isNaN(lng)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid latitude or longitude format'
+            });
+        }
+
+        if (lat < -90 || lat > 90) {
+            return res.status(400).json({
+                success: false,
+                message: 'Latitude must be between -90 and 90 degrees'
+            });
+        }
+
+        if (lng < -180 || lng > 180) {
+            return res.status(400).json({
+                success: false,
+                message: 'Longitude must be between -180 and 180 degrees'
+            });
+        }
+
+        // Validate location accuracy using Google Maps Geocoding API
+        const locationValidation = await validateLocationAccuracy(address);
+        if (!locationValidation.isValid) {
+            return res.status(400).json({
+                success: false,
+                message: locationValidation.message
             });
         }
 
