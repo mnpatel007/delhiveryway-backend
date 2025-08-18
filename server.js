@@ -42,12 +42,37 @@ app.use('/api/webhook', require('./routes/webhook'));
 
 app.use(
     cors({
-        origin: allowedOrigins,
+        origin: function (origin, callback) {
+            // Allow requests with no origin (like mobile apps or curl requests)
+            if (!origin) return callback(null, true);
+
+            if (allowedOrigins.indexOf(origin) !== -1) {
+                callback(null, true);
+            } else {
+                console.log('❌ CORS blocked origin:', origin);
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
         credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+        allowedHeaders: [
+            'Content-Type',
+            'Authorization',
+            'X-Requested-With',
+            'X-CSRF-Token',
+            'Accept',
+            'Origin',
+            'Cache-Control',
+            'X-File-Name'
+        ],
+        exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+        preflightContinue: false,
+        optionsSuccessStatus: 200
     })
 );
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 // Session configuration
 app.use(session({
