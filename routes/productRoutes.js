@@ -14,6 +14,17 @@ const { protect, restrictTo, optionalAuth } = require('../middleware/authMiddlew
 
 // Public routes
 router.get('/shop/:shopId', getShopProducts);
+router.get('/test/:shopId', async (req, res) => {
+    const Product = require('../models/Product');
+    const { shopId } = req.params;
+    const products = await Product.find({ shopId });
+    res.json({ shopId, totalProducts: products.length, products });
+});
+router.get('/all', async (req, res) => {
+    const Product = require('../models/Product');
+    const products = await Product.find({}).populate('shopId', 'name');
+    res.json({ totalProducts: products.length, products });
+});
 router.get('/search', searchProducts);
 router.get('/:id', optionalAuth, getProductById);
 
