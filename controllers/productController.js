@@ -158,6 +158,8 @@ exports.getShopProducts = async (req, res) => {
 
         const total = await Product.countDocuments(filter);
 
+        console.log(`📦 Found ${products.length} products for shop ${shopId}`);
+        
         res.json({
             success: true,
             data: {
