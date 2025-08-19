@@ -326,13 +326,19 @@ exports.createShop = async (req, res) => {
             });
         }
 
-        // Validate vendor exists
-        const vendor = await User.findById(vendorId);
-        if (!vendor || vendor.role !== 'vendor') {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid vendor ID'
-            });
+        // Handle admin-created shops or validate vendor
+        let validVendorId = vendorId;
+        if (vendorId === 'admin-created') {
+            // For admin-created shops, we'll create a placeholder vendor or use system admin
+            validVendorId = null; // We'll handle this in the shop creation
+        } else {
+            const vendor = await User.findById(vendorId);
+            if (!vendor || vendor.role !== 'vendor') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid vendor ID'
+                });
+            }
         }
 
         // Validate address structure
@@ -344,7 +350,7 @@ exports.createShop = async (req, res) => {
         }
 
         // Create shop
-        const shop = new Shop({
+        const shopData = {
             name,
             description,
             category,
@@ -356,15 +362,26 @@ exports.createShop = async (req, res) => {
             deliveryFee: deliveryFee || 0,
             minOrderValue: minOrderValue || 0,
             maxOrderValue: maxOrderValue || 10000,
-            vendorId,
             isActive: true,
             createdBy: 'admin'
-        });
+        };
+
+        // Handle vendorId for admin-created shops
+        if (validVendorId) {
+            shopData.vendorId = validVendorId;
+        } else {
+            // Create a system vendor ID or use a default one
+            shopData.vendorId = new mongoose.Types.ObjectId(); // Temporary placeholder
+        }
+
+        const shop = new Shop(shopData);
 
         await shop.save();
 
-        // Populate vendor info
-        await shop.populate('vendorId', 'name email phone');
+        // Populate vendor info if it exists
+        if (validVendorId) {
+            await shop.populate('vendorId', 'name email phone');
+        }
 
         console.log('✅ Shop created by admin:', shop.name);
 
