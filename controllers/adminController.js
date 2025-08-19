@@ -328,9 +328,9 @@ exports.createShop = async (req, res) => {
 
         // Handle admin-created shops or validate vendor
         let validVendorId = vendorId;
-        if (vendorId === 'admin-created') {
-            // For admin-created shops, we'll create a placeholder vendor or use system admin
-            validVendorId = null; // We'll handle this in the shop creation
+        if (!vendorId || vendorId === 'admin-created') {
+            // Create a system vendor for admin-created shops
+            validVendorId = new mongoose.Types.ObjectId();
         } else {
             const vendor = await User.findById(vendorId);
             if (!vendor || vendor.role !== 'vendor') {
@@ -366,20 +366,15 @@ exports.createShop = async (req, res) => {
             createdBy: 'admin'
         };
 
-        // Handle vendorId for admin-created shops
-        if (validVendorId) {
-            shopData.vendorId = validVendorId;
-        } else {
-            // Create a system vendor ID or use a default one
-            shopData.vendorId = new mongoose.Types.ObjectId(); // Temporary placeholder
-        }
+        // Set vendorId
+        shopData.vendorId = validVendorId;
 
         const shop = new Shop(shopData);
 
         await shop.save();
 
-        // Populate vendor info if it exists
-        if (validVendorId) {
+        // Don't populate vendor for admin-created shops
+        if (vendorId && vendorId !== 'admin-created') {
             await shop.populate('vendorId', 'name email phone');
         }
 
@@ -393,9 +388,19 @@ exports.createShop = async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error creating shop:', error);
+        
+        if (error.name === 'ValidationError') {
+            const errors = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error: ' + errors.join(', '),
+                errors
+            });
+        }
+        
         res.status(500).json({
             success: false,
-            message: 'Failed to create shop',
+            message: 'Failed to create shop: ' + error.message,
             error: error.message
         });
     }
