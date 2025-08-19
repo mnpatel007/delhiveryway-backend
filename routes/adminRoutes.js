@@ -9,6 +9,8 @@ const {
     getAllOrders,
     getAllShoppers,
     getAllProducts,
+    createProduct,
+    deleteProduct,
     updateUserStatus,
     updateShopStatus,
     updateOrderStatus,
@@ -67,6 +69,7 @@ router.get('/users', adminProtect, getAllUsers);
 router.get('/shops', adminProtect, getAllShops);
 router.post('/shops', adminProtect, createShop);
 router.get('/products', adminProtect, getAllProducts);
+router.post('/products', adminProtect, createProduct);
 router.get('/orders', adminProtect, getAllOrders);
 router.get('/shoppers', adminProtect, getAllShoppers);
 router.get('/analytics', adminProtect, getAnalytics);
@@ -80,6 +83,7 @@ router.put('/shoppers/:shopperId', adminProtect, updateShopperStatus);
 // Delete operations
 router.delete('/users/:userId', adminProtect, deleteUser);
 router.delete('/shops/:shopId', adminProtect, deleteShop);
+router.delete('/products/:productId', adminProtect, deleteProduct);
 router.delete('/shoppers/:shopperId', adminProtect, deletePersonalShopper);
 
 module.exports = router;

@@ -875,6 +875,97 @@ exports.deleteShop = async (req, res) => {
     }
 };
 
+// Create product (Admin)
+exports.createProduct = async (req, res) => {
+    try {
+        const {
+            name,
+            description,
+            price,
+            originalPrice,
+            discount,
+            unit,
+            shopId,
+            category,
+            images,
+            tags
+        } = req.body;
+
+        if (!name || !price || !shopId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name, price, and shop ID are required'
+            });
+        }
+
+        const shop = await Shop.findById(shopId);
+        if (!shop) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid shop ID'
+            });
+        }
+
+        const product = new Product({
+            name,
+            description,
+            price: parseFloat(price),
+            originalPrice: parseFloat(originalPrice) || parseFloat(price),
+            discount: parseFloat(discount) || 0,
+            unit: unit || 'piece',
+            shopId,
+            category: category || shop.category,
+            images: images || [],
+            tags: tags || [],
+            isActive: true
+        });
+
+        await product.save();
+        await product.populate('shopId', 'name category');
+
+        res.status(201).json({
+            success: true,
+            message: 'Product created successfully',
+            data: product
+        });
+
+    } catch (error) {
+        console.error('Create product error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create product'
+        });
+    }
+};
+
+// Delete product (Admin)
+exports.deleteProduct = async (req, res) => {
+    try {
+        const { productId } = req.params;
+
+        const product = await Product.findByIdAndDelete(productId);
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Product deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('Delete product error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete product'
+        });
+    }
+};
+
 // Get system analytics
 exports.getAnalytics = async (req, res) => {
     try {
