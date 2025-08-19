@@ -149,6 +149,19 @@ mongoose
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');
         });
+        
+        app.get('/api/debug/products', async (req, res) => {
+            const Product = require('./models/Product');
+            const Shop = require('./models/Shop');
+            const products = await Product.find({}).populate('shopId', 'name');
+            const shops = await Shop.find({});
+            res.json({ 
+                totalProducts: products.length, 
+                totalShops: shops.length,
+                products: products.slice(0, 5),
+                shops: shops.slice(0, 5)
+            });
+        });
 
         const PORT = process.env.PORT || 5000;
         server.listen(PORT, () =>
