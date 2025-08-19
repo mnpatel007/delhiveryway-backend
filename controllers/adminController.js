@@ -913,11 +913,12 @@ exports.createProduct = async (req, res) => {
             originalPrice: parseFloat(originalPrice) || parseFloat(price),
             discount: parseFloat(discount) || 0,
             unit: unit || 'piece',
-            shopId,
+            shopId: new mongoose.Types.ObjectId(shopId),
             category: category || shop.category,
             images: images || [],
             tags: tags || [],
-            isActive: true
+            isActive: true,
+            inStock: true
         });
 
         await product.save();
