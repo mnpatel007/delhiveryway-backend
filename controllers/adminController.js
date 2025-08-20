@@ -388,7 +388,7 @@ exports.createShop = async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error creating shop:', error);
-        
+
         if (error.name === 'ValidationError') {
             const errors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
@@ -397,7 +397,7 @@ exports.createShop = async (req, res) => {
                 errors
             });
         }
-        
+
         res.status(500).json({
             success: false,
             message: 'Failed to create shop: ' + error.message,
@@ -875,54 +875,77 @@ exports.deleteShop = async (req, res) => {
     }
 };
 
-// Create product (Admin)
+// Create a new product (Admin only)
 exports.createProduct = async (req, res) => {
     try {
         const {
             name,
             description,
+            shopId,
+            category,
             price,
             originalPrice,
             discount,
-            unit,
-            shopId,
-            category,
             images,
-            tags
+            stockQuantity,
+            unit,
+            tags,
+            nutritionalInfo
         } = req.body;
 
-        if (!name || !price || !shopId) {
+        // Validate required fields
+        if (!name || !shopId || !category || !price) {
             return res.status(400).json({
                 success: false,
-                message: 'Name, price, and shop ID are required'
+                message: 'Name, shop ID, category, and price are required'
             });
         }
 
+        // Verify shop exists
         const shop = await Shop.findById(shopId);
         if (!shop) {
-            return res.status(400).json({
+            return res.status(404).json({
                 success: false,
-                message: 'Invalid shop ID'
+                message: 'Shop not found'
             });
         }
 
+        // Check if product with same name exists in this shop
+        const existingProduct = await Product.findOne({
+            shopId,
+            name: { $regex: new RegExp(`^${name}$`, 'i') }
+        });
+
+        if (existingProduct) {
+            return res.status(400).json({
+                success: false,
+                message: 'Product with this name already exists in this shop'
+            });
+        }
+
+        // Create product
         const product = new Product({
-            name,
-            description,
+            name: name.trim(),
+            description: description?.trim(),
+            shopId,
+            category,
             price: parseFloat(price),
-            originalPrice: parseFloat(originalPrice) || parseFloat(price),
-            discount: parseFloat(discount) || 0,
-            unit: unit || 'piece',
-            shopId: new mongoose.Types.ObjectId(shopId),
-            category: category || shop.category,
+            originalPrice: originalPrice ? parseFloat(originalPrice) : null,
+            discount: discount || 0,
             images: images || [],
+            stockQuantity: stockQuantity || 0,
+            unit: unit || 'piece',
             tags: tags || [],
-            isActive: true,
-            inStock: true
+            nutritionalInfo: nutritionalInfo || {},
+            inStock: (stockQuantity || 0) > 0
         });
 
         await product.save();
-        await product.populate('shopId', 'name category');
+
+        // Populate shop info for response
+        await product.populate('shopId', 'name');
+
+        console.log('✅ Admin created product:', product.name);
 
         res.status(201).json({
             success: true,
@@ -931,10 +954,81 @@ exports.createProduct = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Create product error:', error);
+        console.error('Admin create product error:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to create product'
+        });
+    }
+};
+
+// Update a product (Admin only)
+exports.updateProduct = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const updateData = req.body;
+
+        // Validate product ID
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid product ID'
+            });
+        }
+
+        // Find the product
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        // Update fields
+        if (updateData.name) product.name = updateData.name.trim();
+        if (updateData.description !== undefined) product.description = updateData.description?.trim();
+        if (updateData.category) product.category = updateData.category;
+        if (updateData.price !== undefined) product.price = parseFloat(updateData.price);
+        if (updateData.originalPrice !== undefined) {
+            product.originalPrice = updateData.originalPrice ? parseFloat(updateData.originalPrice) : null;
+        }
+        if (updateData.discount !== undefined) product.discount = parseFloat(updateData.discount) || 0;
+        if (updateData.stockQuantity !== undefined) {
+            product.stockQuantity = parseInt(updateData.stockQuantity) || 0;
+        }
+        if (updateData.unit) product.unit = updateData.unit;
+        if (updateData.tags !== undefined) {
+            product.tags = Array.isArray(updateData.tags) ? updateData.tags : [];
+        }
+        if (updateData.inStock !== undefined) {
+            product.inStock = updateData.inStock;
+        }
+
+        // Update inStock based on stockQuantity if not explicitly set
+        if (updateData.stockQuantity !== undefined && updateData.inStock === undefined) {
+            product.inStock = product.stockQuantity > 0;
+        }
+
+        // Save the updated product
+        await product.save();
+
+        // Populate shop info for response
+        await product.populate('shopId', 'name');
+
+        console.log('✅ Admin updated product:', product.name);
+
+        res.json({
+            success: true,
+            message: 'Product updated successfully',
+            data: product
+        });
+
+    } catch (error) {
+        console.error('Admin update product error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update product'
         });
     }
 };
