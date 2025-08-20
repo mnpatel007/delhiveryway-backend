@@ -10,6 +10,7 @@ const {
     getAllShoppers,
     getAllProducts,
     createProduct,
+    updateProduct,
     deleteProduct,
     updateUserStatus,
     updateShopStatus,
