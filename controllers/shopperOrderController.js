@@ -69,8 +69,15 @@ const updateOrderStatus = async (req, res) => {
         // Update order based on status
         order.status = status;
         
-        if (status === 'bill_sent' && billPhoto && billAmount) {
+        if (status === 'bill_uploaded' && billPhoto && billAmount) {
+            order.actualBill = {
+                photo: billPhoto,
+                amount: billAmount,
+                uploadedAt: new Date()
+            };
+            // Also set legacy fields for frontend compatibility
             order.billPhoto = billPhoto;
+            order.billImage = billPhoto;
             order.billAmount = billAmount;
         }
 
