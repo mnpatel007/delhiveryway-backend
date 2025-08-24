@@ -10,11 +10,11 @@ const acceptOrder = async (req, res) => {
         // Check if order exists and is available
         const order = await Order.findById(orderId);
         if (!order) {
-            return res.status(404).json({ message: 'Order not found' });
+            return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
         if (order.status !== 'pending_shopper') {
-            return res.status(400).json({ message: 'Order is no longer available' });
+            return res.status(400).json({ success: false, message: 'Order is no longer available' });
         }
 
         // Update order with shopper
@@ -36,6 +36,7 @@ const acceptOrder = async (req, res) => {
         });
 
         res.json({
+            success: true,
             message: 'Order accepted successfully',
             order: {
                 id: order._id,
@@ -46,7 +47,7 @@ const acceptOrder = async (req, res) => {
         });
     } catch (error) {
         console.error('Accept order error:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
