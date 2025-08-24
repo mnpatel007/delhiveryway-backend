@@ -166,16 +166,10 @@ exports.getCustomerOrders = async (req, res) => {
         console.log('Customer ID from request:', req.user._id);
         console.log('Customer user object:', req.user);
 
-        // Temporarily show all orders to debug the issue
-        const filter = {};
+        // Filter orders for the current customer
+        const filter = { customerId: req.user._id };
         if (status) {
             filter.status = status;
-        }
-        
-        // Also keep the original filter for comparison
-        const originalFilter = { customerId: req.user._id };
-        if (status) {
-            originalFilter.status = status;
         }
 
         console.log('Order filter:', filter);
@@ -265,6 +259,63 @@ exports.getOrderById = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch order'
+        });
+    }
+};
+
+// Approve bill
+exports.approveBill = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid order ID'
+            });
+        }
+
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        // Check if user is the customer who placed this order
+        if (order.customerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to approve this bill'
+            });
+        }
+
+        // Check if order has bill uploaded
+        if (order.status !== 'bill_uploaded') {
+            return res.status(400).json({
+                success: false,
+                message: 'Bill is not uploaded or already processed'
+            });
+        }
+
+        // Update order status to bill_approved
+        order.status = 'bill_approved';
+        order.billApprovedAt = new Date();
+        await order.save();
+
+        res.json({
+            success: true,
+            message: 'Bill approved successfully',
+            data: order
+        });
+
+    } catch (error) {
+        console.error('Approve bill error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to approve bill'
         });
     }
 };
