@@ -21,7 +21,7 @@ router.put('/:id/status', authMiddleware.protect, upload.single('billImage'), or
 router.put('/:id/cancel', authMiddleware.protect, orderController.cancelOrder);
 
 // Approve bill (Customer only)
-router.put('/:orderId/approve-bill', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.approveBill);
+router.put('/:id/approve-bill', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.approveBill);
 
 // Reject bill (Customer only)
 router.put('/:id/reject-bill', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.rejectBill);

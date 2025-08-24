@@ -266,16 +266,16 @@ exports.getOrderById = async (req, res) => {
 // Approve bill
 exports.approveBill = async (req, res) => {
     try {
-        const { orderId } = req.params;
+        const { id } = req.params;
 
-        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid order ID'
             });
         }
 
-        const order = await Order.findById(orderId);
+        const order = await Order.findById(id);
 
         if (!order) {
             return res.status(404).json({
