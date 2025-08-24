@@ -32,6 +32,7 @@ exports.placeOrder = async (req, res) => {
         }
 
         // Validate shop exists and is active
+        const Shop = require('../models/Shop');
         const shop = await Shop.findById(shopId);
         if (!shop || !shop.isActive) {
             return res.status(404).json({
