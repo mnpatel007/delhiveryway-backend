@@ -130,10 +130,19 @@ const getActiveOrders = async (req, res) => {
 
         const orders = await Order.find({
             personalShopperId: shopperId,
-            status: { $in: ['accepted_by_shopper', 'shopping', 'bill_sent', 'bill_approved', 'out_for_delivery'] }
+            status: { $in: [
+                'accepted_by_shopper', 
+                'shopper_at_shop', 
+                'shopping_in_progress', 
+                'shopping', 
+                'bill_sent', 
+                'bill_uploaded',
+                'bill_approved', 
+                'out_for_delivery'
+            ] }
         }).populate('customerId', 'name phone').sort({ createdAt: -1 });
 
-        res.json({ orders });
+        res.json({ success: true, orders });
     } catch (error) {
         console.error('Get active orders error:', error);
         res.status(500).json({ message: 'Server error' });
