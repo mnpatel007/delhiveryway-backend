@@ -135,6 +135,7 @@ const getActiveOrders = async (req, res) => {
                 'shopper_at_shop', 
                 'shopping_in_progress', 
                 'shopping', 
+                'final_shopping',
                 'bill_sent', 
                 'bill_uploaded',
                 'bill_approved', 
