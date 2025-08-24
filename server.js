@@ -154,7 +154,7 @@ mongoose
         app.use('/api/orders', require('./routes/orderRoutes'));
         app.use('/api/payment', require('./routes/paymentRoutes'));
         app.use('/api/shopper/auth', require('./routes/shopperAuthRoutes'));
-        app.use('/api/shopper/orders', require('./routes/shopperOrderRoutes'));
+        app.use('/api/shopper', require('./routes/shopperOrderRoutes'));
         app.use('/api/admin', require('./routes/adminRoutes'));
 
         app.get('/', (req, res) => {

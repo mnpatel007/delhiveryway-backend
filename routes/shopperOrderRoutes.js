@@ -8,13 +8,13 @@ const router = express.Router();
 router.use(authenticateShopper);
 
 // Order management routes
-router.post('/accept', acceptOrder);
-router.put('/status', updateOrderStatus);
-router.get('/active', getActiveOrders);
-router.get('/available', getAvailableOrders);
+router.post('/orders/accept', acceptOrder);
+router.put('/orders/status', updateOrderStatus);
+router.get('/orders/active', getActiveOrders);
+router.get('/orders/available', getAvailableOrders);
+router.get('/orders/completed', getCompletedOrders);
 
-// Earnings and history routes
+// Earnings routes
 router.get('/earnings', getShopperEarnings);
-router.get('/completed', getCompletedOrders);
 
 module.exports = router;
