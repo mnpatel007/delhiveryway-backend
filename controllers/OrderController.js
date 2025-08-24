@@ -166,9 +166,16 @@ exports.getCustomerOrders = async (req, res) => {
         console.log('Customer ID from request:', req.user._id);
         console.log('Customer user object:', req.user);
 
-        const filter = { customerId: req.user._id };
+        // Temporarily show all orders to debug the issue
+        const filter = {};
         if (status) {
             filter.status = status;
+        }
+        
+        // Also keep the original filter for comparison
+        const originalFilter = { customerId: req.user._id };
+        if (status) {
+            originalFilter.status = status;
         }
 
         console.log('Order filter:', filter);
@@ -184,8 +191,12 @@ exports.getCustomerOrders = async (req, res) => {
         console.log('Orders:', orders.map(o => ({ id: o._id, customerId: o.customerId, status: o.status })));
 
         // Also check all orders to see what customer IDs exist
-        const allOrders = await Order.find({}).select('customerId status orderNumber').limit(5);
+        const allOrders = await Order.find({}).select('customerId status orderNumber').limit(10);
         console.log('Sample of all orders:', allOrders);
+        
+        // Check for any orders with bill_uploaded status specifically
+        const billOrders = await Order.find({ status: 'bill_uploaded' }).select('customerId status orderNumber');
+        console.log('Orders with bill_uploaded status:', billOrders);
 
         const total = await Order.countDocuments(filter);
 
