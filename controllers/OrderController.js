@@ -163,10 +163,15 @@ exports.getCustomerOrders = async (req, res) => {
         const { page = 1, limit = 10, status } = req.query;
         const skip = (page - 1) * limit;
 
+        console.log('Customer ID from request:', req.user._id);
+        console.log('Customer user object:', req.user);
+
         const filter = { customerId: req.user._id };
         if (status) {
             filter.status = status;
         }
+
+        console.log('Order filter:', filter);
 
         const orders = await Order.find(filter)
             .populate('shopId', 'name address category images')
@@ -175,17 +180,22 @@ exports.getCustomerOrders = async (req, res) => {
             .skip(skip)
             .limit(parseInt(limit));
 
+        console.log('Found orders count:', orders.length);
+        console.log('Orders:', orders.map(o => ({ id: o._id, customerId: o.customerId, status: o.status })));
+
+        // Also check all orders to see what customer IDs exist
+        const allOrders = await Order.find({}).select('customerId status orderNumber').limit(5);
+        console.log('Sample of all orders:', allOrders);
+
         const total = await Order.countDocuments(filter);
 
         res.json({
             success: true,
-            data: {
-                orders,
-                pagination: {
-                    current: parseInt(page),
-                    pages: Math.ceil(total / limit),
-                    total
-                }
+            data: orders,
+            pagination: {
+                current: parseInt(page),
+                pages: Math.ceil(total / limit),
+                total
             }
         });
 
