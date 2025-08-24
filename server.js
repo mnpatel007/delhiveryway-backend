@@ -21,6 +21,7 @@ const allowedOrigins = [
     'https://delhiveryway-customer.vercel.app',
     'https://delhiveryway-shopper.vercel.app',
     'https://delhiveryway-admin.vercel.app',
+    'https://delhiveryway-customer-7bkrhol3p-meet-patels-projects-9dfa4870.vercel.app',
     process.env.FRONTEND_URL,
     process.env.ADMIN_FRONTEND_URL,
     process.env.SHOPPER_FRONTEND_URL
@@ -46,7 +47,17 @@ app.use(
             // Allow requests with no origin (like mobile apps or curl requests)
             if (!origin) return callback(null, true);
 
+            // Check exact matches first
             if (allowedOrigins.indexOf(origin) !== -1) {
+                callback(null, true);
+            } 
+            // Allow any Vercel deployment URLs for your projects
+            else if (origin && (
+                origin.includes('delhiveryway-customer') && origin.includes('vercel.app') ||
+                origin.includes('delhiveryway-shopper') && origin.includes('vercel.app') ||
+                origin.includes('delhiveryway-admin') && origin.includes('vercel.app')
+            )) {
+                console.log('✅ CORS allowed Vercel deployment:', origin);
                 callback(null, true);
             } else {
                 console.log('❌ CORS blocked origin:', origin);
