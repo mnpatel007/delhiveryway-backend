@@ -1,7 +1,8 @@
 const Order = require('../models/Order');
-const Shop = require('../models/Shop');
-const User = require('../models/User');
 const PersonalShopper = require('../models/PersonalShopper');
+const User = require('../models/User');
+const path = require('path');
+const fs = require('fs');
 const mongoose = require('mongoose');
 
 // Place a new order
@@ -264,9 +265,13 @@ exports.updateOrderStatus = async (req, res) => {
             'pending_shopper': ['accepted_by_shopper', 'cancelled'],
             'accepted_by_shopper': ['shopper_at_shop', 'cancelled'],
             'shopper_at_shop': ['shopping_in_progress', 'cancelled'],
-            'shopping_in_progress': ['bill_uploaded', 'cancelled'],
+            'shopping_in_progress': ['shopper_revised_order', 'final_shopping', 'cancelled'],
+            'shopper_revised_order': ['customer_reviewing_revision', 'cancelled'],
+            'customer_reviewing_revision': ['customer_approved_revision', 'cancelled'],
+            'customer_approved_revision': ['final_shopping', 'cancelled'],
+            'final_shopping': ['bill_uploaded', 'cancelled'],
             'bill_uploaded': ['bill_approved', 'bill_rejected'],
-            'bill_rejected': ['shopping_in_progress', 'cancelled'],
+            'bill_rejected': ['final_shopping', 'cancelled'],
             'bill_approved': ['out_for_delivery'],
             'out_for_delivery': ['delivered'],
             'delivered': [],
@@ -283,18 +288,21 @@ exports.updateOrderStatus = async (req, res) => {
 
         // Handle bill upload
         if (status === 'bill_uploaded') {
-            if (!billPhoto || !billAmount) {
+            if (!billAmount || billAmount <= 0) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Bill photo and amount are required'
+                    message: 'Bill amount is required'
                 });
             }
 
-            order.actualBill = {
-                photo: billPhoto,
-                amount: billAmount,
-                uploadedAt: new Date()
-            };
+            order.billAmount = billAmount;
+            
+            // Handle file upload if present
+            if (req.file) {
+                order.billImageUrl = `/uploads/bills/${req.file.filename}`;
+            } else if (billImageUrl) {
+                order.billImageUrl = billImageUrl;
+            }
         }
 
         // Generate delivery OTP for out_for_delivery status
@@ -667,6 +675,173 @@ exports.rateOrder = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to rate order'
+        });
+    }
+};
+
+// Shopper revise order items
+exports.reviseOrderItems = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { revisedItems, shopperNotes } = req.body;
+
+        const order = await Order.findById(id)
+            .populate('customerId', 'name phone')
+            .populate('personalShopperId', 'name phone');
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        // Check if shopper owns this order
+        if (!order.personalShopperId || order.personalShopperId._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied'
+            });
+        }
+
+        if (order.status !== 'shopping_in_progress') {
+            return res.status(400).json({
+                success: false,
+                message: 'Order cannot be revised at this stage'
+            });
+        }
+
+        // Update items with revised quantities and availability
+        let revisedSubtotal = 0;
+        const updatedItems = order.items.map(item => {
+            const revision = revisedItems.find(r => r.itemId === item._id.toString());
+            if (revision) {
+                item.revisedQuantity = revision.quantity;
+                item.revisedPrice = revision.price || item.price;
+                item.isAvailable = revision.isAvailable;
+                item.shopperNotes = revision.notes || '';
+                
+                if (revision.isAvailable) {
+                    revisedSubtotal += (revision.price || item.price) * revision.quantity;
+                }
+            }
+            return item;
+        });
+
+        // Calculate revised order value
+        const deliveryFee = order.orderValue.deliveryFee;
+        const serviceFee = Math.round(revisedSubtotal * 0.05);
+        const taxes = Math.round(revisedSubtotal * 0.05);
+        const revisedTotal = revisedSubtotal + deliveryFee + serviceFee + taxes;
+
+        order.items = updatedItems;
+        order.revisedOrderValue = {
+            subtotal: revisedSubtotal,
+            deliveryFee,
+            serviceFee,
+            taxes,
+            discount: 0,
+            total: revisedTotal
+        };
+        order.status = 'shopper_revised_order';
+        
+        order.timeline.push({
+            status: 'shopper_revised_order',
+            timestamp: new Date(),
+            note: shopperNotes || 'Shopper revised order based on item availability',
+            updatedBy: 'shopper'
+        });
+
+        await order.save();
+
+        // Notify customer about revision
+        const io = req.app.get('io');
+        io.to(`customer_${order.customerId._id}`).emit('orderRevised', {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            message: 'Your shopper has revised your order. Please review the changes.',
+            revisedTotal: revisedTotal
+        });
+
+        res.json({
+            success: true,
+            message: 'Order revised successfully',
+            data: {
+                order: {
+                    _id: order._id,
+                    status: order.status,
+                    revisedOrderValue: order.revisedOrderValue
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Revise order error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to revise order'
+        });
+    }
+};
+
+// Customer approve revised order
+exports.approveRevisedOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        // Check if customer owns this order
+        if (order.customerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied'
+            });
+        }
+
+        if (order.status !== 'customer_reviewing_revision') {
+            return res.status(400).json({
+                success: false,
+                message: 'No revision to approve'
+            });
+        }
+
+        order.status = 'customer_approved_revision';
+        order.timeline.push({
+            status: 'customer_approved_revision',
+            timestamp: new Date(),
+            note: 'Customer approved the revised order',
+            updatedBy: 'customer'
+        });
+
+        await order.save();
+
+        // Notify shopper
+        const io = req.app.get('io');
+        if (order.personalShopperId) {
+            io.to(`shopper_${order.personalShopperId}`).emit('revisionApproved', {
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                message: 'Customer approved the revision. Proceed with final shopping.'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Revised order approved successfully'
+        });
+
+    } catch (error) {
+        console.error('Approve revised order error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to approve revised order'
         });
     }
 };

@@ -25,6 +25,14 @@ const orderItemSchema = new mongoose.Schema({
     unavailable: {
         type: Boolean,
         default: false
+    },
+    // Shopper revised quantities and availability
+    revisedQuantity: Number,
+    revisedPrice: Number,
+    shopperNotes: String,
+    isAvailable: {
+        type: Boolean,
+        default: true
     }
 });
 
@@ -89,6 +97,15 @@ const orderSchema = new mongoose.Schema({
             min: [0, 'Total cannot be negative']
         }
     },
+    // Revised order value after shopper editing
+    revisedOrderValue: {
+        subtotal: Number,
+        deliveryFee: Number,
+        serviceFee: Number,
+        taxes: Number,
+        discount: Number,
+        total: Number
+    },
     actualBill: {
         amount: {
             type: Number,
@@ -135,6 +152,10 @@ const orderSchema = new mongoose.Schema({
             'accepted_by_shopper',
             'shopper_at_shop',
             'shopping_in_progress',
+            'shopper_revised_order',
+            'customer_reviewing_revision',
+            'customer_approved_revision',
+            'final_shopping',
             'bill_uploaded',
             'bill_approved',
             'bill_rejected',
@@ -273,7 +294,11 @@ orderSchema.methods.getStatusMessage = function () {
         'pending_shopper': 'Waiting for a personal shopper to accept your order',
         'accepted_by_shopper': 'A personal shopper has accepted your order',
         'shopper_at_shop': 'Personal shopper has arrived at the shop',
-        'shopping_in_progress': 'Personal shopper is shopping for your items',
+        'shopping_in_progress': 'Personal shopper is checking item availability',
+        'shopper_revised_order': 'Personal shopper has revised your order based on availability',
+        'customer_reviewing_revision': 'Please review the revised order from your shopper',
+        'customer_approved_revision': 'You approved the revised order, shopper will proceed with final shopping',
+        'final_shopping': 'Personal shopper is purchasing your final items',
         'bill_uploaded': 'Personal shopper has uploaded the bill for your approval',
         'bill_approved': 'Bill approved, preparing for delivery',
         'bill_rejected': 'Bill rejected, personal shopper will shop again',
