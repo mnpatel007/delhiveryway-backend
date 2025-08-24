@@ -97,6 +97,31 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
+// Get available orders for shoppers to accept
+const getAvailableOrders = async (req, res) => {
+    try {
+        const orders = await Order.find({
+            status: 'pending_shopper'
+        }).populate([
+            { path: 'customerId', select: 'name phone' },
+            { path: 'shopId', select: 'name address category' }
+        ]).sort({ createdAt: -1 });
+
+        res.json({
+            success: true,
+            data: {
+                orders: orders
+            }
+        });
+    } catch (error) {
+        console.error('Get available orders error:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error' 
+        });
+    }
+};
+
 // Get shopper's active orders
 const getActiveOrders = async (req, res) => {
     try {
@@ -117,5 +142,6 @@ const getActiveOrders = async (req, res) => {
 module.exports = {
     acceptOrder,
     updateOrderStatus,
-    getActiveOrders
+    getActiveOrders,
+    getAvailableOrders
 };
