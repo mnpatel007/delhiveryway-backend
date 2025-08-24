@@ -73,8 +73,12 @@ exports.placeOrder = async (req, res) => {
             });
         }
 
+        // Generate unique order number
+        const orderNumber = `ORD${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
         // Create order
         const order = new Order({
+            orderNumber,
             customerId: req.user._id,
             shopId,
             items: validatedItems,
