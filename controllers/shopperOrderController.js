@@ -160,11 +160,15 @@ const getShopperEarnings = async (req, res) => {
         const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         
-        // Get completed orders for this shopper
+        // Get completed orders for this shopper (including bill_approved status)
         const completedOrders = await Order.find({
             personalShopperId: shopperId,
-            status: 'delivered'
+            status: { $in: ['delivered', 'bill_approved', 'bill_uploaded'] }
         }).populate('customerId', 'name').populate('shopId', 'name');
+        
+        console.log('Shopper ID:', shopperId);
+        console.log('Found completed orders:', completedOrders.length);
+        console.log('Orders:', completedOrders.map(o => ({ id: o._id, status: o.status, amount: o.totalAmount })));
         
         // Calculate earnings (10% commission)
         const totalEarnings = completedOrders.reduce((sum, order) => {
@@ -172,15 +176,24 @@ const getShopperEarnings = async (req, res) => {
         }, 0);
         
         const todayEarnings = completedOrders
-            .filter(order => new Date(order.deliveredAt) >= startOfDay)
+            .filter(order => {
+                const orderDate = new Date(order.deliveredAt || order.updatedAt || order.createdAt);
+                return orderDate >= startOfDay;
+            })
             .reduce((sum, order) => sum + Math.round((order.totalAmount || 0) * 0.1), 0);
             
         const weekEarnings = completedOrders
-            .filter(order => new Date(order.deliveredAt) >= startOfWeek)
+            .filter(order => {
+                const orderDate = new Date(order.deliveredAt || order.updatedAt || order.createdAt);
+                return orderDate >= startOfWeek;
+            })
             .reduce((sum, order) => sum + Math.round((order.totalAmount || 0) * 0.1), 0);
             
         const monthEarnings = completedOrders
-            .filter(order => new Date(order.deliveredAt) >= startOfMonth)
+            .filter(order => {
+                const orderDate = new Date(order.deliveredAt || order.updatedAt || order.createdAt);
+                return orderDate >= startOfMonth;
+            })
             .reduce((sum, order) => sum + Math.round((order.totalAmount || 0) * 0.1), 0);
         
         res.json({
@@ -206,7 +219,7 @@ const getCompletedOrders = async (req, res) => {
         
         const orders = await Order.find({
             personalShopperId: shopperId,
-            status: 'delivered'
+            status: { $in: ['delivered', 'bill_approved', 'bill_uploaded'] }
         })
         .populate('customerId', 'name phone')
         .populate('shopId', 'name address')
@@ -216,7 +229,7 @@ const getCompletedOrders = async (req, res) => {
         
         const total = await Order.countDocuments({
             personalShopperId: shopperId,
-            status: 'delivered'
+            status: { $in: ['delivered', 'bill_approved', 'bill_uploaded'] }
         });
         
         res.json({
