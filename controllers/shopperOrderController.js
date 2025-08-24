@@ -150,9 +150,97 @@ const getActiveOrders = async (req, res) => {
     }
 };
 
+// Get shopper earnings
+const getShopperEarnings = async (req, res) => {
+    try {
+        const shopperId = req.shopperId;
+        
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        
+        // Get completed orders for this shopper
+        const completedOrders = await Order.find({
+            personalShopperId: shopperId,
+            status: 'delivered'
+        }).populate('customerId', 'name').populate('shopId', 'name');
+        
+        // Calculate earnings (10% commission)
+        const totalEarnings = completedOrders.reduce((sum, order) => {
+            return sum + Math.round((order.totalAmount || 0) * 0.1);
+        }, 0);
+        
+        const todayEarnings = completedOrders
+            .filter(order => new Date(order.deliveredAt) >= startOfDay)
+            .reduce((sum, order) => sum + Math.round((order.totalAmount || 0) * 0.1), 0);
+            
+        const weekEarnings = completedOrders
+            .filter(order => new Date(order.deliveredAt) >= startOfWeek)
+            .reduce((sum, order) => sum + Math.round((order.totalAmount || 0) * 0.1), 0);
+            
+        const monthEarnings = completedOrders
+            .filter(order => new Date(order.deliveredAt) >= startOfMonth)
+            .reduce((sum, order) => sum + Math.round((order.totalAmount || 0) * 0.1), 0);
+        
+        res.json({
+            success: true,
+            data: {
+                today: todayEarnings,
+                thisWeek: weekEarnings,
+                thisMonth: monthEarnings,
+                total: totalEarnings
+            }
+        });
+    } catch (error) {
+        console.error('Get shopper earnings error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// Get completed orders for history
+const getCompletedOrders = async (req, res) => {
+    try {
+        const shopperId = req.shopperId;
+        const { page = 1, limit = 20 } = req.query;
+        
+        const orders = await Order.find({
+            personalShopperId: shopperId,
+            status: 'delivered'
+        })
+        .populate('customerId', 'name phone')
+        .populate('shopId', 'name address')
+        .sort({ deliveredAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+        
+        const total = await Order.countDocuments({
+            personalShopperId: shopperId,
+            status: 'delivered'
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                orders,
+                pagination: {
+                    current: parseInt(page),
+                    pages: Math.ceil(total / limit),
+                    total
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Get completed orders error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 module.exports = {
     acceptOrder,
     updateOrderStatus,
+    getAvailableOrders,
     getActiveOrders,
-    getAvailableOrders
+    getShopperEarnings,
+    getCompletedOrders
 };
