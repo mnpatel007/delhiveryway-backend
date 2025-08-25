@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const PersonalShopper = require('../models/PersonalShopper');
 const User = require('../models/User');
+const { calculateOrderPricing } = require('../utils/paymentCalculator');
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
@@ -31,6 +32,14 @@ exports.placeOrder = async (req, res) => {
             });
         }
 
+        // Validate delivery address has coordinates
+        if (!deliveryAddress.coordinates || !deliveryAddress.coordinates.lat || !deliveryAddress.coordinates.lng) {
+            return res.status(400).json({
+                success: false,
+                message: 'Delivery address coordinates are required for distance calculation'
+            });
+        }
+
         // Validate shop exists and is active
         const Shop = require('../models/Shop');
         const shop = await Shop.findById(shopId);
@@ -41,15 +50,11 @@ exports.placeOrder = async (req, res) => {
             });
         }
 
-        // Calculate order value
-        let subtotal = 0;
+        // Validate and prepare items
         const validatedItems = items.map(item => {
             if (!item.name || !item.price || !item.quantity) {
                 throw new Error('Each item must have name, price, and quantity');
             }
-
-            const itemTotal = item.price * item.quantity;
-            subtotal += itemTotal;
 
             return {
                 productId: item.productId || null,
@@ -60,13 +65,13 @@ exports.placeOrder = async (req, res) => {
             };
         });
 
-        const deliveryFee = shop.deliveryFee || 0;
-        const serviceFee = Math.round(subtotal * 0.05); // 5% service fee
-        const taxes = Math.round(subtotal * 0.05); // 5% tax
-        const total = subtotal + deliveryFee + serviceFee + taxes;
+        // Calculate pricing using new payment calculator
+        const pricing = await calculateOrderPricing(validatedItems, shopId, deliveryAddress);
+        
+        console.log('Order pricing calculated:', pricing);
 
         // Check minimum order value
-        if (subtotal < shop.minOrderValue) {
+        if (pricing.subtotal < shop.minOrderValue) {
             return res.status(400).json({
                 success: false,
                 message: `Minimum order value is ₹${shop.minOrderValue}`
@@ -83,11 +88,12 @@ exports.placeOrder = async (req, res) => {
             shopId,
             items: validatedItems,
             orderValue: {
-                subtotal,
-                deliveryFee,
-                serviceFee,
-                taxes,
-                total
+                subtotal: pricing.subtotal,
+                deliveryFee: pricing.deliveryFee,
+                serviceFee: pricing.serviceFee,
+                taxes: pricing.taxes,
+                discount: pricing.discount,
+                total: pricing.total
             },
             deliveryAddress: {
                 ...deliveryAddress,
@@ -99,6 +105,7 @@ exports.placeOrder = async (req, res) => {
                 method: paymentMethod,
                 status: 'pending'
             },
+            shopperCommission: pricing.shopperEarning,
             timeline: [{
                 status: 'pending_shopper',
                 timestamp: new Date(),
@@ -764,7 +771,8 @@ exports.reviseOrderItems = async (req, res) => {
 
         const order = await Order.findById(id)
             .populate('customerId', 'name phone')
-            .populate('personalShopperId', 'name phone');
+            .populate('personalShopperId', 'name phone')
+            .populate('shopId');
 
         if (!order) {
             return res.status(404).json({
@@ -789,7 +797,6 @@ exports.reviseOrderItems = async (req, res) => {
         }
 
         // Update items with revised quantities and availability
-        let revisedSubtotal = 0;
         const updatedItems = order.items.map(item => {
             const revision = revisedItems.find(r => r.itemId === item._id.toString());
             if (revision) {
@@ -797,36 +804,62 @@ exports.reviseOrderItems = async (req, res) => {
                 item.revisedPrice = revision.price || item.price;
                 item.isAvailable = revision.isAvailable;
                 item.shopperNotes = revision.notes || '';
-                
-                if (revision.isAvailable) {
-                    revisedSubtotal += (revision.price || item.price) * revision.quantity;
-                }
             }
             return item;
         });
 
-        // Calculate revised order value
-        const deliveryFee = order.orderValue.deliveryFee;
-        const serviceFee = Math.round(revisedSubtotal * 0.05);
-        const taxes = Math.round(revisedSubtotal * 0.05);
-        const revisedTotal = revisedSubtotal + deliveryFee + serviceFee + taxes;
+        // Filter out unavailable items and prepare items for price calculation
+        const availableItems = updatedItems
+            .filter(item => item.isAvailable !== false)
+            .map(item => ({
+                ...item.toObject(),
+                price: item.revisedPrice || item.price,
+                quantity: item.revisedQuantity || item.quantity
+            }));
 
+        // Get delivery address from the order
+        const deliveryAddress = order.deliveryAddress;
+        if (!deliveryAddress || !deliveryAddress.coordinates) {
+            return res.status(400).json({
+                success: false,
+                message: 'Delivery address coordinates are missing'
+            });
+        }
+
+        // Calculate new pricing using the payment calculator
+        const pricing = await calculateOrderPricing(
+            availableItems, 
+            order.shopId._id, 
+            deliveryAddress
+        );
+
+        // Update order with revised items and pricing
         order.items = updatedItems;
         order.revisedOrderValue = {
-            subtotal: revisedSubtotal,
-            deliveryFee,
-            serviceFee,
-            taxes,
+            subtotal: pricing.subtotal,
+            deliveryFee: pricing.deliveryFee,
+            serviceFee: pricing.serviceFee,
+            taxes: pricing.taxes,
             discount: 0,
-            total: revisedTotal
+            total: pricing.total
         };
+        
+        // Update shopper commission to be the delivery fee
+        order.shopperCommission = pricing.shopperEarning;
         order.status = 'shopper_revised_order';
         
         order.timeline.push({
             status: 'shopper_revised_order',
             timestamp: new Date(),
             note: shopperNotes || 'Shopper revised order based on item availability',
-            updatedBy: 'shopper'
+            updatedBy: 'shopper',
+            pricingDetails: {
+                subtotal: pricing.subtotal,
+                deliveryFee: pricing.deliveryFee,
+                taxes: pricing.taxes,
+                total: pricing.total,
+                shopperEarning: pricing.shopperEarning
+            }
         });
 
         await order.save();
@@ -837,7 +870,13 @@ exports.reviseOrderItems = async (req, res) => {
             orderId: order._id,
             orderNumber: order.orderNumber,
             message: 'Your shopper has revised your order. Please review the changes.',
-            revisedTotal: revisedTotal
+            revisedTotal: pricing.total,
+            pricingBreakdown: {
+                subtotal: pricing.subtotal,
+                deliveryFee: pricing.deliveryFee,
+                taxes: pricing.taxes,
+                total: pricing.total
+            }
         });
 
         res.json({
@@ -847,7 +886,8 @@ exports.reviseOrderItems = async (req, res) => {
                 order: {
                     _id: order._id,
                     status: order.status,
-                    revisedOrderValue: order.revisedOrderValue
+                    revisedOrderValue: order.revisedOrderValue,
+                    shopperCommission: order.shopperCommission
                 }
             }
         });

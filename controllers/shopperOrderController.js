@@ -188,11 +188,11 @@ const getShopperEarnings = async (req, res) => {
             actualBillAmount: o.actualBill?.amount 
         })));
         
-        // Calculate earnings (10% commission)
-        // Use actualBill.amount if available (for bill_approved orders), otherwise orderValue.total
+        // Calculate earnings (delivery fee only - new payment structure)
+        // Use shopperCommission if available, otherwise fall back to deliveryFee
         const totalEarnings = completedOrders.reduce((sum, order) => {
-            const amount = order.actualBill?.amount || order.orderValue?.total || 0;
-            return sum + Math.round(amount * 0.1);
+            const earning = order.shopperCommission || order.orderValue?.deliveryFee || 0;
+            return sum + earning;
         }, 0);
         
         const todayEarnings = completedOrders
@@ -201,8 +201,8 @@ const getShopperEarnings = async (req, res) => {
                 return orderDate >= startOfDay;
             })
             .reduce((sum, order) => {
-                const amount = order.actualBill?.amount || order.orderValue?.total || 0;
-                return sum + Math.round(amount * 0.1);
+                const earning = order.shopperCommission || order.orderValue?.deliveryFee || 0;
+                return sum + earning;
             }, 0);
             
         const weekEarnings = completedOrders
@@ -211,8 +211,8 @@ const getShopperEarnings = async (req, res) => {
                 return orderDate >= startOfWeek;
             })
             .reduce((sum, order) => {
-                const amount = order.actualBill?.amount || order.orderValue?.total || 0;
-                return sum + Math.round(amount * 0.1);
+                const earning = order.shopperCommission || order.orderValue?.deliveryFee || 0;
+                return sum + earning;
             }, 0);
             
         const monthEarnings = completedOrders
@@ -221,8 +221,8 @@ const getShopperEarnings = async (req, res) => {
                 return orderDate >= startOfMonth;
             })
             .reduce((sum, order) => {
-                const amount = order.actualBill?.amount || order.orderValue?.total || 0;
-                return sum + Math.round(amount * 0.1);
+                const earning = order.shopperCommission || order.orderValue?.deliveryFee || 0;
+                return sum + earning;
             }, 0);
         
         res.json({
