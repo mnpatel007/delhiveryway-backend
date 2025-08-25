@@ -837,15 +837,14 @@ exports.reviseOrderItems = async (req, res) => {
         order.items = updatedItems;
         order.revisedOrderValue = {
             subtotal: pricing.subtotal,
-            deliveryFee: pricing.deliveryFee,
-            serviceFee: pricing.serviceFee,
-            taxes: pricing.taxes,
+            deliveryFee: pricing.deliveryFee, // This is already calculated based on distance
+            taxes: pricing.taxes, // This is 5% of subtotal
             discount: 0,
-            total: pricing.total
+            total: pricing.subtotal + pricing.deliveryFee + pricing.taxes
         };
         
-        // Update shopper commission to be the delivery fee
-        order.shopperCommission = pricing.shopperEarning;
+        // Shopper earns exactly the delivery fee amount
+        order.shopperCommission = pricing.deliveryFee;
         order.status = 'shopper_revised_order';
         
         order.timeline.push({
@@ -857,8 +856,8 @@ exports.reviseOrderItems = async (req, res) => {
                 subtotal: pricing.subtotal,
                 deliveryFee: pricing.deliveryFee,
                 taxes: pricing.taxes,
-                total: pricing.total,
-                shopperEarning: pricing.shopperEarning
+                total: pricing.subtotal + pricing.deliveryFee + pricing.taxes,
+                shopperEarning: pricing.deliveryFee
             }
         });
 

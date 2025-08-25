@@ -105,8 +105,10 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
 const recalculateRevisedPricing = (revisedItems, originalPricing) => {
     // Calculate new subtotal from revised items
     const subtotal = revisedItems.reduce((sum, item) => {
-        if (item.isAvailable && item.revisedQuantity > 0) {
-            return sum + ((item.revisedPrice || item.price) * item.revisedQuantity);
+        if (item.isAvailable !== false && (item.revisedQuantity > 0 || item.quantity > 0)) {
+            const price = item.revisedPrice !== undefined ? item.revisedPrice : item.price;
+            const quantity = item.revisedQuantity !== undefined ? item.revisedQuantity : item.quantity;
+            return sum + (price * quantity);
         }
         return sum;
     }, 0);
@@ -117,18 +119,17 @@ const recalculateRevisedPricing = (revisedItems, originalPricing) => {
     // Keep same delivery fee (distance doesn't change)
     const deliveryFee = originalPricing.deliveryFee;
 
-    // Calculate new total
+    // Calculate new total (subtotal + taxes + delivery fee)
     const total = subtotal + taxes + deliveryFee;
 
     return {
         subtotal: Math.round(subtotal),
         taxes,
         deliveryFee,
-        serviceFee: 0,
         discount: 0,
         total: Math.round(total),
         distance: originalPricing.distance,
-        shopperEarning: deliveryFee
+        shopperEarning: deliveryFee // Shopper earns exactly the delivery fee
     };
 };
 
