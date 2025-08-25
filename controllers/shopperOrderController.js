@@ -181,11 +181,18 @@ const getShopperEarnings = async (req, res) => {
         
         console.log('Shopper ID:', shopperId);
         console.log('Found completed orders:', completedOrders.length);
-        console.log('Orders:', completedOrders.map(o => ({ id: o._id, status: o.status, amount: o.totalAmount })));
+        console.log('Orders:', completedOrders.map(o => ({ 
+            id: o._id, 
+            status: o.status, 
+            orderValueTotal: o.orderValue?.total,
+            actualBillAmount: o.actualBill?.amount 
+        })));
         
         // Calculate earnings (10% commission)
+        // Use actualBill.amount if available (for bill_approved orders), otherwise orderValue.total
         const totalEarnings = completedOrders.reduce((sum, order) => {
-            return sum + Math.round((order.totalAmount || 0) * 0.1);
+            const amount = order.actualBill?.amount || order.orderValue?.total || 0;
+            return sum + Math.round(amount * 0.1);
         }, 0);
         
         const todayEarnings = completedOrders
@@ -193,21 +200,30 @@ const getShopperEarnings = async (req, res) => {
                 const orderDate = new Date(order.deliveredAt || order.updatedAt || order.createdAt);
                 return orderDate >= startOfDay;
             })
-            .reduce((sum, order) => sum + Math.round((order.totalAmount || 0) * 0.1), 0);
+            .reduce((sum, order) => {
+                const amount = order.actualBill?.amount || order.orderValue?.total || 0;
+                return sum + Math.round(amount * 0.1);
+            }, 0);
             
         const weekEarnings = completedOrders
             .filter(order => {
                 const orderDate = new Date(order.deliveredAt || order.updatedAt || order.createdAt);
                 return orderDate >= startOfWeek;
             })
-            .reduce((sum, order) => sum + Math.round((order.totalAmount || 0) * 0.1), 0);
+            .reduce((sum, order) => {
+                const amount = order.actualBill?.amount || order.orderValue?.total || 0;
+                return sum + Math.round(amount * 0.1);
+            }, 0);
             
         const monthEarnings = completedOrders
             .filter(order => {
                 const orderDate = new Date(order.deliveredAt || order.updatedAt || order.createdAt);
                 return orderDate >= startOfMonth;
             })
-            .reduce((sum, order) => sum + Math.round((order.totalAmount || 0) * 0.1), 0);
+            .reduce((sum, order) => {
+                const amount = order.actualBill?.amount || order.orderValue?.total || 0;
+                return sum + Math.round(amount * 0.1);
+            }, 0);
         
         res.json({
             success: true,
