@@ -164,7 +164,13 @@ const getShopperEarnings = async (req, res) => {
         
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        
+        // Fix startOfWeek calculation - create new date object to avoid mutation
+        const weekStart = new Date(now);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+        const startOfWeek = weekStart;
+        
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         
         // Get completed orders for this shopper (including bill_approved status)
