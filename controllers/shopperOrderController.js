@@ -54,12 +54,12 @@ const acceptOrder = async (req, res) => {
 // Update order status
 const updateOrderStatus = async (req, res) => {
     try {
-        const { orderId, status, billPhoto, billAmount } = req.body;
+        const { orderId, status } = req.body;
         const shopperId = req.shopperId;
 
-        const order = await Order.findOne({ 
-            _id: orderId, 
-            personalShopperId: shopperId 
+        const order = await Order.findOne({
+            _id: orderId,
+            personalShopperId: shopperId
         });
 
         if (!order) {
@@ -68,18 +68,8 @@ const updateOrderStatus = async (req, res) => {
 
         // Update order based on status
         order.status = status;
-        
-        if (status === 'bill_uploaded' && billPhoto && billAmount) {
-            order.actualBill = {
-                photo: billPhoto,
-                amount: billAmount,
-                uploadedAt: new Date()
-            };
-            // Also set legacy fields for frontend compatibility
-            order.billPhoto = billPhoto;
-            order.billImage = billPhoto;
-            order.billAmount = billAmount;
-        }
+
+
 
         await order.save();
 
@@ -87,9 +77,7 @@ const updateOrderStatus = async (req, res) => {
         const io = req.app.get('io');
         io.to(`customer_${order.customerId}`).emit('orderUpdate', {
             orderId: order._id,
-            status: status,
-            billPhoto: billPhoto,
-            billAmount: billAmount
+            status: status
         });
 
         res.json({
@@ -123,9 +111,9 @@ const getAvailableOrders = async (req, res) => {
         });
     } catch (error) {
         console.error('Get available orders error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            message: 'Server error' 
+            message: 'Server error'
         });
     }
 };
@@ -137,17 +125,19 @@ const getActiveOrders = async (req, res) => {
 
         const orders = await Order.find({
             personalShopperId: shopperId,
-            status: { $in: [
-                'accepted_by_shopper', 
-                'shopper_at_shop', 
-                'shopping_in_progress', 
-                'shopping', 
-                'final_shopping',
-                'bill_sent', 
-                'bill_uploaded',
-                'bill_approved', 
-                'out_for_delivery'
-            ] }
+            status: {
+                $in: [
+                    'accepted_by_shopper',
+                    'shopper_at_shop',
+                    'shopping_in_progress',
+                    'shopping',
+                    'final_shopping',
+                    'bill_sent',
+                    'bill_uploaded',
+                    'bill_approved',
+                    'out_for_delivery'
+                ]
+            }
         }).populate('customerId', 'name phone').sort({ createdAt: -1 });
 
         res.json({ success: true, orders });
@@ -161,40 +151,40 @@ const getActiveOrders = async (req, res) => {
 const getShopperEarnings = async (req, res) => {
     try {
         const shopperId = req.shopperId;
-        
+
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
+
         // Fix startOfWeek calculation - create new date object to avoid mutation
         const weekStart = new Date(now);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         weekStart.setHours(0, 0, 0, 0);
         const startOfWeek = weekStart;
-        
+
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        
-        // Get completed orders for this shopper (including bill_approved status)
+
+        // Get completed orders for this shopper
         const completedOrders = await Order.find({
             personalShopperId: shopperId,
-            status: { $in: ['delivered', 'bill_approved', 'bill_uploaded'] }
+            status: { $in: ['delivered'] }
         }).populate('customerId', 'name').populate('shopId', 'name');
-        
+
         console.log('Shopper ID:', shopperId);
         console.log('Found completed orders:', completedOrders.length);
-        console.log('Orders:', completedOrders.map(o => ({ 
-            id: o._id, 
-            status: o.status, 
+        console.log('Orders:', completedOrders.map(o => ({
+            id: o._id,
+            status: o.status,
             orderValueTotal: o.orderValue?.total,
-            actualBillAmount: o.actualBill?.amount 
+
         })));
-        
+
         // Calculate earnings (delivery fee only - new payment structure)
         // Use shopperCommission if available, otherwise fall back to deliveryFee
         const totalEarnings = completedOrders.reduce((sum, order) => {
             const earning = order.shopperCommission || order.orderValue?.deliveryFee || 0;
             return sum + earning;
         }, 0);
-        
+
         const todayEarnings = completedOrders
             .filter(order => {
                 const orderDate = new Date(order.deliveredAt || order.updatedAt || order.createdAt);
@@ -204,7 +194,7 @@ const getShopperEarnings = async (req, res) => {
                 const earning = order.shopperCommission || order.orderValue?.deliveryFee || 0;
                 return sum + earning;
             }, 0);
-            
+
         const weekEarnings = completedOrders
             .filter(order => {
                 const orderDate = new Date(order.deliveredAt || order.updatedAt || order.createdAt);
@@ -214,7 +204,7 @@ const getShopperEarnings = async (req, res) => {
                 const earning = order.shopperCommission || order.orderValue?.deliveryFee || 0;
                 return sum + earning;
             }, 0);
-            
+
         const monthEarnings = completedOrders
             .filter(order => {
                 const orderDate = new Date(order.deliveredAt || order.updatedAt || order.createdAt);
@@ -224,7 +214,7 @@ const getShopperEarnings = async (req, res) => {
                 const earning = order.shopperCommission || order.orderValue?.deliveryFee || 0;
                 return sum + earning;
             }, 0);
-        
+
         res.json({
             success: true,
             data: {
@@ -245,22 +235,22 @@ const getCompletedOrders = async (req, res) => {
     try {
         const shopperId = req.shopperId;
         const { page = 1, limit = 20 } = req.query;
-        
+
         const orders = await Order.find({
             personalShopperId: shopperId,
-            status: { $in: ['delivered', 'bill_approved', 'bill_uploaded'] }
+            status: { $in: ['delivered'] }
         })
-        .populate('customerId', 'name phone')
-        .populate('shopId', 'name address')
-        .sort({ deliveredAt: -1 })
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
-        
+            .populate('customerId', 'name phone')
+            .populate('shopId', 'name address')
+            .sort({ deliveredAt: -1 })
+            .limit(limit * 1)
+            .skip((page - 1) * limit);
+
         const total = await Order.countDocuments({
             personalShopperId: shopperId,
-            status: { $in: ['delivered', 'bill_approved', 'bill_uploaded'] }
+            status: { $in: ['delivered'] }
         });
-        
+
         res.json({
             success: true,
             data: {

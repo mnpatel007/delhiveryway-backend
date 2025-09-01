@@ -10,7 +10,7 @@ const calculateDeliveryFee = (distance) => {
     const baseFee = 30; // Base fee for up to 2km
     const perKmRate = 15; // Additional fee per km after 2km
     const maxFee = 150; // Maximum delivery fee cap
-    
+
     if (distance <= 2) {
         return baseFee;
     } else if (distance <= 10) {
@@ -71,14 +71,14 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
         // Calculate delivery fee based on distance
         const deliveryFee = calculateDeliveryFee(distance);
 
-        // Calculate taxes (5% of subtotal)
-        const taxes = Math.round(subtotal * 0.05);
+        // No taxes - removed as per requirements
+        const taxes = 0;
 
         // Service fee is removed as per new requirements
         const serviceFee = 0;
 
-        // Calculate total
-        const total = subtotal + taxes + deliveryFee;
+        // Calculate total (only subtotal + delivery fee)
+        const total = subtotal + deliveryFee;
 
         return {
             subtotal: Math.round(subtotal),
@@ -113,14 +113,14 @@ const recalculateRevisedPricing = (revisedItems, originalPricing) => {
         return sum;
     }, 0);
 
-    // Recalculate taxes (5% of new subtotal)
-    const taxes = Math.round(subtotal * 0.05);
+    // No taxes - removed as per requirements
+    const taxes = 0;
 
     // Keep same delivery fee (distance doesn't change)
     const deliveryFee = originalPricing.deliveryFee;
 
-    // Calculate new total (subtotal + taxes + delivery fee)
-    const total = subtotal + taxes + deliveryFee;
+    // Calculate new total (only subtotal + delivery fee)
+    const total = subtotal + deliveryFee;
 
     return {
         subtotal: Math.round(subtotal),

@@ -67,7 +67,7 @@ exports.placeOrder = async (req, res) => {
 
         // Calculate pricing using new payment calculator
         const pricing = await calculateOrderPricing(validatedItems, shopId, deliveryAddress);
-        
+
         console.log('Order pricing calculated:', pricing);
 
         // Check minimum order value
@@ -194,7 +194,7 @@ exports.getCustomerOrders = async (req, res) => {
         // Also check all orders to see what customer IDs exist
         const allOrders = await Order.find({}).select('customerId status orderNumber').limit(10);
         console.log('Sample of all orders:', allOrders);
-        
+
         // Check for any orders with bill_uploaded status specifically
         const billOrders = await Order.find({ status: 'bill_uploaded' }).select('customerId status orderNumber');
         console.log('Orders with bill_uploaded status:', billOrders);
@@ -353,10 +353,7 @@ exports.updateOrderStatus = async (req, res) => {
             'shopper_revised_order': ['customer_reviewing_revision', 'cancelled'],
             'customer_reviewing_revision': ['customer_approved_revision', 'cancelled'],
             'customer_approved_revision': ['final_shopping', 'cancelled'],
-            'final_shopping': ['bill_uploaded', 'cancelled'],
-            'bill_uploaded': ['bill_approved', 'bill_rejected'],
-            'bill_rejected': ['final_shopping', 'cancelled'],
-            'bill_approved': ['out_for_delivery'],
+            'final_shopping': ['out_for_delivery', 'cancelled'],
             'out_for_delivery': ['delivered'],
             'delivered': [],
             'cancelled': [],
@@ -380,7 +377,7 @@ exports.updateOrderStatus = async (req, res) => {
             }
 
             order.billAmount = billAmount;
-            
+
             // Handle file upload if present
             if (req.file) {
                 order.billImageUrl = `/uploads/bills/${req.file.filename}`;
@@ -766,6 +763,12 @@ exports.rateOrder = async (req, res) => {
 // Shopper revise order items
 exports.reviseOrderItems = async (req, res) => {
     try {
+        console.log('🔄 Revise order items called');
+        console.log('📋 Request params:', req.params);
+        console.log('📋 Request body:', req.body);
+        console.log('👤 Shopper ID from auth:', req.shopperId);
+        console.log('👤 Shopper object:', req.shopper);
+
         const { id } = req.params;
         const { revisedItems, shopperNotes } = req.body;
 
@@ -775,14 +778,24 @@ exports.reviseOrderItems = async (req, res) => {
             .populate('shopId');
 
         if (!order) {
+            console.log('❌ Order not found:', id);
             return res.status(404).json({
                 success: false,
                 message: 'Order not found'
             });
         }
 
+        console.log('📦 Order found:', {
+            id: order._id,
+            status: order.status,
+            personalShopperId: order.personalShopperId?._id
+        });
+
         // Check if shopper owns this order
-        if (!order.personalShopperId || order.personalShopperId._id.toString() !== req.user._id.toString()) {
+        if (!order.personalShopperId || order.personalShopperId._id.toString() !== req.shopperId.toString()) {
+            console.log('❌ Access denied - shopper mismatch');
+            console.log('Order shopper:', order.personalShopperId?._id?.toString());
+            console.log('Request shopper:', req.shopperId?.toString());
             return res.status(403).json({
                 success: false,
                 message: 'Access denied'
@@ -828,8 +841,8 @@ exports.reviseOrderItems = async (req, res) => {
 
         // Calculate new pricing using the payment calculator
         const pricing = await calculateOrderPricing(
-            availableItems, 
-            order.shopId._id, 
+            availableItems,
+            order.shopId._id,
             deliveryAddress
         );
 
@@ -842,11 +855,11 @@ exports.reviseOrderItems = async (req, res) => {
             discount: 0,
             total: pricing.subtotal + pricing.deliveryFee + pricing.taxes
         };
-        
+
         // Shopper earns exactly the delivery fee amount
         order.shopperCommission = pricing.deliveryFee;
         order.status = 'shopper_revised_order';
-        
+
         order.timeline.push({
             status: 'shopper_revised_order',
             timestamp: new Date(),

@@ -106,17 +106,7 @@ const orderSchema = new mongoose.Schema({
         discount: Number,
         total: Number
     },
-    actualBill: {
-        amount: {
-            type: Number,
-            min: [0, 'Bill amount cannot be negative']
-        },
-        photo: String,
-        uploadedAt: Date,
-        approvedAt: Date,
-        rejectedAt: Date,
-        rejectionReason: String
-    },
+
     deliveryAddress: {
         street: {
             type: String,
@@ -156,9 +146,6 @@ const orderSchema = new mongoose.Schema({
             'customer_reviewing_revision',
             'customer_approved_revision',
             'final_shopping',
-            'bill_uploaded',
-            'bill_approved',
-            'bill_rejected',
             'out_for_delivery',
             'delivered',
             'cancelled',
@@ -299,9 +286,6 @@ orderSchema.methods.getStatusMessage = function () {
         'customer_reviewing_revision': 'Please review the revised order from your shopper',
         'customer_approved_revision': 'You approved the revised order, shopper will proceed with final shopping',
         'final_shopping': 'Personal shopper is purchasing your final items',
-        'bill_uploaded': 'Personal shopper has uploaded the bill for your approval',
-        'bill_approved': 'Bill approved, preparing for delivery',
-        'bill_rejected': 'Bill rejected, personal shopper will shop again',
         'out_for_delivery': 'Your order is out for delivery',
         'delivered': 'Your order has been delivered successfully',
         'cancelled': 'Your order has been cancelled',

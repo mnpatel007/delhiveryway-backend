@@ -30,7 +30,7 @@ router.put('/:id/reject-bill', authMiddleware.protect, authMiddleware.restrictTo
 router.put('/:id/rate', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.rateOrder);
 
 // Revise order items (Shopper only)
-router.put('/:id/revise', authMiddleware.protect, authMiddleware.restrictTo('shopper'), orderController.reviseOrderItems);
+router.put('/:id/revise', shopperAuthMiddleware.authenticateShopper, orderController.reviseOrderItems);
 
 // Approve revised order (Customer only)
 router.post('/:id/approve-revision', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.approveRevisedOrder);
