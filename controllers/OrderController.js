@@ -858,10 +858,10 @@ exports.reviseOrderItems = async (req, res) => {
 
         // Shopper earns exactly the delivery fee amount
         order.shopperCommission = pricing.deliveryFee;
-        order.status = 'shopper_revised_order';
+        order.status = 'customer_reviewing_revision';
 
         order.timeline.push({
-            status: 'shopper_revised_order',
+            status: 'customer_reviewing_revision',
             timestamp: new Date(),
             note: shopperNotes || 'Shopper revised order based on item availability',
             updatedBy: 'shopper',
@@ -941,11 +941,11 @@ exports.approveRevisedOrder = async (req, res) => {
             });
         }
 
-        order.status = 'customer_approved_revision';
+        order.status = 'final_shopping';
         order.timeline.push({
-            status: 'customer_approved_revision',
+            status: 'final_shopping',
             timestamp: new Date(),
-            note: 'Customer approved the revised order',
+            note: 'Customer approved the revised order - proceeding with final shopping',
             updatedBy: 'customer'
         });
 
