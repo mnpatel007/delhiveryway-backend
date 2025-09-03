@@ -68,8 +68,10 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
             deliveryAddress.coordinates.lng
         );
 
-        // Calculate delivery fee based on distance
-        const deliveryFee = calculateDeliveryFee(distance);
+        // Use shop's delivery fee if set, otherwise calculate based on distance
+        const deliveryFee = shop.deliveryFee && shop.deliveryFee > 0
+            ? shop.deliveryFee
+            : calculateDeliveryFee(distance);
 
         // No taxes - removed as per requirements
         const taxes = 0;
@@ -100,9 +102,10 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
  * Recalculate pricing when order is revised
  * @param {Array} revisedItems - Revised items array
  * @param {Object} originalPricing - Original pricing object
+ * @param {Object} shop - Shop object with delivery fee
  * @returns {Object} Revised pricing breakdown
  */
-const recalculateRevisedPricing = (revisedItems, originalPricing) => {
+const recalculateRevisedPricing = (revisedItems, originalPricing, shop = null) => {
     // Calculate new subtotal from revised items
     const subtotal = revisedItems.reduce((sum, item) => {
         if (item.isAvailable !== false && (item.revisedQuantity > 0 || item.quantity > 0)) {
@@ -116,8 +119,10 @@ const recalculateRevisedPricing = (revisedItems, originalPricing) => {
     // No taxes - removed as per requirements
     const taxes = 0;
 
-    // Keep same delivery fee (distance doesn't change)
-    const deliveryFee = originalPricing.deliveryFee;
+    // Use shop's delivery fee if available, otherwise keep original delivery fee
+    const deliveryFee = shop && shop.deliveryFee && shop.deliveryFee > 0
+        ? shop.deliveryFee
+        : originalPricing.deliveryFee;
 
     // Calculate new total (only subtotal + delivery fee)
     const total = subtotal + deliveryFee;
