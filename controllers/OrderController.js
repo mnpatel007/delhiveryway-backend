@@ -851,9 +851,9 @@ exports.reviseOrderItems = async (req, res) => {
         order.revisedOrderValue = {
             subtotal: pricing.subtotal,
             deliveryFee: pricing.deliveryFee, // This is already calculated based on distance
-            taxes: pricing.taxes, // This is 5% of subtotal
+            taxes: 0, // No taxes as per requirements
             discount: 0,
-            total: pricing.subtotal + pricing.deliveryFee + pricing.taxes
+            total: pricing.subtotal + pricing.deliveryFee
         };
 
         // Shopper earns exactly the delivery fee amount
@@ -868,8 +868,8 @@ exports.reviseOrderItems = async (req, res) => {
             pricingDetails: {
                 subtotal: pricing.subtotal,
                 deliveryFee: pricing.deliveryFee,
-                taxes: pricing.taxes,
-                total: pricing.subtotal + pricing.deliveryFee + pricing.taxes,
+                taxes: 0,
+                total: pricing.subtotal + pricing.deliveryFee,
                 shopperEarning: pricing.deliveryFee
             }
         });
