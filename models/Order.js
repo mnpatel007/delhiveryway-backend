@@ -266,13 +266,10 @@ orderSchema.methods.canBeCancelled = function () {
     return !nonCancellableStatuses.includes(this.status);
 };
 
-// Method to calculate shopper commission
+// Method to calculate shopper commission - ONLY delivery fee
 orderSchema.methods.calculateShopperCommission = function () {
-    const baseCommission = this.orderValue.total * 0.1; // 10% base commission
-    const distanceBonus = 0; // Can be calculated based on distance
-    const priorityBonus = this.priority === 'urgent' ? 50 : 0;
-
-    return Math.round(baseCommission + distanceBonus + priorityBonus);
+    // Shopper earns ONLY the delivery fee, nothing else
+    return this.orderValue?.deliveryFee || this.revisedOrderValue?.deliveryFee || 0;
 };
 
 // Method to get current status message

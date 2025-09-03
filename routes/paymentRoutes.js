@@ -35,23 +35,8 @@ router.post('/create-checkout-session', protect, restrictTo('customer'), async (
             };
         });
 
-        const gst = itemTotal * 0.05;
-        const platformFee = itemTotal * 0.029;
-
-        // Use provided delivery charge or fallback to 30
+        // NO TAXES - ONLY delivery fee
         const finalDeliveryCharge = deliveryCharge || 30;
-
-        // Taxes (GST + Platform Fee)
-        const taxes = gst + platformFee;
-
-        lineItems.push({
-            price_data: {
-                currency: 'inr',
-                product_data: { name: 'Taxes and Other Charges' },
-                unit_amount: Math.round(taxes * 100),
-            },
-            quantity: 1,
-        });
 
         // Delivery
         lineItems.push({

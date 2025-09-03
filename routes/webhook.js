@@ -42,9 +42,9 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                 });
             }
 
-            const deliveryCharge = shopSet.size * 10;
-            const tax = totalAmount * 0.05;
-            const grandTotal = totalAmount + tax + deliveryCharge;
+            const deliveryCharge = shopSet.size * 30; // Use proper delivery fee
+            // NO TAXES - ONLY subtotal + delivery fee
+            const grandTotal = totalAmount + deliveryCharge;
 
             // Check if there's an existing rehearsal order for this customer
             let existingOrder = await Order.findOne({
