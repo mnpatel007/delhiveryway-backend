@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const orderController = require('../controllers/OrderController');
+const orderController = require('../controllers/orderController');
 const authMiddleware = require('../middleware/authMiddleware');
 const shopperAuthMiddleware = require('../middleware/shopperAuthMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -34,6 +34,9 @@ router.put('/:id/revise', shopperAuthMiddleware.authenticateShopper, orderContro
 
 // Approve revised order (Customer only)
 router.post('/:id/approve-revision', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.approveRevisedOrder);
+
+// Reject revised order (Customer only)
+router.post('/:id/reject-revision', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.rejectRevisedOrder);
 
 // Get single order by ID
 router.get('/:orderId', authMiddleware.protect, orderController.getOrderById);
