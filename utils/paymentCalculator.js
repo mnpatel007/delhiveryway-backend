@@ -68,10 +68,14 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
             deliveryAddress.coordinates.lng
         );
 
-        // Use shop's delivery fee if set, otherwise calculate based on distance
-        const deliveryFee = shop.deliveryFee && shop.deliveryFee > 0
-            ? shop.deliveryFee
-            : calculateDeliveryFee(distance);
+        // ONLY use shop's fixed delivery fee - no distance calculation
+        console.log('Shop delivery fee:', shop.deliveryFee);
+        console.log('Calculated distance:', distance);
+
+        // Always use shop's delivery fee (default to 0 if not set)
+        const deliveryFee = shop.deliveryFee || 0;
+
+        console.log('Final delivery fee used:', deliveryFee);
 
         // No taxes - removed as per requirements
         const taxes = 0;
@@ -119,10 +123,8 @@ const recalculateRevisedPricing = (revisedItems, originalPricing, shop = null) =
     // No taxes - removed as per requirements
     const taxes = 0;
 
-    // Use shop's delivery fee if available, otherwise keep original delivery fee
-    const deliveryFee = shop && shop.deliveryFee && shop.deliveryFee > 0
-        ? shop.deliveryFee
-        : originalPricing.deliveryFee;
+    // Always use shop's delivery fee (default to original if shop not provided)
+    const deliveryFee = shop ? (shop.deliveryFee || 0) : originalPricing.deliveryFee;
 
     // Calculate new total (only subtotal + delivery fee)
     const total = subtotal + deliveryFee;

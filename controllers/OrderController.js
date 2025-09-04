@@ -50,6 +50,8 @@ exports.placeOrder = async (req, res) => {
             });
         }
 
+        console.log('Shop found:', shop.name, 'Delivery Fee:', shop.deliveryFee);
+
         // Validate and prepare items
         const validatedItems = items.map(item => {
             if (!item.name || !item.price || !item.quantity) {
