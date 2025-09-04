@@ -977,6 +977,71 @@ exports.approveRevisedOrder = async (req, res) => {
     }
 };
 
+// Customer reject revised order
+exports.rejectRevisedOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        // Check if customer owns this order
+        if (order.customerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied'
+            });
+        }
+
+        if (order.status !== 'customer_reviewing_revision') {
+            return res.status(400).json({
+                success: false,
+                message: 'No revision to reject'
+            });
+        }
+
+        order.status = 'revision_rejected';
+        order.timeline.push({
+            status: 'revision_rejected',
+            timestamp: new Date(),
+            note: `Customer rejected the revision${reason ? ': ' + reason : ''}`,
+            updatedBy: 'customer'
+        });
+
+        await order.save();
+
+        // Notify shopper
+        const io = req.app.get('io');
+        if (order.personalShopperId) {
+            io.to(`shopper_${order.personalShopperId}`).emit('revisionRejected', {
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                message: 'Customer rejected the revision. Please contact customer for clarification.',
+                reason: reason || 'No reason provided',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Revised order rejected successfully'
+        });
+
+    } catch (error) {
+        console.error('Reject revised order error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to reject revised order'
+        });
+    }
+};
+
 // Get order statistics
 exports.getOrderStats = async (req, res) => {
     try {
