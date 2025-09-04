@@ -61,7 +61,7 @@ const productSchema = new mongoose.Schema({
         type: String,
         default: 'piece',
         enum: {
-            values: ['piece', 'kg', 'gram', 'liter', 'ml', 'dozen', 'pack', 'box', 'bottle', 'can'],
+            values: ['piece', 'kg', 'gram', 'liter', 'ml', 'dozen', 'pack', 'box', 'bottle', 'can', 'strip'],
             message: 'Invalid unit type'
         }
     },

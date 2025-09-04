@@ -964,9 +964,10 @@ exports.createProduct = async (req, res) => {
 
 // Update a product (Admin only)
 exports.updateProduct = async (req, res) => {
+    const { productId } = req.params;
+    const updateData = req.body;
+
     try {
-        const { productId } = req.params;
-        const updateData = req.body;
 
         // Validate product ID
         if (!mongoose.Types.ObjectId.isValid(productId)) {
@@ -999,9 +1000,14 @@ exports.updateProduct = async (req, res) => {
         }
         if (updateData.unit) {
             // Validate unit against allowed values
-            const allowedUnits = ['piece', 'kg', 'gram', 'liter', 'ml', 'dozen', 'pack', 'box', 'bottle', 'can'];
-            if (allowedUnits.includes(updateData.unit.toLowerCase())) {
-                product.unit = updateData.unit.toLowerCase();
+            const allowedUnits = ['piece', 'kg', 'gram', 'liter', 'ml', 'dozen', 'pack', 'box', 'bottle', 'can', 'strip'];
+            const unitLower = updateData.unit.toLowerCase();
+            if (allowedUnits.includes(unitLower)) {
+                product.unit = unitLower;
+            } else {
+                // If unit is not allowed, default to 'piece' and log warning
+                console.warn(`Invalid unit "${updateData.unit}" provided, defaulting to 'piece'`);
+                product.unit = 'piece';
             }
         }
         if (updateData.tags !== undefined) {
