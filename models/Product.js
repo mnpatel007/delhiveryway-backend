@@ -192,8 +192,10 @@ productSchema.pre('save', async function (next) {
         this.sku = `${this.shopId.toString().slice(-6).toUpperCase()}${String(count + 1).padStart(4, '0')}`;
     }
 
-    // Update stock status based on quantity
-    this.inStock = this.stockQuantity > 0;
+    // Update stock status based on quantity only if not manually set
+    if (!this.isModified('inStock')) {
+        this.inStock = this.stockQuantity > 0;
+    }
 
     // Validate max order quantity
     if (this.maxOrderQuantity && this.maxOrderQuantity < this.minOrderQuantity) {

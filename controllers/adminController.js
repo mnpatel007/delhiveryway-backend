@@ -997,7 +997,13 @@ exports.updateProduct = async (req, res) => {
         if (updateData.stockQuantity !== undefined) {
             product.stockQuantity = parseInt(updateData.stockQuantity) || 0;
         }
-        if (updateData.unit) product.unit = updateData.unit;
+        if (updateData.unit) {
+            // Validate unit against allowed values
+            const allowedUnits = ['piece', 'kg', 'gram', 'liter', 'ml', 'dozen', 'pack', 'box', 'bottle', 'can'];
+            if (allowedUnits.includes(updateData.unit.toLowerCase())) {
+                product.unit = updateData.unit.toLowerCase();
+            }
+        }
         if (updateData.tags !== undefined) {
             product.tags = Array.isArray(updateData.tags) ? updateData.tags : [];
         }
@@ -1026,9 +1032,17 @@ exports.updateProduct = async (req, res) => {
 
     } catch (error) {
         console.error('Admin update product error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            productId,
+            updateData
+        });
+
         res.status(500).json({
             success: false,
-            message: 'Failed to update product'
+            message: error.message || 'Failed to update product',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
         });
     }
 };
