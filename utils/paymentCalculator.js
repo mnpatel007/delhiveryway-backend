@@ -69,7 +69,8 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
         );
 
         // ONLY use shop's fixed delivery fee - no distance calculation
-        console.log('Shop delivery fee:', shop.deliveryFee);
+        console.log('Shop name:', shop.name);
+        console.log('Shop delivery fee from DB:', shop.deliveryFee);
         console.log('Calculated distance:', distance);
 
         // Always use shop's delivery fee (default to 0 if not set)
