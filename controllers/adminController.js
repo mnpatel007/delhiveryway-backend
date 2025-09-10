@@ -1058,9 +1058,25 @@ exports.createProduct = async (req, res) => {
 
     } catch (error) {
         console.error('Admin create product error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            body: req.body
+        });
+
+        if (error.name === 'ValidationError') {
+            const errors = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error: ' + errors.join(', '),
+                errors
+            });
+        }
+
         res.status(500).json({
             success: false,
-            message: 'Failed to create product'
+            message: error.message || 'Failed to create product',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
         });
     }
 };
