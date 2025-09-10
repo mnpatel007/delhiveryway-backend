@@ -6,6 +6,7 @@ const {
     getAllUsers,
     getAllShops,
     createShop,
+    updateShop,
     getAllOrders,
     getAllShoppers,
     getAllProducts,
@@ -77,6 +78,7 @@ router.get('/analytics', adminProtect, getAnalytics);
 
 // Update operations
 router.put('/users/:userId/status', adminProtect, updateUserStatus);
+router.put('/shops/:shopId', adminProtect, updateShop);
 router.put('/shops/:shopId/status', adminProtect, updateShopStatus);
 router.put('/orders/:orderId/status', adminProtect, updateOrderStatus);
 router.put('/shoppers/:shopperId', adminProtect, updateShopperStatus);

@@ -624,6 +624,109 @@ exports.updateShopStatus = async (req, res) => {
     }
 };
 
+// Update shop (Admin only)
+exports.updateShop = async (req, res) => {
+    try {
+        const { shopId } = req.params;
+        const updateData = req.body;
+
+        // Validate shop ID
+        if (!mongoose.Types.ObjectId.isValid(shopId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid shop ID'
+            });
+        }
+
+        // Find the shop
+        const shop = await Shop.findById(shopId);
+        if (!shop) {
+            return res.status(404).json({
+                success: false,
+                message: 'Shop not found'
+            });
+        }
+
+        // Validate coordinates if provided
+        if (updateData.address?.coordinates) {
+            const { lat, lng } = updateData.address.coordinates;
+            if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid coordinates'
+                });
+            }
+        }
+
+        // Update fields
+        if (updateData.name) shop.name = updateData.name.trim();
+        if (updateData.description !== undefined) shop.description = updateData.description?.trim();
+        if (updateData.category) shop.category = updateData.category;
+        if (updateData.deliveryFee !== undefined) shop.deliveryFee = parseFloat(updateData.deliveryFee) || 0;
+
+        // Update address if provided
+        if (updateData.address) {
+            if (updateData.address.street) shop.address.street = updateData.address.street;
+            if (updateData.address.city) shop.address.city = updateData.address.city;
+            if (updateData.address.state) shop.address.state = updateData.address.state;
+            if (updateData.address.zipCode) shop.address.zipCode = updateData.address.zipCode;
+            if (updateData.address.coordinates) {
+                shop.address.coordinates = {
+                    lat: parseFloat(updateData.address.coordinates.lat),
+                    lng: parseFloat(updateData.address.coordinates.lng)
+                };
+            }
+        }
+
+        // Update operating hours if provided
+        if (updateData.operatingHours) {
+            Object.keys(updateData.operatingHours).forEach(day => {
+                if (shop.operatingHours[day]) {
+                    shop.operatingHours[day] = {
+                        ...shop.operatingHours[day],
+                        ...updateData.operatingHours[day]
+                    };
+                }
+            });
+        }
+
+        // Save the updated shop
+        await shop.save();
+
+        console.log('✅ Admin updated shop:', shop.name);
+
+        res.json({
+            success: true,
+            message: 'Shop updated successfully',
+            data: shop
+        });
+
+    } catch (error) {
+        console.error('Admin update shop error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            shopId,
+            updateData
+        });
+
+        if (error.name === 'ValidationError') {
+            const errors = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to update shop',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+};
+
 // Update order status (Admin override)
 exports.updateOrderStatus = async (req, res) => {
     try {
