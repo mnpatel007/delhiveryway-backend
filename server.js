@@ -23,6 +23,8 @@ const allowedOrigins = [
     'https://delhiveryway-admin.vercel.app',
     'https://delhiveryway-customer-7bkrhol3p-meet-patels-projects-9dfa4870.vercel.app',
     'https://www.delhiveryway.com',
+    'https://admin.delhiveryway.com',
+    'https://shopper.delhiveryway.com',
     process.env.FRONTEND_URL,
     process.env.ADMIN_FRONTEND_URL,
     process.env.SHOPPER_FRONTEND_URL
