@@ -1026,24 +1026,44 @@ exports.createProduct = async (req, res) => {
             });
         }
 
-        // Create product
-        const product = new Product({
-            name: name.trim(),
-            description: description?.trim(),
-            shopId,
-            category,
-            price: parseFloat(price),
-            originalPrice: originalPrice ? parseFloat(originalPrice) : null,
-            discount: discount || 0,
-            images: images || [],
-            stockQuantity: stockQuantity || 0,
-            unit: unit || 'piece',
-            tags: tags || [],
-            nutritionalInfo: nutritionalInfo || {},
-            inStock: (stockQuantity || 0) > 0
-        });
+        // Create product with retry logic for SKU conflicts
+        let product;
+        let attempts = 0;
+        const maxAttempts = 3;
 
-        await product.save();
+        while (attempts < maxAttempts) {
+            try {
+                product = new Product({
+                    name: name.trim(),
+                    description: description?.trim(),
+                    shopId,
+                    category,
+                    price: parseFloat(price),
+                    originalPrice: originalPrice ? parseFloat(originalPrice) : null,
+                    discount: discount || 0,
+                    images: images || [],
+                    stockQuantity: stockQuantity || 0,
+                    unit: unit || 'piece',
+                    tags: tags || [],
+                    nutritionalInfo: nutritionalInfo || {},
+                    inStock: (stockQuantity || 0) > 0
+                });
+
+                await product.save();
+                break; // Success, exit retry loop
+
+            } catch (error) {
+                if (error.code === 11000 && attempts < maxAttempts - 1) {
+                    // Duplicate key error, retry with a small delay
+                    console.log(`SKU conflict detected, retrying... (attempt ${attempts + 1})`);
+                    await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+                    attempts++;
+                    continue;
+                } else {
+                    throw error; // Re-throw if not a duplicate key error or max attempts reached
+                }
+            }
+        }
 
         // Populate shop info for response
         await product.populate('shopId', 'name');
@@ -1070,6 +1090,17 @@ exports.createProduct = async (req, res) => {
                 success: false,
                 message: 'Validation error: ' + errors.join(', '),
                 errors
+            });
+        }
+
+        // Handle duplicate key errors (including SKU duplicates)
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern)[0];
+            const value = error.keyValue[field];
+            return res.status(400).json({
+                success: false,
+                message: `A product with this ${field} already exists. Please try again.`,
+                error: `Duplicate ${field}: ${value}`
             });
         }
 
