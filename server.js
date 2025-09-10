@@ -22,6 +22,7 @@ const allowedOrigins = [
     'https://delhiveryway-shopper.vercel.app',
     'https://delhiveryway-admin.vercel.app',
     'https://delhiveryway-customer-7bkrhol3p-meet-patels-projects-9dfa4870.vercel.app',
+    'https://www.delhiveryway.com',
     process.env.FRONTEND_URL,
     process.env.ADMIN_FRONTEND_URL,
     process.env.SHOPPER_FRONTEND_URL
@@ -50,7 +51,7 @@ app.use(
             // Check exact matches first
             if (allowedOrigins.indexOf(origin) !== -1) {
                 callback(null, true);
-            } 
+            }
             // Allow any Vercel deployment URLs for your projects
             else if (origin && (
                 origin.includes('delhiveryway-customer') && origin.includes('vercel.app') ||
@@ -160,14 +161,14 @@ mongoose
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');
         });
-        
+
         app.get('/api/debug/products', async (req, res) => {
             const Product = require('./models/Product');
             const Shop = require('./models/Shop');
             const products = await Product.find({}).populate('shopId', 'name');
             const shops = await Shop.find({});
-            res.json({ 
-                totalProducts: products.length, 
+            res.json({
+                totalProducts: products.length,
                 totalShops: shops.length,
                 products: products.slice(0, 5),
                 shops: shops.slice(0, 5)
