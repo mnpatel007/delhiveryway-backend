@@ -811,13 +811,32 @@ exports.reviseOrderItems = async (req, res) => {
             });
         }
 
+        // Validate revised items: if marked available, quantity must be >= 1
+        if (!Array.isArray(revisedItems) || revisedItems.length === 0) {
+            return res.status(400).json({ success: false, message: 'Revised items are required' });
+        }
+
+        for (const r of revisedItems) {
+            const isAvail = r.isAvailable !== false; // treat undefined as available
+            if (isAvail) {
+                const q = Number(r.quantity);
+                if (!Number.isFinite(q) || q < 1) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Quantity cannot be zero for available items. Mark item as not available instead.'
+                    });
+                }
+            }
+        }
+
         // Update items with revised quantities and availability
         const updatedItems = order.items.map(item => {
             const revision = revisedItems.find(r => r.itemId === item._id.toString());
             if (revision) {
-                item.revisedQuantity = revision.quantity;
-                item.revisedPrice = revision.price || item.price;
-                item.isAvailable = revision.isAvailable;
+                const isAvail = revision.isAvailable !== false;
+                item.revisedQuantity = isAvail ? revision.quantity : 0;
+                item.revisedPrice = isAvail ? (revision.price || item.price) : item.price;
+                item.isAvailable = isAvail;
                 item.shopperNotes = revision.notes || '';
             }
             return item;
@@ -829,7 +848,7 @@ exports.reviseOrderItems = async (req, res) => {
             .map(item => ({
                 ...item.toObject(),
                 price: item.revisedPrice || item.price,
-                quantity: item.revisedQuantity || item.quantity
+                quantity: Number.isFinite(Number(item.revisedQuantity)) && Number(item.revisedQuantity) > 0 ? item.revisedQuantity : item.quantity
             }));
 
         // Get delivery address from the order
