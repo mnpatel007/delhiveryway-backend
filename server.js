@@ -159,6 +159,7 @@ mongoose
         app.use('/api/shopper/auth', require('./routes/shopperAuthRoutes'));
         app.use('/api/shopper', require('./routes/shopperOrderRoutes'));
         app.use('/api/admin', require('./routes/adminRoutes'));
+        app.use('/api/contact', require('./routes/contactRoutes'));
 
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');
@@ -174,6 +175,15 @@ mongoose
                 totalShops: shops.length,
                 products: products.slice(0, 5),
                 shops: shops.slice(0, 5)
+            });
+        });
+
+        app.get('/api/debug/shops', async (req, res) => {
+            const Shop = require('./models/Shop');
+            const shops = await Shop.find({}).select('_id name');
+            res.json({
+                totalShops: shops.length,
+                shops: shops
             });
         });
 
