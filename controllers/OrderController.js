@@ -126,7 +126,7 @@ exports.placeOrder = async (req, res) => {
 
         // Emit to all online personal shoppers
         const io = req.app.get('io');
-        io.to('personalShoppers').emit('newOrder', {
+        const newOrderPayload = {
             orderId: order._id,
             orderNumber: order.orderNumber,
             shopName: shop.name,
@@ -135,7 +135,10 @@ exports.placeOrder = async (req, res) => {
             total: order.orderValue.total,
             deliveryAddress: order.deliveryAddress,
             estimatedEarnings: order.calculateShopperCommission()
-        });
+        };
+        io.to('personalShoppers').emit('newOrder', newOrderPayload);
+        // Also emit alias used by shopper socket client
+        io.to('personalShoppers').emit('newOrderAvailable', newOrderPayload);
 
         // Update user's total orders
         await User.findByIdAndUpdate(req.user._id, {
@@ -389,7 +392,7 @@ exports.updateOrderStatus = async (req, res) => {
         }
 
         // Generate delivery OTP for out_for_delivery status
-        if (status === 'out_for_delivery') {
+        if (status === 'out_for_delivery' && !order.deliveryOTP) {
             order.deliveryOTP = Math.floor(1000 + Math.random() * 9000).toString();
         }
 
@@ -437,6 +440,15 @@ exports.updateOrderStatus = async (req, res) => {
             message: order.getStatusMessage(),
             deliveryOTP: order.deliveryOTP,
             timeline: order.timeline
+        });
+
+        // Also emit legacy-compatible event if some clients still listen to it
+        io.to(`customer_${order.customerId._id}`).emit('orderStatusUpdated', {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            status: order.status,
+            message: order.getStatusMessage(),
+            deliveryOTP: order.deliveryOTP
         });
 
         // Notify shopper if assigned

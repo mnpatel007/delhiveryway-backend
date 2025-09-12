@@ -179,6 +179,15 @@ const updateOrderStatus = async (req, res) => {
             timestamp: new Date().toISOString()
         });
 
+        // Also emit a standard orderStatusUpdate for customer listeners
+        io.to(`customer_${order.customerId}`).emit('orderStatusUpdate', {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            status: status,
+            message: statusInfo.message,
+            timeline: order.timeline
+        });
+
         // Send specific notification based on status
         io.to(`customer_${order.customerId}`).emit('shopperAction', {
             orderId: order._id,
