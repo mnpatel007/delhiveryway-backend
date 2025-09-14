@@ -43,3 +43,4 @@ async function fixSkuIndex() {
 
 // Run the script
 fixSkuIndex();
+
