@@ -99,13 +99,13 @@ exports.signup = async (req, res) => {
                 const transporter = nodemailer.createTransporter({
                     service: 'gmail',
                     auth: {
-                        user: process.env.EMAIL_USER,
-                        pass: process.env.EMAIL_PASS
+                        user: process.env.GMAIL_USER,
+                        pass: process.env.GMAIL_PASS
                     }
                 });
 
                 await transporter.sendMail({
-                    from: process.env.EMAIL_USER,
+                    from: process.env.GMAIL_USER,
                     to: email,
                     subject: 'Verify your email - DelhiveryWay',
                     html: `
@@ -427,13 +427,13 @@ exports.forgotPassword = async (req, res) => {
             const transporter = nodemailer.createTransporter({
                 service: 'gmail',
                 auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS,
+                    user: process.env.GMAIL_USER,
+                    pass: process.env.GMAIL_PASS,
                 },
             });
 
             await transporter.sendMail({
-                from: process.env.EMAIL_USER,
+                from: process.env.GMAIL_USER,
                 to: email,
                 subject: 'Password Reset - DelhiveryWay',
                 html: `

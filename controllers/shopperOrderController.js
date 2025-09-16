@@ -219,7 +219,7 @@ const getAvailableOrders = async (req, res) => {
             status: 'pending_shopper'
         }).populate([
             { path: 'customerId', select: 'name phone' },
-            { path: 'shopId', select: 'name address category' }
+            { path: 'shopId', select: 'name address category deliveryFee' }
         ]).sort({ createdAt: -1 });
 
         res.json({
@@ -260,7 +260,10 @@ const getActiveOrders = async (req, res) => {
                     'out_for_delivery'
                 ]
             }
-        }).populate('customerId', 'name phone').sort({ createdAt: -1 });
+        }).populate([
+            { path: 'customerId', select: 'name phone' },
+            { path: 'shopId', select: 'name address category' }
+        ]).sort({ createdAt: -1 });
 
         res.json({ success: true, orders });
     } catch (error) {
