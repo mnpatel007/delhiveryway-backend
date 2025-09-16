@@ -96,7 +96,7 @@ exports.signup = async (req, res) => {
 
                 const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${email}`;
 
-                const transporter = nodemailer.createTransporter({
+                const transporter = nodemailer.createTransport({
                     service: 'gmail',
                     auth: {
                         user: process.env.GMAIL_USER,
@@ -424,7 +424,7 @@ exports.forgotPassword = async (req, res) => {
 
             const resetLink = `${frontendURL}/reset-password?token=${resetToken}&email=${email}`;
 
-            const transporter = nodemailer.createTransporter({
+            const transporter = nodemailer.createTransport({
                 service: 'gmail',
                 auth: {
                     user: process.env.GMAIL_USER,
