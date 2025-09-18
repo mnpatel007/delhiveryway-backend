@@ -135,25 +135,6 @@ const orderSchema = new mongoose.Schema({
         contactName: String,
         contactPhone: String
     },
-
-    // Real-time shopper location tracking
-    shopperLocation: {
-        latitude: {
-            type: Number,
-            min: -90,
-            max: 90
-        },
-        longitude: {
-            type: Number,
-            min: -180,
-            max: 180
-        },
-        timestamp: {
-            type: Date,
-            default: Date.now
-        }
-    },
-
     status: {
         type: String,
         enum: [
