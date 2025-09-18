@@ -184,9 +184,20 @@ shopSchema.virtual('fullAddress').get(function () {
 shopSchema.methods.isOpenNow = function () {
     try {
         const now = new Date();
-        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const day = dayNames[now.getDay()];
-        const currentTime = now.toTimeString().slice(0, 5);
+        // Evaluate against Indian Standard Time regardless of backend server timezone
+        const dayFormatter = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Asia/Kolkata',
+            weekday: 'long'
+        });
+        const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+
+        const day = dayFormatter.format(now).toLowerCase();
+        const currentTime = timeFormatter.format(now);
 
         // Check if operating hours exist
         if (!this.operatingHours || typeof this.operatingHours !== 'object') {
@@ -219,3 +230,5 @@ shopSchema.methods.distanceFrom = function (lat, lng) {
 };
 
 module.exports = mongoose.model('Shop', shopSchema);
+
+
