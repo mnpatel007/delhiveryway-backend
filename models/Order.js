@@ -164,11 +164,7 @@ const orderSchema = new mongoose.Schema({
             'shopper_revised_order',
             'customer_reviewing_revision',
             'customer_approved_revision',
-            'revision_rejected',
             'final_shopping',
-            'bill_uploaded',
-            'bill_approved',
-            'bill_rejected',
             'out_for_delivery',
             'delivered',
             'cancelled',
@@ -305,11 +301,7 @@ orderSchema.methods.getStatusMessage = function () {
         'shopper_revised_order': 'Personal shopper has revised your order based on availability',
         'customer_reviewing_revision': 'Please review the revised order from your shopper',
         'customer_approved_revision': 'You approved the revised order, shopper will proceed with final shopping',
-        'revision_rejected': 'You rejected the revision. Your shopper will follow up with adjustments',
         'final_shopping': 'Personal shopper is purchasing your final items',
-        'bill_uploaded': 'Personal shopper has uploaded the bill for your review',
-        'bill_approved': 'Bill approved. Delivery will begin shortly',
-        'bill_rejected': 'Bill rejected. Shopper will revisit the purchase',
         'out_for_delivery': 'Your order is out for delivery',
         'delivered': 'Your order has been delivered successfully',
         'cancelled': 'Your order has been cancelled',
@@ -320,4 +312,3 @@ orderSchema.methods.getStatusMessage = function () {
 };
 
 module.exports = mongoose.model('Order', orderSchema);
-
