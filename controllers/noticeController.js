@@ -3,6 +3,7 @@ const Notice = require('../models/Notice');
 // Get all notices (admin only)
 exports.getAllNotices = async (req, res) => {
     try {
+        console.log('📢 getAllNotices called by admin:', req.user?.name || req.user?._id);
         const { page = 1, limit = 10, status } = req.query;
         const skip = (page - 1) * limit;
 
@@ -28,6 +29,8 @@ exports.getAllNotices = async (req, res) => {
             .limit(parseInt(limit));
 
         const total = await Notice.countDocuments(filter);
+
+        console.log('📢 Found notices:', notices.length, 'Total:', total);
 
         res.json({
             success: true,
