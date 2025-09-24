@@ -23,10 +23,27 @@ exports.getAllNotices = async (req, res) => {
         }
 
         const notices = await Notice.find(filter)
-            .populate('createdBy', 'name email')
             .sort({ priority: -1, createdAt: -1 })
             .skip(skip)
             .limit(parseInt(limit));
+
+        // Manually populate createdBy for notices that have valid ObjectIds
+        for (let notice of notices) {
+            if (notice.createdBy && notice.createdBy !== 'admin') {
+                try {
+                    await notice.populate('createdBy', 'name email');
+                } catch (err) {
+                    console.log('⚠️ Could not populate createdBy for notice:', notice._id);
+                }
+            } else if (notice.createdBy === 'admin') {
+                // Set admin info manually
+                notice.createdBy = {
+                    _id: 'admin',
+                    name: 'System Admin',
+                    email: 'admin@delhiveryway.com'
+                };
+            }
+        }
 
         const total = await Notice.countDocuments(filter);
 
