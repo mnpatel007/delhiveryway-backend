@@ -5,6 +5,9 @@ const authMiddleware = require('../middleware/authMiddleware');
 const shopperAuthMiddleware = require('../middleware/shopperAuthMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
+// Get estimated order acceptance time for a shop
+router.get('/acceptance-time/:shopId', orderController.getOrderAcceptanceTime);
+
 // Place a new order (Customer only)
 router.post('/', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.placeOrder);
 

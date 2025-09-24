@@ -6,6 +6,45 @@ const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
 
+// Get estimated order acceptance time based on pending orders
+exports.getOrderAcceptanceTime = async (req, res) => {
+    try {
+        const { shopId } = req.params;
+
+        // Count pending orders for this shop
+        const pendingOrdersCount = await Order.countDocuments({
+            shopId: shopId,
+            status: 'pending_shopper'
+        });
+
+        // Calculate estimated time based on pending orders
+        // Base time: 5 minutes
+        // Additional time: 3 minutes per pending order
+        const baseTime = 5; // minutes
+        const additionalTimePerOrder = 3; // minutes
+        const estimatedMinutes = baseTime + (pendingOrdersCount * additionalTimePerOrder);
+
+        // Cap the maximum time at 30 minutes
+        const cappedMinutes = Math.min(estimatedMinutes, 30);
+
+        res.json({
+            success: true,
+            data: {
+                pendingOrdersCount,
+                estimatedMinutes: cappedMinutes,
+                estimatedTime: `${cappedMinutes} minutes`
+            }
+        });
+
+    } catch (error) {
+        console.error('Error getting order acceptance time:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get order acceptance time'
+        });
+    }
+};
+
 // Place a new order
 exports.placeOrder = async (req, res) => {
     try {
