@@ -162,6 +162,7 @@ mongoose
         app.use('/api/shopper', require('./routes/shopperOrderRoutes'));
         app.use('/api/admin', require('./routes/adminRoutes'));
         app.use('/api/contact', require('./routes/contactRoutes'));
+        app.use('/api/notices', require('./routes/noticeRoutes'));
 
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');
