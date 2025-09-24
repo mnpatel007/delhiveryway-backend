@@ -167,7 +167,11 @@ mongoose
         // Initialize notice refresh job
         const NoticeRefreshJob = require('./jobs/noticeRefreshJob');
         const noticeRefreshJob = new NoticeRefreshJob(io);
-        noticeRefreshJob.start();
+
+        // Add a small delay to ensure everything is initialized
+        setTimeout(() => {
+            noticeRefreshJob.start();
+        }, 5000);
 
         // Graceful shutdown
         process.on('SIGTERM', () => {

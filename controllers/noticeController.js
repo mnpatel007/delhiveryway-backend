@@ -72,9 +72,14 @@ exports.getAllNotices = async (req, res) => {
 // Get active notices for customers
 exports.getActiveNotices = async (req, res) => {
     try {
+        console.log('📢 getActiveNotices called by customer');
+
         const notices = await Notice.getActiveNotices()
             .select('title message type priority startDate endDate')
             .limit(10);
+
+        console.log('📢 Found active notices for customers:', notices.length);
+        console.log('📢 Active notices:', notices.map(n => ({ title: n.title, isActive: n.isActive })));
 
         res.json({
             success: true,
