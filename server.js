@@ -25,6 +25,7 @@ const allowedOrigins = [
     'https://www.delhiveryway.com',
     'https://admin.delhiveryway.com',
     'https://shopper.delhiveryway.com',
+    'https://stagging.delhiveryway.com',
     process.env.FRONTEND_URL,
     process.env.ADMIN_FRONTEND_URL,
     process.env.SHOPPER_FRONTEND_URL
