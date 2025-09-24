@@ -50,7 +50,37 @@ exports.placeOrder = async (req, res) => {
             });
         }
 
-        console.log('Shop found:', shop.name, 'Delivery Fee:', shop.deliveryFee);
+        // CRITICAL: Check if shop is currently open
+        if (!shop.isOpenNow()) {
+            const now = new Date();
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const currentDay = dayNames[now.getDay()];
+            const currentTime = now.toTimeString().slice(0, 5);
+
+            // Get today's hours for better error message
+            const todayHours = shop.operatingHours?.[currentDay.toLowerCase()];
+            let hoursMessage = '';
+
+            if (todayHours?.closed) {
+                hoursMessage = `${shop.name} is closed on ${currentDay}s.`;
+            } else if (todayHours?.open && todayHours?.close) {
+                hoursMessage = `${shop.name} is open from ${todayHours.open} to ${todayHours.close} on ${currentDay}s. Current time: ${currentTime}`;
+            } else {
+                hoursMessage = `${shop.name} is currently closed.`;
+            }
+
+            console.log(`🚫 Order blocked - Shop ${shop.name} is closed. ${hoursMessage}`);
+
+            return res.status(400).json({
+                success: false,
+                message: `Sorry! ${shop.name} is currently closed. ${hoursMessage}`,
+                shopClosed: true,
+                currentTime: currentTime,
+                shopHours: todayHours
+            });
+        }
+
+        console.log('✅ Shop is open:', shop.name, 'Delivery Fee:', shop.deliveryFee);
 
         // Validate and prepare items
         const validatedItems = items.map(item => {

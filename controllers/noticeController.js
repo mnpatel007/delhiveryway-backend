@@ -128,14 +128,16 @@ exports.createNotice = async (req, res) => {
 
         console.log('📢 Creating notice with user ID:', req.user?._id);
 
-        // Debug the dates
+        // Parse and validate dates
         const parsedStartDate = startDate ? new Date(startDate) : new Date();
         const parsedEndDate = endDate ? new Date(endDate) : null;
         const currentTime = new Date();
 
-        console.log('📢 Date debugging:');
-        console.log('📢 Current time:', currentTime);
-        console.log('📢 Start date input:', startDate);
+        if (process.env.NODE_ENV === 'development') {
+            console.log('📢 Date debugging:');
+            console.log('📢 Current time:', currentTime);
+            console.log('📢 Start date input:', startDate);
+        }
         console.log('📢 Parsed start date:', parsedStartDate);
         console.log('📢 End date input:', endDate);
         console.log('📢 Parsed end date:', parsedEndDate);
