@@ -164,6 +164,17 @@ mongoose
         app.use('/api/contact', require('./routes/contactRoutes'));
         app.use('/api/notices', require('./routes/noticeRoutes'));
 
+        // Initialize notice refresh job
+        const NoticeRefreshJob = require('./jobs/noticeRefreshJob');
+        const noticeRefreshJob = new NoticeRefreshJob(io);
+        noticeRefreshJob.start();
+
+        // Graceful shutdown
+        process.on('SIGTERM', () => {
+            console.log('📢 Stopping notice refresh job...');
+            noticeRefreshJob.stop();
+        });
+
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');
         });

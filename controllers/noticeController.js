@@ -95,7 +95,7 @@ exports.createNotice = async (req, res) => {
         console.log('📢 createNotice called by admin:', req.user?.name || req.user?._id);
         console.log('📢 Request body:', req.body);
 
-        const { title, message, type, priority, startDate, endDate } = req.body;
+        const { title, message, type, priority, startDate, endDate, refreshEvery15Min } = req.body;
 
         // Validate required fields
         if (!title || !message) {
@@ -115,6 +115,8 @@ exports.createNotice = async (req, res) => {
             priority: priority || 'medium',
             startDate: startDate ? new Date(startDate) : new Date(),
             endDate: endDate ? new Date(endDate) : null,
+            refreshInterval: refreshEvery15Min ? 15 : null,
+            lastRefreshed: refreshEvery15Min ? new Date() : null,
             createdBy: req.user?._id || 'admin'
         });
 
@@ -163,16 +165,23 @@ exports.createNotice = async (req, res) => {
 // Update notice (admin only)
 exports.updateNotice = async (req, res) => {
     try {
+        console.log('📢 updateNotice called by admin:', req.user?.name || req.user?._id);
+        console.log('📢 Update request - ID:', req.params.id);
+        console.log('📢 Update request - Body:', req.body);
+
         const { id } = req.params;
-        const { title, message, type, priority, isActive, startDate, endDate } = req.body;
+        const { title, message, type, priority, isActive, startDate, endDate, refreshEvery15Min } = req.body;
 
         const notice = await Notice.findById(id);
         if (!notice) {
+            console.log('❌ Notice not found with ID:', id);
             return res.status(404).json({
                 success: false,
                 message: 'Notice not found'
             });
         }
+
+        console.log('📢 Found notice to update:', notice.title);
 
         // Update fields
         if (title !== undefined) notice.title = title;
@@ -182,9 +191,27 @@ exports.updateNotice = async (req, res) => {
         if (isActive !== undefined) notice.isActive = isActive;
         if (startDate !== undefined) notice.startDate = new Date(startDate);
         if (endDate !== undefined) notice.endDate = endDate ? new Date(endDate) : null;
+        if (refreshEvery15Min !== undefined) {
+            notice.refreshInterval = refreshEvery15Min ? 15 : null;
+            notice.lastRefreshed = refreshEvery15Min ? new Date() : null;
+        }
 
         await notice.save();
-        await notice.populate('createdBy', 'name email');
+
+        // Try to populate the notice (skip if it fails)
+        try {
+            await notice.populate('createdBy', 'name email');
+        } catch (populateError) {
+            console.log('⚠️ Could not populate createdBy field in update:', populateError.message);
+            // Set admin info manually if it's the admin user
+            if (notice.createdBy === 'admin') {
+                notice.createdBy = {
+                    _id: 'admin',
+                    name: 'System Admin',
+                    email: 'admin@delhiveryway.com'
+                };
+            }
+        }
 
         res.json({
             success: true,

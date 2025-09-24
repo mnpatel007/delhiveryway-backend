@@ -35,6 +35,15 @@ const noticeSchema = new mongoose.Schema({
         type: Date,
         default: null // null means no end date
     },
+    refreshInterval: {
+        type: Number,
+        default: null, // null means no refresh, number in minutes
+        min: [1, 'Refresh interval must be at least 1 minute']
+    },
+    lastRefreshed: {
+        type: Date,
+        default: null
+    },
     createdBy: {
         type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and string for system admin
         ref: 'User',
