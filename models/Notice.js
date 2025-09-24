@@ -36,7 +36,7 @@ const noticeSchema = new mongoose.Schema({
         default: null // null means no end date
     },
     createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and string for system admin
         ref: 'User',
         required: true
     },

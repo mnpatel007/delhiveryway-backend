@@ -75,15 +75,21 @@ exports.getActiveNotices = async (req, res) => {
 // Create new notice (admin only)
 exports.createNotice = async (req, res) => {
     try {
+        console.log('📢 createNotice called by admin:', req.user?.name || req.user?._id);
+        console.log('📢 Request body:', req.body);
+
         const { title, message, type, priority, startDate, endDate } = req.body;
 
         // Validate required fields
         if (!title || !message) {
+            console.log('❌ Validation failed: missing title or message');
             return res.status(400).json({
                 success: false,
                 message: 'Title and message are required'
             });
         }
+
+        console.log('📢 Creating notice with user ID:', req.user?._id);
 
         const notice = new Notice({
             title,
@@ -92,24 +98,35 @@ exports.createNotice = async (req, res) => {
             priority: priority || 'medium',
             startDate: startDate ? new Date(startDate) : new Date(),
             endDate: endDate ? new Date(endDate) : null,
-            createdBy: req.user._id
+            createdBy: req.user?._id || 'admin'
         });
 
+        console.log('📢 Notice object created, saving...');
         await notice.save();
+        console.log('📢 Notice saved successfully');
 
-        // Populate the created notice
-        await notice.populate('createdBy', 'name email');
+        // Try to populate the created notice (skip if it fails)
+        try {
+            await notice.populate('createdBy', 'name email');
+        } catch (populateError) {
+            console.log('⚠️ Could not populate createdBy field:', populateError.message);
+        }
 
         // Emit socket event to all customers
-        const io = req.app.get('io');
-        if (io) {
-            io.emit('newNotice', {
-                id: notice._id,
-                title: notice.title,
-                message: notice.message,
-                type: notice.type,
-                priority: notice.priority
-            });
+        try {
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('newNotice', {
+                    id: notice._id,
+                    title: notice.title,
+                    message: notice.message,
+                    type: notice.type,
+                    priority: notice.priority
+                });
+                console.log('📢 Socket event emitted to customers');
+            }
+        } catch (socketError) {
+            console.log('⚠️ Could not emit socket event:', socketError.message);
         }
 
         res.status(201).json({

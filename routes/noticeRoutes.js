@@ -10,6 +10,11 @@ const {
 } = require('../controllers/noticeController');
 const { protect, optionalAuth, adminProtect } = require('../middleware/authMiddleware');
 
+// Test route
+router.get('/test', (req, res) => {
+    res.json({ success: true, message: 'Notice routes working!' });
+});
+
 // Public routes (for customers)
 router.get('/active', getActiveNotices);
 
