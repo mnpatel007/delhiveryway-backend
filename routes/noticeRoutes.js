@@ -19,15 +19,26 @@ router.get('/test', (req, res) => {
 router.get('/test-active', async (req, res) => {
     try {
         const Notice = require('../models/Notice');
+        const now = new Date();
         const allNotices = await Notice.find({});
         const activeNotices = await Notice.getActiveNotices();
 
         res.json({
             success: true,
             message: 'Active notices test',
+            currentTime: now,
             totalNotices: allNotices.length,
             activeNotices: activeNotices.length,
-            notices: activeNotices.map(n => ({
+            allNoticesData: allNotices.map(n => ({
+                title: n.title,
+                isActive: n.isActive,
+                startDate: n.startDate,
+                endDate: n.endDate,
+                startDateValid: n.startDate <= now,
+                endDateValid: !n.endDate || n.endDate >= now,
+                shouldBeActive: n.isActive && n.startDate <= now && (!n.endDate || n.endDate >= now)
+            })),
+            activeNoticesData: activeNotices.map(n => ({
                 title: n.title,
                 isActive: n.isActive,
                 startDate: n.startDate,

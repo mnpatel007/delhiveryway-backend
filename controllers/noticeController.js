@@ -79,7 +79,22 @@ exports.getActiveNotices = async (req, res) => {
             .limit(10);
 
         console.log('📢 Found active notices for customers:', notices.length);
-        console.log('📢 Active notices:', notices.map(n => ({ title: n.title, isActive: n.isActive })));
+        console.log('📢 Active notices:', notices.map(n => ({
+            title: n.title,
+            isActive: n.isActive,
+            startDate: n.startDate,
+            endDate: n.endDate
+        })));
+
+        // Also check all notices to compare
+        const allNotices = await Notice.find({});
+        console.log('📢 All notices in database:', allNotices.map(n => ({
+            title: n.title,
+            isActive: n.isActive,
+            startDate: n.startDate,
+            endDate: n.endDate,
+            now: new Date()
+        })));
 
         res.json({
             success: true,
@@ -113,13 +128,27 @@ exports.createNotice = async (req, res) => {
 
         console.log('📢 Creating notice with user ID:', req.user?._id);
 
+        // Debug the dates
+        const parsedStartDate = startDate ? new Date(startDate) : new Date();
+        const parsedEndDate = endDate ? new Date(endDate) : null;
+        const currentTime = new Date();
+
+        console.log('📢 Date debugging:');
+        console.log('📢 Current time:', currentTime);
+        console.log('📢 Start date input:', startDate);
+        console.log('📢 Parsed start date:', parsedStartDate);
+        console.log('📢 End date input:', endDate);
+        console.log('📢 Parsed end date:', parsedEndDate);
+        console.log('📢 Start date <= now?', parsedStartDate <= currentTime);
+        console.log('📢 End date >= now?', !parsedEndDate || parsedEndDate >= currentTime);
+
         const notice = new Notice({
             title,
             message,
             type: type || 'info',
             priority: priority || 'medium',
-            startDate: startDate ? new Date(startDate) : new Date(),
-            endDate: endDate ? new Date(endDate) : null,
+            startDate: parsedStartDate,
+            endDate: parsedEndDate,
             refreshInterval: refreshEvery15Min ? 15 : null,
             lastRefreshed: refreshEvery15Min ? new Date() : null,
             createdBy: req.user?._id || 'admin'

@@ -78,14 +78,20 @@ noticeSchema.methods.isCurrentlyActive = function () {
 // Static method to get active notices
 noticeSchema.statics.getActiveNotices = function () {
     const now = new Date();
-    return this.find({
+    console.log('📢 getActiveNotices - Current time:', now);
+
+    const query = {
         isActive: true,
         startDate: { $lte: now },
         $or: [
             { endDate: null },
             { endDate: { $gte: now } }
         ]
-    }).sort({ priority: -1, createdAt: -1 });
+    };
+
+    console.log('📢 getActiveNotices - Query:', JSON.stringify(query, null, 2));
+
+    return this.find(query).sort({ priority: -1, createdAt: -1 });
 };
 
 module.exports = mongoose.model('Notice', noticeSchema);
