@@ -8,19 +8,18 @@ const {
     deleteNotice,
     markAsViewed
 } = require('../controllers/noticeController');
-const { authenticateToken } = require('../middleware/authMiddleware');
-const { requireAdmin } = require('../middleware/adminMiddleware');
+const { protect, optionalAuth, adminProtect } = require('../middleware/authMiddleware');
 
 // Public routes (for customers)
 router.get('/active', getActiveNotices);
 
 // Protected routes (require authentication)
-router.post('/:id/view', authenticateToken, markAsViewed);
+router.post('/:id/view', optionalAuth, markAsViewed);
 
 // Admin only routes
-router.get('/', authenticateToken, requireAdmin, getAllNotices);
-router.post('/', authenticateToken, requireAdmin, createNotice);
-router.put('/:id', authenticateToken, requireAdmin, updateNotice);
-router.delete('/:id', authenticateToken, requireAdmin, deleteNotice);
+router.get('/', adminProtect, getAllNotices);
+router.post('/', adminProtect, createNotice);
+router.put('/:id', adminProtect, updateNotice);
+router.delete('/:id', adminProtect, deleteNotice);
 
 module.exports = router;
