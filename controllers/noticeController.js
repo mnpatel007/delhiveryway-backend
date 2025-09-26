@@ -75,7 +75,7 @@ exports.getActiveNotices = async (req, res) => {
         console.log('📢 getActiveNotices called by customer');
 
         const notices = await Notice.getActiveNotices()
-            .select('title message type priority startDate endDate')
+            .select('title message type priority displayType startDate endDate')
             .limit(10);
 
         console.log('📢 Found active notices for customers:', notices.length);
@@ -115,7 +115,7 @@ exports.createNotice = async (req, res) => {
         console.log('📢 createNotice called by admin:', req.user?.name || req.user?._id);
         console.log('📢 Request body:', req.body);
 
-        const { title, message, type, priority, startDate, endDate, refreshEvery15Min } = req.body;
+        const { title, message, type, priority, displayType, startDate, endDate } = req.body;
 
         // Validate required fields
         if (!title || !message) {
@@ -149,10 +149,9 @@ exports.createNotice = async (req, res) => {
             message,
             type: type || 'info',
             priority: priority || 'medium',
+            displayType: displayType || 'one-time',
             startDate: parsedStartDate,
             endDate: parsedEndDate,
-            refreshInterval: refreshEvery15Min ? 15 : null,
-            lastRefreshed: refreshEvery15Min ? new Date() : null,
             createdBy: req.user?._id || 'admin'
         });
 
@@ -167,21 +166,21 @@ exports.createNotice = async (req, res) => {
             console.log('⚠️ Could not populate createdBy field:', populateError.message);
         }
 
-        // Emit socket event to all customers
+        // Broadcast notice to all connected customers in real-time
         try {
             const io = req.app.get('io');
             if (io) {
-                io.emit('newNotice', {
-                    id: notice._id,
-                    title: notice.title,
-                    message: notice.message,
-                    type: notice.type,
-                    priority: notice.priority
+                console.log('📢 Broadcasting new notice to all customers:', notice.title);
+                io.emit('new-notice', {
+                    notice: notice.toObject(),
+                    timestamp: new Date()
                 });
-                console.log('📢 Socket event emitted to customers');
+                console.log('📢 Real-time notice broadcast successful');
+            } else {
+                console.log('⚠️ Socket.io not available for broadcasting');
             }
         } catch (socketError) {
-            console.log('⚠️ Could not emit socket event:', socketError.message);
+            console.log('⚠️ Could not broadcast notice:', socketError.message);
         }
 
         res.status(201).json({
@@ -206,7 +205,7 @@ exports.updateNotice = async (req, res) => {
         console.log('📢 Update request - Body:', req.body);
 
         const { id } = req.params;
-        const { title, message, type, priority, isActive, startDate, endDate, refreshEvery15Min } = req.body;
+        const { title, message, type, priority, displayType, isActive, startDate, endDate } = req.body;
 
         const notice = await Notice.findById(id);
         if (!notice) {
@@ -224,13 +223,10 @@ exports.updateNotice = async (req, res) => {
         if (message !== undefined) notice.message = message;
         if (type !== undefined) notice.type = type;
         if (priority !== undefined) notice.priority = priority;
+        if (displayType !== undefined) notice.displayType = displayType;
         if (isActive !== undefined) notice.isActive = isActive;
         if (startDate !== undefined) notice.startDate = new Date(startDate);
         if (endDate !== undefined) notice.endDate = endDate ? new Date(endDate) : null;
-        if (refreshEvery15Min !== undefined) {
-            notice.refreshInterval = refreshEvery15Min ? 15 : null;
-            notice.lastRefreshed = refreshEvery15Min ? new Date() : null;
-        }
 
         await notice.save();
 

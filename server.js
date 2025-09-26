@@ -164,20 +164,7 @@ mongoose
         app.use('/api/contact', require('./routes/contactRoutes'));
         app.use('/api/notices', require('./routes/noticeRoutes'));
 
-        // Initialize notice refresh job
-        const NoticeRefreshJob = require('./jobs/noticeRefreshJob');
-        const noticeRefreshJob = new NoticeRefreshJob(io);
-
-        // Add a small delay to ensure everything is initialized
-        setTimeout(() => {
-            noticeRefreshJob.start();
-        }, 5000);
-
-        // Graceful shutdown
-        process.on('SIGTERM', () => {
-            console.log('📢 Stopping notice refresh job...');
-            noticeRefreshJob.stop();
-        });
+        // Notice refresh job removed - using real-time notices instead
 
         app.get('/', (req, res) => {
             res.send('DelhiveryWay Backend API Running ✅');

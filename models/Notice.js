@@ -23,6 +23,11 @@ const noticeSchema = new mongoose.Schema({
         enum: ['low', 'medium', 'high', 'urgent'],
         default: 'medium'
     },
+    displayType: {
+        type: String,
+        enum: ['one-time', 'permanent'],
+        default: 'one-time'
+    },
     isActive: {
         type: Boolean,
         default: true
@@ -35,15 +40,7 @@ const noticeSchema = new mongoose.Schema({
         type: Date,
         default: null // null means no end date
     },
-    refreshInterval: {
-        type: Number,
-        default: null, // null means no refresh, number in minutes
-        min: [1, 'Refresh interval must be at least 1 minute']
-    },
-    lastRefreshed: {
-        type: Date,
-        default: null
-    },
+
     createdBy: {
         type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and string for system admin
         ref: 'User',
