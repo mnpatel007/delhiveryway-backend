@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getCurrentISTTime, getCurrentISTTimeString, getCurrentISTDay } = require('../utils/timeUtils');
 
 const shopSchema = new mongoose.Schema({
     name: {
@@ -183,10 +184,9 @@ shopSchema.virtual('fullAddress').get(function () {
 // Method to check if shop is open
 shopSchema.methods.isOpenNow = function () {
     try {
-        const now = new Date();
-        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const day = dayNames[now.getDay()];
-        const currentTime = now.toTimeString().slice(0, 5);
+        // Get current time in IST (Indian Standard Time)
+        const day = getCurrentISTDay();
+        const currentTime = getCurrentISTTimeString();
 
         // Check if operating hours exist
         if (!this.operatingHours || typeof this.operatingHours !== 'object') {
