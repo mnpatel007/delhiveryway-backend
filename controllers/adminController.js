@@ -742,13 +742,26 @@ exports.updateOrderStatus = async (req, res) => {
             });
         }
 
-        order.status = status;
-        order.timeline.push({
-            status,
-            timestamp: new Date(),
-            note: note || `Status updated by admin`,
-            updatedBy: 'admin'
-        });
+        // Handle cancellation by admin
+        if (status === 'cancelled') {
+            order.status = status;
+            order.cancelledBy = 'admin';
+            order.reason = note || 'Cancelled by admin';
+            order.timeline.push({
+                status,
+                timestamp: new Date(),
+                note: note || `Order cancelled by admin`,
+                updatedBy: 'admin'
+            });
+        } else {
+            order.status = status;
+            order.timeline.push({
+                status,
+                timestamp: new Date(),
+                note: note || `Status updated by admin`,
+                updatedBy: 'admin'
+            });
+        }
 
         await order.save();
 
