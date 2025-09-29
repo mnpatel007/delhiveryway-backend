@@ -135,7 +135,7 @@ const acceptOrder = async (req, res) => {
 // Update order status
 const updateOrderStatus = async (req, res) => {
     try {
-        const { orderId, status } = req.body;
+        const { orderId, status, reason } = req.body;
         const shopperId = req.shopperId;
 
         const order = await Order.findOne({
@@ -147,14 +147,27 @@ const updateOrderStatus = async (req, res) => {
             return res.status(404).json({ message: 'Order not found or not assigned to you' });
         }
 
-        // Update order based on status with timeline
-        order.status = status;
-        order.timeline.push({
-            status: status,
-            timestamp: new Date(),
-            note: getStatusNote(status),
-            updatedBy: 'shopper'
-        });
+        // Handle cancellation with reason
+        if (status === 'cancelled') {
+            order.status = status;
+            order.cancelledBy = 'shopper';
+            order.reason = reason;
+            order.timeline.push({
+                status: status,
+                timestamp: new Date(),
+                note: `Order cancelled by shopper: ${reason}`,
+                updatedBy: 'shopper'
+            });
+        } else {
+            // Update order based on status with timeline
+            order.status = status;
+            order.timeline.push({
+                status: status,
+                timestamp: new Date(),
+                note: getStatusNote(status),
+                updatedBy: 'shopper'
+            });
+        }
 
         await order.save();
 
