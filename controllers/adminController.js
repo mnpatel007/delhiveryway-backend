@@ -98,8 +98,8 @@ exports.getDashboardStats = async (req, res) => {
             recentOrders,
             monthlyStats,
             dailyOrders,
-            dailyDeliveredOrders: deliveredOrders,
-            dailyCancelledOrders: cancelledOrders,
+            deliveredOrders,
+            cancelledOrders,
             shopperStats
         ] = await Promise.all([
             User.countDocuments({ role: { $ne: 'admin' } }),
@@ -216,8 +216,8 @@ exports.getDashboardStats = async (req, res) => {
                     totalOrders,
                     totalShoppers,
                     dailyOrders,
-                    deliveredOrders,
-                    cancelledOrders,
+                    dailyDeliveredOrders: deliveredOrders,
+                    dailyCancelledOrders: cancelledOrders,
                     totalRevenue: Math.round(revenue.totalRevenue),
                     deliveredRevenue: Math.round(revenue.deliveredRevenue),
                     averageOrderValue: Math.round(revenue.averageOrderValue)
