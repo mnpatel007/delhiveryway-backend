@@ -84,6 +84,11 @@ exports.adminLogin = async (req, res) => {
 // Get dashboard statistics
 exports.getDashboardStats = async (req, res) => {
     try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
         const [
             totalUsers,
             totalShops,
@@ -91,7 +96,11 @@ exports.getDashboardStats = async (req, res) => {
             totalOrders,
             totalShoppers,
             recentOrders,
-            monthlyStats
+            monthlyStats,
+            dailyOrders,
+            deliveredOrders,
+            cancelledOrders,
+            shopperStats
         ] = await Promise.all([
             User.countDocuments({ role: { $ne: 'admin' } }),
             Shop.countDocuments(),
@@ -118,6 +127,40 @@ exports.getDashboardStats = async (req, res) => {
                     }
                 },
                 { $sort: { _id: 1 } }
+            ]),
+            // Daily orders count
+            Order.countDocuments({
+                createdAt: { $gte: today, $lt: tomorrow }
+            }),
+            // Delivered orders count
+            Order.countDocuments({ status: 'delivered' }),
+            // Cancelled orders count
+            Order.countDocuments({ status: 'cancelled' }),
+            // Shopper performance stats
+            Order.aggregate([
+                {
+                    $match: {
+                        personalShopperId: { $exists: true },
+                        status: 'delivered'
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$personalShopperId',
+                        totalOrders: { $sum: 1 },
+                        totalEarnings: { $sum: '$shopperCommission' }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'personalshoppers',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'shopper'
+                    }
+                },
+                { $unwind: '$shopper' },
+                { $sort: { totalOrders: -1 } }
             ])
         ]);
 
@@ -166,13 +209,17 @@ exports.getDashboardStats = async (req, res) => {
                     totalProducts,
                     totalOrders,
                     totalShoppers,
+                    dailyOrders,
+                    deliveredOrders,
+                    cancelledOrders,
                     totalRevenue: Math.round(revenue.totalRevenue),
                     deliveredRevenue: Math.round(revenue.deliveredRevenue),
                     averageOrderValue: Math.round(revenue.averageOrderValue)
                 },
                 recentOrders,
                 monthlyStats,
-                orderStatusStats
+                orderStatusStats,
+                shopperStats
             }
         });
 
