@@ -84,10 +84,20 @@ exports.adminLogin = async (req, res) => {
 // Get dashboard statistics
 exports.getDashboardStats = async (req, res) => {
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const { date } = req.query;
+        let today, tomorrow;
+        
+        if (date) {
+            today = new Date(date);
+            today.setHours(0, 0, 0, 0);
+            tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+        } else {
+            today = new Date();
+            today.setHours(0, 0, 0, 0);
+            tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+        }
 
         const [
             totalUsers,
