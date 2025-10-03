@@ -84,7 +84,7 @@ exports.adminLogin = async (req, res) => {
 // Get dashboard statistics
 exports.getDashboardStats = async (req, res) => {
     try {
-        const { date } = req.query;
+        const { date, shopperPeriod } = req.query;
         let today, tomorrow;
         
         if (date) {
@@ -152,7 +152,7 @@ exports.getDashboardStats = async (req, res) => {
                 createdAt: { $gte: today, $lt: tomorrow },
                 status: 'cancelled'
             }),
-            // Shopper performance stats
+            // Shopper performance stats (total by default)
             Order.aggregate([
                 {
                     $match: {
@@ -216,6 +216,69 @@ exports.getDashboardStats = async (req, res) => {
             }
         ]);
 
+        // Get shopper stats based on period
+        let shopperStatsFiltered = shopperStats;
+        if (shopperPeriod === 'today') {
+            shopperStatsFiltered = await Order.aggregate([
+                {
+                    $match: {
+                        personalShopperId: { $exists: true },
+                        status: 'delivered',
+                        createdAt: { $gte: today, $lt: tomorrow }
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$personalShopperId',
+                        totalOrders: { $sum: 1 },
+                        totalEarnings: { $sum: '$shopperCommission' }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'personalshoppers',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'shopper'
+                    }
+                },
+                { $unwind: '$shopper' },
+                { $sort: { totalOrders: -1 } }
+            ]);
+        } else if (shopperPeriod === 'date' && date) {
+            const selectedDate = new Date(date);
+            selectedDate.setHours(0, 0, 0, 0);
+            const nextDay = new Date(selectedDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            
+            shopperStatsFiltered = await Order.aggregate([
+                {
+                    $match: {
+                        personalShopperId: { $exists: true },
+                        status: 'delivered',
+                        createdAt: { $gte: selectedDate, $lt: nextDay }
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$personalShopperId',
+                        totalOrders: { $sum: 1 },
+                        totalEarnings: { $sum: '$shopperCommission' }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'personalshoppers',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'shopper'
+                    }
+                },
+                { $unwind: '$shopper' },
+                { $sort: { totalOrders: -1 } }
+            ]);
+        }
+
         res.json({
             success: true,
             data: {
@@ -235,7 +298,7 @@ exports.getDashboardStats = async (req, res) => {
                 recentOrders,
                 monthlyStats,
                 orderStatusStats,
-                shopperStats
+                shopperStats: shopperStatsFiltered
             }
         });
 
