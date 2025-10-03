@@ -98,8 +98,8 @@ exports.getDashboardStats = async (req, res) => {
             recentOrders,
             monthlyStats,
             dailyOrders,
-            deliveredOrders,
-            cancelledOrders,
+            dailyDeliveredOrders: deliveredOrders,
+            dailyCancelledOrders: cancelledOrders,
             shopperStats
         ] = await Promise.all([
             User.countDocuments({ role: { $ne: 'admin' } }),
@@ -132,10 +132,16 @@ exports.getDashboardStats = async (req, res) => {
             Order.countDocuments({
                 createdAt: { $gte: today, $lt: tomorrow }
             }),
-            // Delivered orders count
-            Order.countDocuments({ status: 'delivered' }),
-            // Cancelled orders count
-            Order.countDocuments({ status: 'cancelled' }),
+            // Daily delivered orders count
+            Order.countDocuments({
+                createdAt: { $gte: today, $lt: tomorrow },
+                status: 'delivered'
+            }),
+            // Daily cancelled orders count
+            Order.countDocuments({
+                createdAt: { $gte: today, $lt: tomorrow },
+                status: 'cancelled'
+            }),
             // Shopper performance stats
             Order.aggregate([
                 {
