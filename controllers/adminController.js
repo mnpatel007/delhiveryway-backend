@@ -88,15 +88,21 @@ exports.getDashboardStats = async (req, res) => {
         let today, tomorrow;
         
         if (date) {
-            today = new Date(date);
-            today.setHours(0, 0, 0, 0);
+            // Convert provided date to IST
+            const inputDate = new Date(date);
+            const istOffset = 5.5 * 60 * 60 * 1000;
+            today = new Date(inputDate.getTime() + istOffset);
+            today.setUTCHours(0, 0, 0, 0);
             tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
         } else {
-            today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // Get current IST date
+            const now = new Date();
+            const istOffset = 5.5 * 60 * 60 * 1000;
+            today = new Date(now.getTime() + istOffset);
+            today.setUTCHours(0, 0, 0, 0);
             tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
         }
 
         const [
@@ -323,10 +329,13 @@ exports.getDashboardStats = async (req, res) => {
                 { $sort: { totalOrders: -1 } }
             ]);
         } else if (shopperPeriod === 'date' && date) {
-            const selectedDate = new Date(date);
-            selectedDate.setHours(0, 0, 0, 0);
+            // Convert selected date to IST
+            const inputDate = new Date(date);
+            const istOffset = 5.5 * 60 * 60 * 1000;
+            const selectedDate = new Date(inputDate.getTime() + istOffset);
+            selectedDate.setUTCHours(0, 0, 0, 0);
             const nextDay = new Date(selectedDate);
-            nextDay.setDate(nextDay.getDate() + 1);
+            nextDay.setUTCDate(nextDay.getUTCDate() + 1);
             
             shopperStatsFiltered = await Order.aggregate([
                 {
