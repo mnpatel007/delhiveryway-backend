@@ -115,7 +115,24 @@ exports.getDashboardStats = async (req, res) => {
             User.countDocuments({ role: { $ne: 'admin' } }),
             Shop.countDocuments(),
             Product.countDocuments(),
-            Order.countDocuments(),
+            Order.aggregate([
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'customerId',
+                        foreignField: '_id',
+                        as: 'customer'
+                    }
+                },
+                {
+                    $match: {
+                        'customer.email': { $ne: 'meetnp007@gmail.com' }
+                    }
+                },
+                {
+                    $count: 'total'
+                }
+            ]).then(result => result[0]?.total || 0),
             PersonalShopper.countDocuments(),
             Order.find()
                 .populate('customerId', 'name email')
@@ -138,20 +155,80 @@ exports.getDashboardStats = async (req, res) => {
                 },
                 { $sort: { _id: 1 } }
             ]),
-            // Daily orders count
-            Order.countDocuments({
-                createdAt: { $gte: today, $lt: tomorrow }
-            }),
-            // Daily delivered orders count
-            Order.countDocuments({
-                createdAt: { $gte: today, $lt: tomorrow },
-                status: 'delivered'
-            }),
-            // Daily cancelled orders count
-            Order.countDocuments({
-                createdAt: { $gte: today, $lt: tomorrow },
-                status: 'cancelled'
-            }),
+            // Daily orders count (excluding test email)
+            Order.aggregate([
+                {
+                    $match: {
+                        createdAt: { $gte: today, $lt: tomorrow }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'customerId',
+                        foreignField: '_id',
+                        as: 'customer'
+                    }
+                },
+                {
+                    $match: {
+                        'customer.email': { $ne: 'meetnp007@gmail.com' }
+                    }
+                },
+                {
+                    $count: 'total'
+                }
+            ]).then(result => result[0]?.total || 0),
+            // Daily delivered orders count (excluding test email)
+            Order.aggregate([
+                {
+                    $match: {
+                        createdAt: { $gte: today, $lt: tomorrow },
+                        status: 'delivered'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'customerId',
+                        foreignField: '_id',
+                        as: 'customer'
+                    }
+                },
+                {
+                    $match: {
+                        'customer.email': { $ne: 'meetnp007@gmail.com' }
+                    }
+                },
+                {
+                    $count: 'total'
+                }
+            ]).then(result => result[0]?.total || 0),
+            // Daily cancelled orders count (excluding test email)
+            Order.aggregate([
+                {
+                    $match: {
+                        createdAt: { $gte: today, $lt: tomorrow },
+                        status: 'cancelled'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'customerId',
+                        foreignField: '_id',
+                        as: 'customer'
+                    }
+                },
+                {
+                    $match: {
+                        'customer.email': { $ne: 'meetnp007@gmail.com' }
+                    }
+                },
+                {
+                    $count: 'total'
+                }
+            ]).then(result => result[0]?.total || 0),
             // Shopper performance stats (total by default)
             Order.aggregate([
                 {
