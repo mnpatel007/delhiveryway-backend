@@ -69,6 +69,15 @@ const acceptOrder = async (req, res) => {
         const { orderId } = req.body;
         const shopperId = req.shopperId;
 
+        // Check if shopper is online
+        const shopper = await PersonalShopper.findById(shopperId);
+        if (!shopper || !shopper.isOnline) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You are currently offline. Please contact admin to go online.' 
+            });
+        }
+
         // Check if order exists and is available
         const order = await Order.findById(orderId);
         if (!order) {
@@ -137,6 +146,15 @@ const updateOrderStatus = async (req, res) => {
     try {
         const { orderId, status, reason } = req.body;
         const shopperId = req.shopperId;
+
+        // Check if shopper is online
+        const shopper = await PersonalShopper.findById(shopperId);
+        if (!shopper || !shopper.isOnline) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You are currently offline. Please contact admin to go online.' 
+            });
+        }
 
         const order = await Order.findOne({
             _id: orderId,
@@ -228,6 +246,20 @@ const updateOrderStatus = async (req, res) => {
 // Get available orders for shoppers to accept
 const getAvailableOrders = async (req, res) => {
     try {
+        const shopperId = req.shopperId;
+
+        // Check if shopper is online
+        const shopper = await PersonalShopper.findById(shopperId);
+        if (!shopper || !shopper.isOnline) {
+            return res.json({
+                success: true,
+                data: {
+                    orders: [],
+                    message: 'You are currently offline. No orders available.'
+                }
+            });
+        }
+
         const orders = await Order.find({
             status: 'pending_shopper'
         }).populate([
