@@ -276,7 +276,7 @@ const getActiveOrders = async (req, res) => {
         }).populate([
             { path: 'customerId', select: 'name phone' },
             { path: 'shopId', select: 'name address category' }
-        ]).sort({ createdAt: -1 });
+        ]).sort({ createdAt: 1 });
 
         res.json({ success: true, orders });
     } catch (error) {
