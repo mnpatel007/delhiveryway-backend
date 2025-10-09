@@ -99,17 +99,16 @@ exports.signup = async (req, res) => {
 
                 const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${email}`;
 
-                const transporter = nodemailer.createTransport({
-                    host: 'smtp.gmail.com',
-                    port: 465,
-                    secure: true,
+                const transporter = nodemailer.createTransporter({
+                    service: 'gmail',
                     auth: {
+                        type: 'OAuth2',
                         user: process.env.GMAIL_USER,
-                        pass: process.env.GMAIL_PASS
-                    },
-                    connectionTimeout: 10000,
-                    greetingTimeout: 5000,
-                    socketTimeout: 10000
+                        clientId: process.env.GMAIL_CLIENT_ID || '1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com',
+                        clientSecret: process.env.GMAIL_CLIENT_SECRET || 'GOCSPX-abcdefghijklmnopqrstuvwxyz',
+                        refreshToken: process.env.GMAIL_REFRESH_TOKEN || '1//04abcdefghijklmnopqrstuvwxyz',
+                        accessToken: process.env.GMAIL_ACCESS_TOKEN
+                    }
                 });
 
                 await transporter.sendMail({
@@ -438,17 +437,16 @@ exports.forgotPassword = async (req, res) => {
 
             const resetLink = `${frontendURL}/reset-password?token=${resetToken}&email=${email}`;
 
-            const transporter = nodemailer.createTransport({
-                host: 'smtp.gmail.com',
-                port: 465,
-                secure: true,
+            const transporter = nodemailer.createTransporter({
+                service: 'gmail',
                 auth: {
+                    type: 'OAuth2',
                     user: process.env.GMAIL_USER,
-                    pass: process.env.GMAIL_PASS
-                },
-                connectionTimeout: 10000,
-                greetingTimeout: 5000,
-                socketTimeout: 10000
+                    clientId: process.env.GMAIL_CLIENT_ID || '1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com',
+                    clientSecret: process.env.GMAIL_CLIENT_SECRET || 'GOCSPX-abcdefghijklmnopqrstuvwxyz',
+                    refreshToken: process.env.GMAIL_REFRESH_TOKEN || '1//04abcdefghijklmnopqrstuvwxyz',
+                    accessToken: process.env.GMAIL_ACCESS_TOKEN
+                }
             });
 
             await transporter.sendMail({
