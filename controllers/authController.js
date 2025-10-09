@@ -165,8 +165,6 @@ exports.signup = async (req, res) => {
 
                 req.write(emailData);
                 req.end();
-
-                console.log('📧 Verification email sent to:', sanitizeForLog(email));
             } catch (emailError) {
                 console.error('📧 Email sending failed:', emailError);
                 console.error('📧 Error details:', {
@@ -529,10 +527,6 @@ exports.forgotPassword = async (req, res) => {
 
             req.write(emailData);
             req.end();
-
-
-
-            console.log('📧 Password reset email sent to:', sanitizeForLog(email));
         } catch (emailError) {
             console.error('📧 Password reset email failed:', emailError);
             // Reset the token if email fails
