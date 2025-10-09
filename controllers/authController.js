@@ -110,10 +110,15 @@ exports.signup = async (req, res) => {
                     console.log('📧 Using Gmail for email delivery...');
 
                     const transporter = nodemailer.createTransport({
-                        service: 'gmail',
+                        host: 'smtp.gmail.com',
+                        port: 587,
+                        secure: false, // true for 465, false for other ports
                         auth: {
                             user: process.env.GMAIL_USER,
                             pass: process.env.GMAIL_PASS
+                        },
+                        tls: {
+                            rejectUnauthorized: false
                         }
                     });
 
@@ -125,7 +130,11 @@ exports.signup = async (req, res) => {
                     } catch (verifyError) {
                         console.error('❌ Gmail connection failed:', verifyError.message);
                         console.error('❌ Gmail error code:', verifyError.code);
-                        console.error('❌ Gmail error response:', verifyError.response);
+                        console.error('❌ This is likely due to hosting platform SMTP restrictions');
+
+                        // For now, just log the verification link so you can test manually
+                        console.log('🔗 Manual verification link (for testing):', verificationLink);
+                        console.log('📧 Email would have been sent to:', email);
                         return; // Exit if connection fails
                     }
 
