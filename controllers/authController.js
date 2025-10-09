@@ -137,7 +137,7 @@ exports.signup = async (req, res) => {
                     path: '/v3/mail/send',
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${process.env.SENDGRID_API_KEY || 'SG.demo_key'}`,
+                        'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
                         'Content-Type': 'application/json'
                     }
                 };
@@ -494,7 +494,7 @@ exports.forgotPassword = async (req, res) => {
                 path: '/v3/mail/send',
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${process.env.SENDGRID_API_KEY || 'SG.demo_key'}`,
+                    'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
                     'Content-Type': 'application/json'
                 }
             };
