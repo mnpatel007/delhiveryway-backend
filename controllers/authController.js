@@ -95,6 +95,8 @@ exports.signup = async (req, res) => {
                 console.log('📧 Target email:', email);
                 console.log('📧 Gmail User:', process.env.GMAIL_USER ? 'Set' : 'Not Set');
                 console.log('📧 Gmail Pass:', process.env.GMAIL_PASS ? 'Set' : 'Not Set');
+                console.log('📧 Gmail User Value:', process.env.GMAIL_USER);
+                console.log('📧 Gmail Pass Length:', process.env.GMAIL_PASS ? process.env.GMAIL_PASS.length : 0);
 
                 const frontendURL = role === 'vendor'
                     ? process.env.VENDOR_FRONTEND_URL
@@ -115,10 +117,13 @@ exports.signup = async (req, res) => {
                         }
                     });
 
-                    // Test the connection
+                    // Test the connection first
+                    console.log('📧 Testing Gmail connection...');
                     transporter.verify((error, success) => {
                         if (error) {
                             console.error('❌ Gmail connection failed:', error.message);
+                            console.error('❌ Gmail error code:', error.code);
+                            console.error('❌ Gmail error command:', error.command);
                         } else {
                             console.log('✅ Gmail connection verified successfully');
                         }
@@ -150,13 +155,17 @@ exports.signup = async (req, res) => {
                         `
                     };
 
+                    console.log('📧 Attempting to send email...');
                     transporter.sendMail(mailOptions, (error, info) => {
                         if (error) {
                             console.error('❌ Gmail sending failed:', error);
                             console.error('❌ Gmail error details:', error.message);
+                            console.error('❌ Gmail error code:', error.code);
+                            console.error('❌ Gmail error command:', error.command);
                         } else {
                             console.log('✅ Verification email sent via Gmail to:', sanitizeForLog(email));
                             console.log('📧 Gmail response:', info.response);
+                            console.log('📧 Gmail message ID:', info.messageId);
                         }
                     });
                 } else {
