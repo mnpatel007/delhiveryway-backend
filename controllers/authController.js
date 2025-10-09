@@ -94,6 +94,8 @@ exports.signup = async (req, res) => {
                 console.log('📧 Attempting to send verification email...');
                 console.log('📧 Gmail User:', process.env.GMAIL_USER ? 'Set' : 'Not Set');
                 console.log('📧 Gmail Pass:', process.env.GMAIL_PASS ? 'Set' : 'Not Set');
+                console.log('📧 SendGrid Key:', process.env.SENDGRID_API_KEY ? 'Set' : 'Not Set');
+                console.log('📧 SendGrid Key Length:', process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.length : 0);
                 const frontendURL = role === 'vendor'
                     ? process.env.VENDOR_FRONTEND_URL
                     : process.env.FRONTEND_URL;
