@@ -135,6 +135,9 @@ exports.signup = async (req, res) => {
                                     <p style="color: #666; font-size: 12px;">
                                         This link will expire in 24 hours. If you didn't create an account, please ignore this email.
                                     </p>
+                                    <p style="color: #e74c3c; font-size: 14px; font-weight: bold; text-align: center; margin-top: 20px;">
+                                        📧 Can't find this email? Please check your spam/junk folder!
+                                    </p>
                                 </div>
                             `
                         }]
@@ -190,7 +193,7 @@ exports.signup = async (req, res) => {
             success: true,
             message: process.env.NODE_ENV === 'development'
                 ? 'Account created successfully. You can now log in.'
-                : 'Account created successfully. Please check your email to verify your account.',
+                : 'Account created successfully! Please check your email to verify your account. If you don\'t see it, check your spam/junk folder.',
             data: {
                 user: {
                     id: user._id,
