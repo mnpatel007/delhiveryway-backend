@@ -90,6 +90,9 @@ exports.signup = async (req, res) => {
         // Send verification email if not in development
         if (process.env.NODE_ENV !== 'development') {
             try {
+                console.log('📧 Attempting to send verification email...');
+                console.log('📧 Gmail User:', process.env.GMAIL_USER ? 'Set' : 'Not Set');
+                console.log('📧 Gmail Pass:', process.env.GMAIL_PASS ? 'Set' : 'Not Set');
                 const frontendURL = role === 'vendor'
                     ? process.env.VENDOR_FRONTEND_URL
                     : process.env.FRONTEND_URL;
@@ -133,6 +136,12 @@ exports.signup = async (req, res) => {
                 console.log('📧 Verification email sent to:', sanitizeForLog(email));
             } catch (emailError) {
                 console.error('📧 Email sending failed:', emailError);
+                console.error('📧 Error details:', {
+                    code: emailError.code,
+                    command: emailError.command,
+                    response: emailError.response,
+                    responseCode: emailError.responseCode
+                });
                 // Don't fail signup if email fails
             }
         }
