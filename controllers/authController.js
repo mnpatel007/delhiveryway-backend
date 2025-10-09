@@ -145,11 +145,18 @@ exports.signup = async (req, res) => {
                 };
 
                 const req = https.request(options, (res) => {
-                    if (res.statusCode === 202) {
-                        console.log('📧 Verification email sent via SendGrid to:', sanitizeForLog(email));
-                    } else {
-                        console.error('📧 SendGrid failed with status:', res.statusCode);
-                    }
+                    let data = '';
+                    res.on('data', (chunk) => {
+                        data += chunk;
+                    });
+                    res.on('end', () => {
+                        if (res.statusCode === 202) {
+                            console.log('📧 Verification email sent via SendGrid to:', sanitizeForLog(email));
+                        } else {
+                            console.error('📧 SendGrid failed with status:', res.statusCode);
+                            console.error('📧 SendGrid error response:', data);
+                        }
+                    });
                 });
 
                 req.on('error', (error) => {
@@ -502,11 +509,18 @@ exports.forgotPassword = async (req, res) => {
             };
 
             const req = https.request(options, (res) => {
-                if (res.statusCode === 202) {
-                    console.log('📧 Password reset email sent via SendGrid to:', sanitizeForLog(email));
-                } else {
-                    console.error('📧 SendGrid failed with status:', res.statusCode);
-                }
+                let data = '';
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+                res.on('end', () => {
+                    if (res.statusCode === 202) {
+                        console.log('📧 Password reset email sent via SendGrid to:', sanitizeForLog(email));
+                    } else {
+                        console.error('📧 SendGrid failed with status:', res.statusCode);
+                        console.error('📧 SendGrid error response:', data);
+                    }
+                });
             });
 
             req.on('error', (error) => {
