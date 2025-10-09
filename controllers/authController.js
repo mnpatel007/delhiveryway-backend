@@ -100,14 +100,12 @@ exports.signup = async (req, res) => {
                 const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${email}`;
 
                 const transporter = nodemailer.createTransporter({
-                    service: 'gmail',
+                    host: 'smtp.gmail.com',
+                    port: 587,
+                    secure: false,
                     auth: {
-                        type: 'OAuth2',
                         user: process.env.GMAIL_USER,
-                        clientId: process.env.GMAIL_CLIENT_ID || '1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com',
-                        clientSecret: process.env.GMAIL_CLIENT_SECRET || 'GOCSPX-abcdefghijklmnopqrstuvwxyz',
-                        refreshToken: process.env.GMAIL_REFRESH_TOKEN || '1//04abcdefghijklmnopqrstuvwxyz',
-                        accessToken: process.env.GMAIL_ACCESS_TOKEN
+                        pass: process.env.GMAIL_PASS
                     }
                 });
 
@@ -438,14 +436,12 @@ exports.forgotPassword = async (req, res) => {
             const resetLink = `${frontendURL}/reset-password?token=${resetToken}&email=${email}`;
 
             const transporter = nodemailer.createTransporter({
-                service: 'gmail',
+                host: 'smtp.gmail.com',
+                port: 587,
+                secure: false,
                 auth: {
-                    type: 'OAuth2',
                     user: process.env.GMAIL_USER,
-                    clientId: process.env.GMAIL_CLIENT_ID || '1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com',
-                    clientSecret: process.env.GMAIL_CLIENT_SECRET || 'GOCSPX-abcdefghijklmnopqrstuvwxyz',
-                    refreshToken: process.env.GMAIL_REFRESH_TOKEN || '1//04abcdefghijklmnopqrstuvwxyz',
-                    accessToken: process.env.GMAIL_ACCESS_TOKEN
+                    pass: process.env.GMAIL_PASS
                 }
             });
 
