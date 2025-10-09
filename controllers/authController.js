@@ -100,7 +100,7 @@ exports.signup = async (req, res) => {
                     ? process.env.VENDOR_FRONTEND_URL
                     : process.env.FRONTEND_URL;
 
-                const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${email}`;
+                const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
 
                 const emailData = JSON.stringify({
                     personalizations: [{
