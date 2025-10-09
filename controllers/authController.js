@@ -105,78 +105,79 @@ exports.signup = async (req, res) => {
                 const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
                 console.log('📧 Verification link:', verificationLink);
 
-                // Use Gmail for reliable email delivery
-                if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
-                    console.log('📧 Using Gmail for email delivery...');
+                // Use SendGrid for reliable email delivery (works better with hosting platforms)
+                if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY !== 'paste_your_real_sendgrid_key_here') {
+                    console.log('📧 Using SendGrid for email delivery...');
 
-                    const transporter = nodemailer.createTransport({
-                        host: 'smtp.gmail.com',
-                        port: 587,
-                        secure: false, // true for 465, false for other ports
-                        auth: {
-                            user: process.env.GMAIL_USER,
-                            pass: process.env.GMAIL_PASS
-                        },
-                        tls: {
-                            rejectUnauthorized: false
-                        }
+                    const emailData = JSON.stringify({
+                        personalizations: [{
+                            to: [{ email: email }],
+                            subject: 'Verify your email - DelhiveryWay'
+                        }],
+                        from: { email: process.env.GMAIL_USER, name: 'DelhiveryWay' },
+                        content: [{
+                            type: 'text/html',
+                            value: `
+                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                                    <h2 style="color: #4a90e2;">Welcome to DelhiveryWay!</h2>
+                                    <p>Thank you for signing up. Please verify your email address to complete your registration.</p>
+                                    <div style="text-align: center; margin: 30px 0;">
+                                        <a href="${verificationLink}" 
+                                           style="background-color: #4a90e2; color: white; padding: 12px 30px; 
+                                                  text-decoration: none; border-radius: 5px; display: inline-block;">
+                                            Verify Email Address
+                                        </a>
+                                    </div>
+                                    <p style="color: #666; font-size: 14px;">
+                                        If the button doesn't work, copy and paste this link into your browser:<br>
+                                        <a href="${verificationLink}">${verificationLink}</a>
+                                    </p>
+                                    <p style="color: #666; font-size: 12px;">
+                                        This link will expire in 24 hours. If you didn't create an account, please ignore this email.
+                                    </p>
+                                </div>
+                            `
+                        }]
                     });
 
-                    // Test the connection first with await
-                    console.log('📧 Testing Gmail connection...');
-                    try {
-                        await transporter.verify();
-                        console.log('✅ Gmail connection verified successfully');
-                    } catch (verifyError) {
-                        console.error('❌ Gmail connection failed:', verifyError.message);
-                        console.error('❌ Gmail error code:', verifyError.code);
-                        console.error('❌ This is likely due to hosting platform SMTP restrictions');
-
-                        // For now, just log the verification link so you can test manually
-                        console.log('🔗 Manual verification link (for testing):', verificationLink);
-                        console.log('📧 Email would have been sent to:', email);
-                        return; // Exit if connection fails
-                    }
-
-                    const mailOptions = {
-                        from: `"DelhiveryWay" <${process.env.GMAIL_USER}>`,
-                        to: email,
-                        subject: 'Verify your email - DelhiveryWay',
-                        html: `
-                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                                <h2 style="color: #4a90e2;">Welcome to DelhiveryWay!</h2>
-                                <p>Thank you for signing up. Please verify your email address to complete your registration.</p>
-                                <div style="text-align: center; margin: 30px 0;">
-                                    <a href="${verificationLink}" 
-                                       style="background-color: #4a90e2; color: white; padding: 12px 30px; 
-                                              text-decoration: none; border-radius: 5px; display: inline-block;">
-                                        Verify Email Address
-                                    </a>
-                                </div>
-                                <p style="color: #666; font-size: 14px;">
-                                    If the button doesn't work, copy and paste this link into your browser:<br>
-                                    <a href="${verificationLink}">${verificationLink}</a>
-                                </p>
-                                <p style="color: #666; font-size: 12px;">
-                                    This link will expire in 24 hours. If you didn't create an account, please ignore this email.
-                                </p>
-                            </div>
-                        `
+                    const options = {
+                        hostname: 'api.sendgrid.com',
+                        port: 443,
+                        path: '/v3/mail/send',
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        }
                     };
 
-                    console.log('📧 Attempting to send email...');
-                    try {
-                        const info = await transporter.sendMail(mailOptions);
-                        console.log('✅ Verification email sent via Gmail to:', sanitizeForLog(email));
-                        console.log('📧 Gmail response:', info.response);
-                        console.log('📧 Gmail message ID:', info.messageId);
-                    } catch (sendError) {
-                        console.error('❌ Gmail sending failed:', sendError.message);
-                        console.error('❌ Gmail error code:', sendError.code);
-                        console.error('❌ Gmail error response:', sendError.response);
-                    }
+                    console.log('📧 Making request to SendGrid...');
+                    const req = https.request(options, (res) => {
+                        let data = '';
+                        res.on('data', (chunk) => {
+                            data += chunk;
+                        });
+                        res.on('end', () => {
+                            console.log('📧 SendGrid response status:', res.statusCode);
+                            if (res.statusCode === 202) {
+                                console.log('✅ Verification email sent via SendGrid to:', sanitizeForLog(email));
+                            } else {
+                                console.error('❌ SendGrid failed with status:', res.statusCode);
+                                console.error('📧 SendGrid error response:', data);
+                            }
+                        });
+                    });
+
+                    req.on('error', (error) => {
+                        console.error('❌ SendGrid request failed:', error);
+                    });
+
+                    req.write(emailData);
+                    req.end();
                 } else {
-                    console.error('❌ No Gmail credentials configured! Please set GMAIL_USER and GMAIL_PASS.');
+                    console.error('❌ No SendGrid API key configured!');
+                    console.log('🔗 Manual verification link (for testing):', verificationLink);
+                    console.log('📧 Email would have been sent to:', email);
                 }
             } catch (emailError) {
                 console.error('📧 Email sending failed:', emailError);
