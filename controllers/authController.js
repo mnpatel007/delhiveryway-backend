@@ -100,10 +100,15 @@ exports.signup = async (req, res) => {
                 const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${email}`;
 
                 const transporter = nodemailer.createTransport({
-                    service: 'gmail',
+                    host: 'smtp.gmail.com',
+                    port: 587,
+                    secure: false,
                     auth: {
                         user: process.env.GMAIL_USER,
                         pass: process.env.GMAIL_PASS
+                    },
+                    tls: {
+                        rejectUnauthorized: false
                     }
                 });
 
@@ -434,11 +439,16 @@ exports.forgotPassword = async (req, res) => {
             const resetLink = `${frontendURL}/reset-password?token=${resetToken}&email=${email}`;
 
             const transporter = nodemailer.createTransport({
-                service: 'gmail',
+                host: 'smtp.gmail.com',
+                port: 587,
+                secure: false,
                 auth: {
                     user: process.env.GMAIL_USER,
-                    pass: process.env.GMAIL_PASS,
+                    pass: process.env.GMAIL_PASS
                 },
+                tls: {
+                    rejectUnauthorized: false
+                }
             });
 
             await transporter.sendMail({
