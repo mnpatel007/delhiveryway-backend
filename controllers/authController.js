@@ -117,17 +117,17 @@ exports.signup = async (req, res) => {
                         }
                     });
 
-                    // Test the connection first
+                    // Test the connection first with await
                     console.log('📧 Testing Gmail connection...');
-                    transporter.verify((error, success) => {
-                        if (error) {
-                            console.error('❌ Gmail connection failed:', error.message);
-                            console.error('❌ Gmail error code:', error.code);
-                            console.error('❌ Gmail error command:', error.command);
-                        } else {
-                            console.log('✅ Gmail connection verified successfully');
-                        }
-                    });
+                    try {
+                        await transporter.verify();
+                        console.log('✅ Gmail connection verified successfully');
+                    } catch (verifyError) {
+                        console.error('❌ Gmail connection failed:', verifyError.message);
+                        console.error('❌ Gmail error code:', verifyError.code);
+                        console.error('❌ Gmail error response:', verifyError.response);
+                        return; // Exit if connection fails
+                    }
 
                     const mailOptions = {
                         from: `"DelhiveryWay" <${process.env.GMAIL_USER}>`,
@@ -156,18 +156,16 @@ exports.signup = async (req, res) => {
                     };
 
                     console.log('📧 Attempting to send email...');
-                    transporter.sendMail(mailOptions, (error, info) => {
-                        if (error) {
-                            console.error('❌ Gmail sending failed:', error);
-                            console.error('❌ Gmail error details:', error.message);
-                            console.error('❌ Gmail error code:', error.code);
-                            console.error('❌ Gmail error command:', error.command);
-                        } else {
-                            console.log('✅ Verification email sent via Gmail to:', sanitizeForLog(email));
-                            console.log('📧 Gmail response:', info.response);
-                            console.log('📧 Gmail message ID:', info.messageId);
-                        }
-                    });
+                    try {
+                        const info = await transporter.sendMail(mailOptions);
+                        console.log('✅ Verification email sent via Gmail to:', sanitizeForLog(email));
+                        console.log('📧 Gmail response:', info.response);
+                        console.log('📧 Gmail message ID:', info.messageId);
+                    } catch (sendError) {
+                        console.error('❌ Gmail sending failed:', sendError.message);
+                        console.error('❌ Gmail error code:', sendError.code);
+                        console.error('❌ Gmail error response:', sendError.response);
+                    }
                 } else {
                     console.error('❌ No Gmail credentials configured! Please set GMAIL_USER and GMAIL_PASS.');
                 }
