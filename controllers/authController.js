@@ -102,69 +102,41 @@ exports.signup = async (req, res) => {
 
                 const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${email}`;
 
-                const emailData = JSON.stringify({
-                    personalizations: [{
-                        to: [{ email: email }],
-                        subject: 'Verify your email - DelhiveryWay'
-                    }],
-                    from: { email: 'meetnp007@gmail.com', name: 'DelhiveryWay' },
-                    content: [{
-                        type: 'text/html',
-                        value: `
-                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                                <h2 style="color: #4a90e2;">Welcome to DelhiveryWay!</h2>
-                                <p>Thank you for signing up. Please verify your email address to complete your registration.</p>
-                                <div style="text-align: center; margin: 30px 0;">
-                                    <a href="${verificationLink}" 
-                                       style="background-color: #4a90e2; color: white; padding: 12px 30px; 
-                                              text-decoration: none; border-radius: 5px; display: inline-block;">
-                                        Verify Email Address
-                                    </a>
-                                </div>
-                                <p style="color: #666; font-size: 14px;">
-                                    If the button doesn't work, copy and paste this link into your browser:<br>
-                                    <a href="${verificationLink}">${verificationLink}</a>
-                                </p>
-                                <p style="color: #666; font-size: 12px;">
-                                    This link will expire in 24 hours. If you didn't create an account, please ignore this email.
-                                </p>
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: process.env.GMAIL_USER,
+                        pass: process.env.GMAIL_PASS
+                    },
+                    pool: true,
+                    maxConnections: 1
+                });
+
+                await transporter.sendMail({
+                    from: process.env.GMAIL_USER,
+                    to: email,
+                    subject: 'Verify your email - DelhiveryWay',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <h2 style="color: #4a90e2;">Welcome to DelhiveryWay!</h2>
+                            <p>Thank you for signing up. Please verify your email address to complete your registration.</p>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="${verificationLink}" 
+                                   style="background-color: #4a90e2; color: white; padding: 12px 30px; 
+                                          text-decoration: none; border-radius: 5px; display: inline-block;">
+                                    Verify Email Address
+                                </a>
                             </div>
-                        `
-                    }]
+                            <p style="color: #666; font-size: 14px;">
+                                If the button doesn't work, copy and paste this link into your browser:<br>
+                                <a href="${verificationLink}">${verificationLink}</a>
+                            </p>
+                            <p style="color: #666; font-size: 12px;">
+                                This link will expire in 24 hours. If you didn't create an account, please ignore this email.
+                            </p>
+                        </div>
+                    `
                 });
-
-                const options = {
-                    hostname: 'api.sendgrid.com',
-                    port: 443,
-                    path: '/v3/mail/send',
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
-                };
-
-                const req = https.request(options, (res) => {
-                    let data = '';
-                    res.on('data', (chunk) => {
-                        data += chunk;
-                    });
-                    res.on('end', () => {
-                        if (res.statusCode === 202) {
-                            console.log('📧 Verification email sent via SendGrid to:', sanitizeForLog(email));
-                        } else {
-                            console.error('📧 SendGrid failed with status:', res.statusCode);
-                            console.error('📧 SendGrid error response:', data);
-                        }
-                    });
-                });
-
-                req.on('error', (error) => {
-                    console.error('📧 SendGrid request failed:', error);
-                });
-
-                req.write(emailData);
-                req.end();
 
                 console.log('📧 Verification email sent to:', sanitizeForLog(email));
             } catch (emailError) {
@@ -466,69 +438,41 @@ exports.forgotPassword = async (req, res) => {
 
             const resetLink = `${frontendURL}/reset-password?token=${resetToken}&email=${email}`;
 
-            const emailData = JSON.stringify({
-                personalizations: [{
-                    to: [{ email: email }],
-                    subject: 'Password Reset - DelhiveryWay'
-                }],
-                from: { email: 'meetnp007@gmail.com', name: 'DelhiveryWay' },
-                content: [{
-                    type: 'text/html',
-                    value: `
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <h2 style="color: #4a90e2;">Password Reset Request</h2>
-                            <p>You requested a password reset for your DelhiveryWay account.</p>
-                            <div style="text-align: center; margin: 30px 0;">
-                                <a href="${resetLink}" 
-                                   style="background-color: #4a90e2; color: white; padding: 12px 30px; 
-                                          text-decoration: none; border-radius: 5px; display: inline-block;">
-                                    Reset Password
-                                </a>
-                            </div>
-                            <p style="color: #666; font-size: 14px;">
-                                If the button doesn't work, copy and paste this link into your browser:<br>
-                                <a href="${resetLink}">${resetLink}</a>
-                            </p>
-                            <p style="color: #666; font-size: 12px;">
-                                This link will expire in 30 minutes. If you didn't request this reset, please ignore this email.
-                            </p>
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.GMAIL_USER,
+                    pass: process.env.GMAIL_PASS
+                },
+                pool: true,
+                maxConnections: 1
+            });
+
+            await transporter.sendMail({
+                from: process.env.GMAIL_USER,
+                to: email,
+                subject: 'Password Reset - DelhiveryWay',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2 style="color: #4a90e2;">Password Reset Request</h2>
+                        <p>You requested a password reset for your DelhiveryWay account.</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${resetLink}" 
+                               style="background-color: #4a90e2; color: white; padding: 12px 30px; 
+                                      text-decoration: none; border-radius: 5px; display: inline-block;">
+                                Reset Password
+                            </a>
                         </div>
-                    `
-                }]
+                        <p style="color: #666; font-size: 14px;">
+                            If the button doesn't work, copy and paste this link into your browser:<br>
+                            <a href="${resetLink}">${resetLink}</a>
+                        </p>
+                        <p style="color: #666; font-size: 12px;">
+                            This link will expire in 30 minutes. If you didn't request this reset, please ignore this email.
+                        </p>
+                    </div>
+                `
             });
-
-            const options = {
-                hostname: 'api.sendgrid.com',
-                port: 443,
-                path: '/v3/mail/send',
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
-                    'Content-Type': 'application/json'
-                }
-            };
-
-            const req = https.request(options, (res) => {
-                let data = '';
-                res.on('data', (chunk) => {
-                    data += chunk;
-                });
-                res.on('end', () => {
-                    if (res.statusCode === 202) {
-                        console.log('📧 Password reset email sent via SendGrid to:', sanitizeForLog(email));
-                    } else {
-                        console.error('📧 SendGrid failed with status:', res.statusCode);
-                        console.error('📧 SendGrid error response:', data);
-                    }
-                });
-            });
-
-            req.on('error', (error) => {
-                console.error('📧 SendGrid request failed:', error);
-            });
-
-            req.write(emailData);
-            req.end();
 
 
 
