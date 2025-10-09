@@ -99,7 +99,7 @@ exports.signup = async (req, res) => {
 
                 const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${email}`;
 
-                const transporter = nodemailer.createTransporter({
+                const transporter = nodemailer.createTransport({
                     host: 'smtp.gmail.com',
                     port: 587,
                     secure: false,
@@ -435,7 +435,7 @@ exports.forgotPassword = async (req, res) => {
 
             const resetLink = `${frontendURL}/reset-password?token=${resetToken}&email=${email}`;
 
-            const transporter = nodemailer.createTransporter({
+            const transporter = nodemailer.createTransport({
                 host: 'smtp.gmail.com',
                 port: 587,
                 secure: false,
