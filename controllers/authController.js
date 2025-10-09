@@ -107,7 +107,7 @@ exports.signup = async (req, res) => {
                         to: [{ email: email }],
                         subject: 'Verify your email - DelhiveryWay'
                     }],
-                    from: { email: 'noreply@delhiveryway.com', name: 'DelhiveryWay' },
+                    from: { email: 'meetnp007@gmail.com', name: 'DelhiveryWay' },
                     content: [{
                         type: 'text/html',
                         value: `
@@ -464,7 +464,7 @@ exports.forgotPassword = async (req, res) => {
                     to: [{ email: email }],
                     subject: 'Password Reset - DelhiveryWay'
                 }],
-                from: { email: 'noreply@delhiveryway.com', name: 'DelhiveryWay' },
+                from: { email: 'meetnp007@gmail.com', name: 'DelhiveryWay' },
                 content: [{
                     type: 'text/html',
                     value: `
