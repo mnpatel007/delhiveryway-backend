@@ -107,7 +107,7 @@ exports.signup = async (req, res) => {
                 if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
                     console.log('📧 Using Gmail for email delivery...');
 
-                    const transporter = nodemailer.createTransporter({
+                    const transporter = nodemailer.createTransport({
                         service: 'gmail',
                         auth: {
                             user: process.env.GMAIL_USER,
