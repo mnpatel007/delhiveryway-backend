@@ -20,7 +20,7 @@ exports.getOrderAcceptanceTime = async (req, res) => {
         // Calculate estimated time based on pending orders
         // Base time: 5 minutes
         // Additional time: 3 minutes per pending order
-        const baseTime = 5; // minutes
+        const baseTime = 10; // minutes
         const additionalTimePerOrder = 3; // minutes
         const estimatedMinutes = baseTime + (pendingOrdersCount * additionalTimePerOrder);
 
