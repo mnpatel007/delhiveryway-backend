@@ -576,8 +576,8 @@ exports.createShop = async (req, res) => {
             deliveryFee: deliveryFee || 0,
             minOrderValue: minOrderValue || 0,
             maxOrderValue: maxOrderValue || 10000,
-            hasTax: hasTax || false,
-            taxRate: hasTax ? (taxRate || 5) : 5,
+            hasTax: hasTax === true || hasTax === 'on' || hasTax === 'true',
+            taxRate: (hasTax === true || hasTax === 'on' || hasTax === 'true') ? (taxRate || 5) : 5,
             isActive: true,
             createdBy: 'admin'
         };
@@ -879,7 +879,7 @@ exports.updateShop = async (req, res) => {
         if (updateData.description !== undefined) shop.description = updateData.description?.trim();
         if (updateData.category) shop.category = updateData.category;
         if (updateData.deliveryFee !== undefined) shop.deliveryFee = parseFloat(updateData.deliveryFee) || 0;
-        if (updateData.hasTax !== undefined) shop.hasTax = updateData.hasTax;
+        if (updateData.hasTax !== undefined) shop.hasTax = updateData.hasTax === true || updateData.hasTax === 'on' || updateData.hasTax === 'true';
         if (updateData.taxRate !== undefined) shop.taxRate = parseFloat(updateData.taxRate) || 5;
 
         // Update address if provided
@@ -924,7 +924,7 @@ exports.updateShop = async (req, res) => {
         console.error('Error details:', {
             message: error.message,
             stack: error.stack,
-            shopId,
+            shopId: req.params.shopId,
             updateData
         });
 
