@@ -164,6 +164,16 @@ const shopSchema = new mongoose.Schema({
     totalRevenue: {
         type: Number,
         default: 0
+    },
+    hasTax: {
+        type: Boolean,
+        default: false
+    },
+    taxRate: {
+        type: Number,
+        default: 5,
+        min: [0, 'Tax rate cannot be negative'],
+        max: [100, 'Tax rate cannot exceed 100%']
     }
 }, {
     timestamps: true

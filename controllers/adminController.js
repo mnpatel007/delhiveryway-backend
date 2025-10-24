@@ -86,7 +86,7 @@ exports.getDashboardStats = async (req, res) => {
     try {
         const { date, shopperPeriod } = req.query;
         let today, tomorrow;
-        
+
         if (date) {
             // Convert provided date to IST
             const inputDate = new Date(date);
@@ -336,7 +336,7 @@ exports.getDashboardStats = async (req, res) => {
             selectedDate.setUTCHours(0, 0, 0, 0);
             const nextDay = new Date(selectedDate);
             nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-            
+
             shopperStatsFiltered = await Order.aggregate([
                 {
                     $match: {
@@ -527,7 +527,9 @@ exports.createShop = async (req, res) => {
             deliveryFee,
             minOrderValue,
             maxOrderValue,
-            vendorId
+            vendorId,
+            hasTax,
+            taxRate
         } = req.body;
 
         // Validate required fields
@@ -574,6 +576,8 @@ exports.createShop = async (req, res) => {
             deliveryFee: deliveryFee || 0,
             minOrderValue: minOrderValue || 0,
             maxOrderValue: maxOrderValue || 10000,
+            hasTax: hasTax || false,
+            taxRate: hasTax ? (taxRate || 5) : 5,
             isActive: true,
             createdBy: 'admin'
         };
@@ -875,6 +879,8 @@ exports.updateShop = async (req, res) => {
         if (updateData.description !== undefined) shop.description = updateData.description?.trim();
         if (updateData.category) shop.category = updateData.category;
         if (updateData.deliveryFee !== undefined) shop.deliveryFee = parseFloat(updateData.deliveryFee) || 0;
+        if (updateData.hasTax !== undefined) shop.hasTax = updateData.hasTax;
+        if (updateData.taxRate !== undefined) shop.taxRate = parseFloat(updateData.taxRate) || 5;
 
         // Update address if provided
         if (updateData.address) {

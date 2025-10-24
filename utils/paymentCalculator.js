@@ -78,14 +78,20 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
 
         console.log('Final delivery fee used:', deliveryFee);
 
-        // No taxes - removed as per requirements
-        const taxes = 0;
+        // Calculate taxes based on shop settings
+        let taxes = 0;
+        if (shop.hasTax && shop.taxRate > 0) {
+            taxes = Math.round((subtotal * shop.taxRate) / 100);
+            console.log(`Tax applied: ${shop.taxRate}% on subtotal ${subtotal} = ${taxes}`);
+        } else {
+            console.log('No tax applied - shop hasTax:', shop.hasTax, 'taxRate:', shop.taxRate);
+        }
 
         // Service fee is removed as per new requirements
         const serviceFee = 0;
 
-        // Calculate total (only subtotal + delivery fee)
-        const total = subtotal + deliveryFee;
+        // Calculate total (subtotal + delivery fee + taxes)
+        const total = subtotal + deliveryFee + taxes;
 
         return {
             subtotal: Math.round(subtotal),
@@ -121,14 +127,17 @@ const recalculateRevisedPricing = (revisedItems, originalPricing, shop = null) =
         return sum;
     }, 0);
 
-    // No taxes - removed as per requirements
-    const taxes = 0;
+    // Calculate taxes based on shop settings
+    let taxes = 0;
+    if (shop && shop.hasTax && shop.taxRate > 0) {
+        taxes = Math.round((subtotal * shop.taxRate) / 100);
+    }
 
     // Always use shop's delivery fee (default to original if shop not provided)
     const deliveryFee = shop ? (shop.deliveryFee || 0) : originalPricing.deliveryFee;
 
-    // Calculate new total (only subtotal + delivery fee)
-    const total = subtotal + deliveryFee;
+    // Calculate new total (subtotal + delivery fee + taxes)
+    const total = subtotal + deliveryFee + taxes;
 
     return {
         subtotal: Math.round(subtotal),
