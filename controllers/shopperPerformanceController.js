@@ -1,8 +1,8 @@
-const PersonalShopper = require('../models/PersonalShopper');
-const Order = require('../models/Order');
+import PersonalShopper from '../models/PersonalShopper.js';
+import Order from '../models/Order.js';
 
 // Get comprehensive shopper performance analytics
-exports.getShopperPerformance = async (req, res) => {
+export const getShopperPerformance = async (req, res) => {
     try {
         const { days = 30, sortBy = 'rating', order = 'desc' } = req.query;
 
