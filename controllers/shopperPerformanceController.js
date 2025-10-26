@@ -93,65 +93,60 @@ exports.getShopperPerformance = async (req, res) => {
                         ? (satisfiedCustomers / ratedOrders.length) * 100
                         : 0;
 
-                    // Recent activity metrics (based on Indian Standard Time)
-                    const thisWeekStartIST = new Date(todayIST);
-                    thisWeekStartIST.setDate(thisWeekStartIST.getDate() - 7);
+                    // Recent activity metrics
+                    const thisWeekStart = new Date();
+                    thisWeekStart.setDate(thisWeekStart.getDate() - 7);
 
-                    const ordersThisWeek = ordersArray.filter(o => {
-                        const orderDateIST = new Date(o.createdAt).toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-                        const orderDate = new Date(orderDateIST);
-                        return orderDate >= thisWeekStartIST;
-                    }).length;
+                    const ordersThisWeek = ordersArray.filter(o =>
+                        new Date(o.createdAt) >= thisWeekStart
+                    ).length;
 
-                    // Calculate earnings this week (based on Indian Standard Time)
-                    const ordersThisWeekList = ordersArray.filter(o => {
-                        const orderDateIST = new Date(o.createdAt).toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-                        const orderDate = new Date(orderDateIST);
-                        return orderDate >= thisWeekStartIST && o.status === 'delivered';
-                    });
+                    // Calculate earnings this week
+                    const ordersThisWeekList = ordersArray.filter(o =>
+                        new Date(o.createdAt) >= thisWeekStart && o.status === 'delivered'
+                    );
                     const earningsThisWeek = ordersThisWeekList.reduce((sum, order) => {
                         return sum + (order.shopperCommission || 0);
                     }, 0);
 
-                    // Calculate today's earnings (based on Indian Standard Time)
-                    const nowIST = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-                    const todayIST = new Date(nowIST);
-                    todayIST.setHours(0, 0, 0, 0);
-                    const tomorrowIST = new Date(todayIST);
-                    tomorrowIST.setDate(tomorrowIST.getDate() + 1);
+                    // Calculate today's earnings
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
 
-                    const ordersTodayList = ordersArray.filter(o => {
-                        const orderDateIST = new Date(o.createdAt).toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-                        const orderDate = new Date(orderDateIST);
-                        return orderDate >= todayIST && orderDate < tomorrowIST && o.status === 'delivered';
-                    });
+                    const ordersTodayList = ordersArray.filter(o =>
+                        new Date(o.createdAt) >= today &&
+                        new Date(o.createdAt) < tomorrow &&
+                        o.status === 'delivered'
+                    );
                     const earningsToday = ordersTodayList.reduce((sum, order) => {
                         return sum + (order.shopperCommission || 0);
                     }, 0);
 
-                    // Calculate yesterday's earnings (based on Indian Standard Time)
-                    const yesterdayIST = new Date(todayIST);
-                    yesterdayIST.setDate(yesterdayIST.getDate() - 1);
-                    const yesterdayEndIST = new Date(todayIST);
+                    // Calculate yesterday's earnings
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yesterdayEnd = new Date(today);
 
-                    const ordersYesterdayList = ordersArray.filter(o => {
-                        const orderDateIST = new Date(o.createdAt).toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-                        const orderDate = new Date(orderDateIST);
-                        return orderDate >= yesterdayIST && orderDate < yesterdayEndIST && o.status === 'delivered';
-                    });
+                    const ordersYesterdayList = ordersArray.filter(o =>
+                        new Date(o.createdAt) >= yesterday &&
+                        new Date(o.createdAt) < yesterdayEnd &&
+                        o.status === 'delivered'
+                    );
                     const earningsYesterday = ordersYesterdayList.reduce((sum, order) => {
                         return sum + (order.shopperCommission || 0);
                     }, 0);
 
-                    // Calculate day before yesterday's earnings (based on Indian Standard Time)
-                    const dayBeforeYesterdayIST = new Date(yesterdayIST);
-                    dayBeforeYesterdayIST.setDate(dayBeforeYesterdayIST.getDate() - 1);
+                    // Calculate day before yesterday's earnings
+                    const dayBeforeYesterday = new Date(yesterday);
+                    dayBeforeYesterday.setDate(dayBeforeYesterday.getDate() - 1);
 
-                    const ordersDayBeforeList = ordersArray.filter(o => {
-                        const orderDateIST = new Date(o.createdAt).toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-                        const orderDate = new Date(orderDateIST);
-                        return orderDate >= dayBeforeYesterdayIST && orderDate < yesterdayIST && o.status === 'delivered';
-                    });
+                    const ordersDayBeforeList = ordersArray.filter(o =>
+                        new Date(o.createdAt) >= dayBeforeYesterday &&
+                        new Date(o.createdAt) < yesterday &&
+                        o.status === 'delivered'
+                    );
                     const earningsDayBefore = ordersDayBeforeList.reduce((sum, order) => {
                         return sum + (order.shopperCommission || 0);
                     }, 0);
