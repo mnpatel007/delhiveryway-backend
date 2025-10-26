@@ -74,6 +74,11 @@ router.get('/products', adminProtect, getAllProducts);
 router.post('/products', adminProtect, createProduct);
 router.get('/orders', adminProtect, getAllOrders);
 router.get('/shoppers', adminProtect, getAllShoppers);
+
+// Shopper performance analytics
+const { getShopperPerformance, getShopperDetailedPerformance } = require('../controllers/shopperPerformanceController');
+router.get('/shoppers/performance', adminProtect, getShopperPerformance);
+router.get('/shoppers/:shopperId/performance', adminProtect, getShopperDetailedPerformance);
 router.get('/analytics', adminProtect, getAnalytics);
 
 // Update operations
