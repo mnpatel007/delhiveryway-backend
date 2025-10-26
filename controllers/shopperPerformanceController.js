@@ -18,106 +18,136 @@ exports.getShopperPerformance = async (req, res) => {
         // Calculate performance metrics for each shopper
         const shopperPerformance = await Promise.all(
             shoppers.map(async (shopper) => {
-                // Get orders for this shopper in the time period
-                const orders = await Order.find({
-                    personalShopperId: shopper._id,
-                    createdAt: { $gte: startDate }
-                }).lean();
+                try {
+                    // Get orders for this shopper in the time period
+                    const orders = await Order.find({
+                        personalShopperId: shopper._id,
+                        createdAt: { $gte: startDate }
+                    }).lean();
 
-                // Get all-time orders for some metrics
-                const allTimeOrders = await Order.find({
-                    personalShopperId: shopper._id
-                }).lean();
+                    // Get all-time orders for some metrics
+                    const allTimeOrders = await Order.find({
+                        personalShopperId: shopper._id
+                    }).lean();
 
-                // Calculate metrics
-                const totalOrders = orders.length;
-                const allTimeTotalOrders = allTimeOrders.length;
-                const completedOrders = orders.filter(o => o.status === 'delivered').length;
-                const cancelledOrders = orders.filter(o => o.status === 'cancelled' && o.cancelledBy === 'shopper').length;
+                    // Ensure orders is an array
+                    const ordersArray = Array.isArray(orders) ? orders : [];
+                    const allTimeOrdersArray = Array.isArray(allTimeOrders) ? allTimeOrders : [];
 
-                // Completion rate
-                const completionRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
+                    // Calculate metrics
+                    const totalOrders = ordersArray.length;
+                    const allTimeTotalOrders = allTimeOrdersArray.length;
+                    const completedOrdersList = ordersArray.filter(o => o.status === 'delivered');
+                    const completedOrders = completedOrdersList.length;
+                    const cancelledOrders = ordersArray.filter(o => o.status === 'cancelled' && o.cancelledBy === 'shopper').length;
 
-                // Cancellation rate
-                const cancellationRate = totalOrders > 0 ? (cancelledOrders / totalOrders) * 100 : 0;
+                    // Completion rate
+                    const completionRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
 
-                // Calculate average rating from completed orders
-                const ratedOrders = orders.filter(o => o.rating && o.rating > 0);
-                const avgRating = ratedOrders.length > 0
-                    ? ratedOrders.reduce((sum, o) => sum + o.rating, 0) / ratedOrders.length
-                    : 0;
+                    // Cancellation rate
+                    const cancellationRate = totalOrders > 0 ? (cancelledOrders / totalOrders) * 100 : 0;
 
-                // Calculate on-time delivery rate
-                const deliveredOrders = orders.filter(o => o.status === 'delivered' && o.deliveredAt);
-                let onTimeDeliveryRate = 0;
+                    // Calculate average rating from completed orders
+                    const ratedOrders = ordersArray.filter(o => o.rating && o.rating > 0);
+                    const avgRating = ratedOrders.length > 0
+                        ? ratedOrders.reduce((sum, o) => sum + o.rating, 0) / ratedOrders.length
+                        : 0;
 
-                if (deliveredOrders.length > 0) {
-                    const onTimeDeliveries = deliveredOrders.filter(order => {
-                        if (!order.estimatedDeliveryTime || !order.deliveredAt) return false;
-                        return new Date(order.deliveredAt) <= new Date(order.estimatedDeliveryTime);
-                    }).length;
+                    // Calculate on-time delivery rate
+                    const deliveredOrders = ordersArray.filter(o => o.status === 'delivered' && o.deliveredAt);
+                    let onTimeDeliveryRate = 0;
 
-                    onTimeDeliveryRate = (onTimeDeliveries / deliveredOrders.length) * 100;
-                }
+                    if (deliveredOrders.length > 0) {
+                        const onTimeDeliveries = deliveredOrders.filter(order => {
+                            if (!order.estimatedDeliveryTime || !order.deliveredAt) return false;
+                            return new Date(order.deliveredAt) <= new Date(order.estimatedDeliveryTime);
+                        }).length;
 
-                // Calculate average delivery time
-                let avgDeliveryTime = 0;
-                if (deliveredOrders.length > 0) {
-                    const totalDeliveryTime = deliveredOrders.reduce((sum, order) => {
-                        if (order.createdAt && order.deliveredAt) {
-                            const deliveryTime = (new Date(order.deliveredAt) - new Date(order.createdAt)) / (1000 * 60); // minutes
-                            return sum + deliveryTime;
-                        }
-                        return sum;
+                        onTimeDeliveryRate = (onTimeDeliveries / deliveredOrders.length) * 100;
+                    }
+
+                    // Calculate average delivery time
+                    let avgDeliveryTime = 0;
+                    if (deliveredOrders.length > 0) {
+                        const totalDeliveryTime = deliveredOrders.reduce((sum, order) => {
+                            if (order.createdAt && order.deliveredAt) {
+                                const deliveryTime = (new Date(order.deliveredAt) - new Date(order.createdAt)) / (1000 * 60); // minutes
+                                return sum + deliveryTime;
+                            }
+                            return sum;
+                        }, 0);
+
+                        avgDeliveryTime = Math.round(totalDeliveryTime / deliveredOrders.length);
+                    }
+
+                    // Calculate earnings
+                    const totalEarnings = completedOrdersList.reduce((sum, order) => {
+                        return sum + (order.shopperCommission || 0);
                     }, 0);
 
-                    avgDeliveryTime = Math.round(totalDeliveryTime / deliveredOrders.length);
+                    const avgEarningsPerOrder = completedOrders > 0 ? totalEarnings / completedOrders : 0;
+
+                    // Customer satisfaction rate (based on ratings >= 4)
+                    const satisfiedCustomers = ratedOrders.filter(o => o.rating >= 4).length;
+                    const customerSatisfactionRate = ratedOrders.length > 0
+                        ? (satisfiedCustomers / ratedOrders.length) * 100
+                        : 0;
+
+                    // Recent activity metrics
+                    const thisWeekStart = new Date();
+                    thisWeekStart.setDate(thisWeekStart.getDate() - 7);
+
+                    const ordersThisWeek = ordersArray.filter(o =>
+                        new Date(o.createdAt) >= thisWeekStart
+                    ).length;
+
+                    // Count complaints (orders with rating <= 2)
+                    const complaints = ratedOrders.filter(o => o.rating <= 2).length;
+
+                    return {
+                        ...shopper,
+                        performance: {
+                            totalOrders,
+                            allTimeTotalOrders,
+                            completedOrders,
+                            cancelledOrders,
+                            completionRate: Math.round(completionRate * 10) / 10,
+                            cancellationRate: Math.round(cancellationRate * 10) / 10,
+                            avgRating: Math.round(avgRating * 10) / 10,
+                            totalRatings: ratedOrders.length,
+                            onTimeDeliveryRate: Math.round(onTimeDeliveryRate * 10) / 10,
+                            avgDeliveryTime,
+                            totalEarnings: Math.round(totalEarnings),
+                            avgEarningsPerOrder: Math.round(avgEarningsPerOrder),
+                            customerSatisfactionRate: Math.round(customerSatisfactionRate * 10) / 10,
+                            ordersThisWeek,
+                            complaints
+                        }
+                    };
+                } catch (shopperError) {
+                    console.error(`Error processing shopper ${shopper._id}:`, shopperError);
+                    // Return shopper with default performance metrics
+                    return {
+                        ...shopper,
+                        performance: {
+                            totalOrders: 0,
+                            allTimeTotalOrders: 0,
+                            completedOrders: 0,
+                            cancelledOrders: 0,
+                            completionRate: 0,
+                            cancellationRate: 0,
+                            avgRating: 0,
+                            totalRatings: 0,
+                            onTimeDeliveryRate: 0,
+                            avgDeliveryTime: 0,
+                            totalEarnings: 0,
+                            avgEarningsPerOrder: 0,
+                            customerSatisfactionRate: 0,
+                            ordersThisWeek: 0,
+                            complaints: 0
+                        }
+                    };
                 }
-
-                // Calculate earnings
-                const totalEarnings = completedOrders.reduce((sum, order) => {
-                    return sum + (order.shopperCommission || 0);
-                }, 0);
-
-                const avgEarningsPerOrder = completedOrders > 0 ? totalEarnings / completedOrders : 0;
-
-                // Customer satisfaction rate (based on ratings >= 4)
-                const satisfiedCustomers = ratedOrders.filter(o => o.rating >= 4).length;
-                const customerSatisfactionRate = ratedOrders.length > 0
-                    ? (satisfiedCustomers / ratedOrders.length) * 100
-                    : 0;
-
-                // Recent activity metrics
-                const thisWeekStart = new Date();
-                thisWeekStart.setDate(thisWeekStart.getDate() - 7);
-
-                const ordersThisWeek = orders.filter(o =>
-                    new Date(o.createdAt) >= thisWeekStart
-                ).length;
-
-                // Count complaints (orders with rating <= 2)
-                const complaints = ratedOrders.filter(o => o.rating <= 2).length;
-
-                return {
-                    ...shopper,
-                    performance: {
-                        totalOrders,
-                        allTimeTotalOrders,
-                        completedOrders,
-                        cancelledOrders,
-                        completionRate: Math.round(completionRate * 10) / 10,
-                        cancellationRate: Math.round(cancellationRate * 10) / 10,
-                        avgRating: Math.round(avgRating * 10) / 10,
-                        totalRatings: ratedOrders.length,
-                        onTimeDeliveryRate: Math.round(onTimeDeliveryRate * 10) / 10,
-                        avgDeliveryTime,
-                        totalEarnings: Math.round(totalEarnings),
-                        avgEarningsPerOrder: Math.round(avgEarningsPerOrder),
-                        customerSatisfactionRate: Math.round(customerSatisfactionRate * 10) / 10,
-                        ordersThisWeek,
-                        complaints
-                    }
-                };
             })
         );
 
