@@ -101,6 +101,20 @@ exports.getShopperPerformance = async (req, res) => {
                         new Date(o.createdAt) >= thisWeekStart
                     ).length;
 
+                    // Calculate earnings this week
+                    const ordersThisWeekList = ordersArray.filter(o =>
+                        new Date(o.createdAt) >= thisWeekStart && o.status === 'delivered'
+                    );
+                    const earningsThisWeek = ordersThisWeekList.reduce((sum, order) => {
+                        return sum + (order.shopperCommission || 0);
+                    }, 0);
+
+                    // Find last order date
+                    const lastOrder = allTimeOrdersArray.length > 0
+                        ? allTimeOrdersArray.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+                        : null;
+                    const lastOrderDate = lastOrder ? lastOrder.createdAt : null;
+
                     // Count complaints (orders with rating <= 2)
                     const complaints = ratedOrders.filter(o => o.rating <= 2).length;
 
@@ -121,6 +135,8 @@ exports.getShopperPerformance = async (req, res) => {
                             avgEarningsPerOrder: Math.round(avgEarningsPerOrder),
                             customerSatisfactionRate: Math.round(customerSatisfactionRate * 10) / 10,
                             ordersThisWeek,
+                            earningsThisWeek: Math.round(earningsThisWeek),
+                            lastOrderDate,
                             complaints
                         }
                     };
