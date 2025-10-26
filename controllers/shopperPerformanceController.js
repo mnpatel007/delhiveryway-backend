@@ -109,6 +109,21 @@ exports.getShopperPerformance = async (req, res) => {
                         return sum + (order.shopperCommission || 0);
                     }, 0);
 
+                    // Calculate today's earnings
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+
+                    const ordersTodayList = ordersArray.filter(o =>
+                        new Date(o.createdAt) >= today &&
+                        new Date(o.createdAt) < tomorrow &&
+                        o.status === 'delivered'
+                    );
+                    const earningsToday = ordersTodayList.reduce((sum, order) => {
+                        return sum + (order.shopperCommission || 0);
+                    }, 0);
+
                     // Find last order date
                     const lastOrder = allTimeOrdersArray.length > 0
                         ? allTimeOrdersArray.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
@@ -136,6 +151,7 @@ exports.getShopperPerformance = async (req, res) => {
                             customerSatisfactionRate: Math.round(customerSatisfactionRate * 10) / 10,
                             ordersThisWeek,
                             earningsThisWeek: Math.round(earningsThisWeek),
+                            earningsToday: Math.round(earningsToday),
                             lastOrderDate,
                             complaints
                         }
