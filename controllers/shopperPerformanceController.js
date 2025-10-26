@@ -124,6 +124,33 @@ export const getShopperPerformance = async (req, res) => {
                         return sum + (order.shopperCommission || 0);
                     }, 0);
 
+                    // Calculate yesterday's earnings
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yesterdayEnd = new Date(today);
+
+                    const ordersYesterdayList = ordersArray.filter(o =>
+                        new Date(o.createdAt) >= yesterday &&
+                        new Date(o.createdAt) < yesterdayEnd &&
+                        o.status === 'delivered'
+                    );
+                    const earningsYesterday = ordersYesterdayList.reduce((sum, order) => {
+                        return sum + (order.shopperCommission || 0);
+                    }, 0);
+
+                    // Calculate day before yesterday's earnings
+                    const dayBeforeYesterday = new Date(yesterday);
+                    dayBeforeYesterday.setDate(dayBeforeYesterday.getDate() - 1);
+
+                    const ordersDayBeforeList = ordersArray.filter(o =>
+                        new Date(o.createdAt) >= dayBeforeYesterday &&
+                        new Date(o.createdAt) < yesterday &&
+                        o.status === 'delivered'
+                    );
+                    const earningsDayBefore = ordersDayBeforeList.reduce((sum, order) => {
+                        return sum + (order.shopperCommission || 0);
+                    }, 0);
+
                     // Find last order date
                     const lastOrder = allTimeOrdersArray.length > 0
                         ? allTimeOrdersArray.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
@@ -152,6 +179,8 @@ export const getShopperPerformance = async (req, res) => {
                             ordersThisWeek,
                             earningsThisWeek: Math.round(earningsThisWeek),
                             earningsToday: Math.round(earningsToday),
+                            earningsYesterday: Math.round(earningsYesterday),
+                            earningsDayBefore: Math.round(earningsDayBefore),
                             lastOrderDate,
                             complaints
                         }
