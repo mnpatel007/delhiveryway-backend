@@ -139,6 +139,25 @@ io.on('connection', (socket) => {
         console.log(`🛒 Personal Shopper ${shopperId} joined shopper rooms`);
     });
 
+    // Test notification handler
+    socket.on('testNotification', (data) => {
+        console.log('🧪 Test notification received:', data);
+        socket.emit('testResponse', {
+            message: 'Test notification received successfully!',
+            timestamp: Date.now(),
+            originalData: data
+        });
+    });
+
+    // Heartbeat handler
+    socket.on('heartbeat', (data) => {
+        console.log('💓 Heartbeat received:', data);
+        socket.emit('heartbeatResponse', {
+            message: 'Heartbeat acknowledged',
+            timestamp: Date.now()
+        });
+    });
+
     socket.on('disconnect', () => {
         console.log('🔌 Socket disconnected:', socket.id);
     });
