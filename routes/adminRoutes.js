@@ -21,7 +21,9 @@ const {
     deleteUser,
     deleteShop,
     deletePersonalShopper,
-    getAnalytics
+    getAnalytics,
+    getSettings,
+    updateSettings
 } = require('../controllers/adminController');
 const { adminProtect } = require('../middleware/authMiddleware');
 
@@ -102,5 +104,9 @@ router.delete('/shoppers/:shopperId', adminProtect, deletePersonalShopper);
 
 // Bulk product operations
 router.use('/products', bulkProductRoutes);
+
+// Settings routes
+router.get('/settings', adminProtect, getSettings);
+router.put('/settings', adminProtect, updateSettings);
 
 module.exports = router;

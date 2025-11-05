@@ -41,7 +41,7 @@ const calculateDistance = (lat1, lng1, lat2, lng2) => {
 };
 
 /**
- * Calculate complete order pricing
+ * Calculate complete order pricing with flexible delivery fees
  * @param {Array} items - Array of order items with price and quantity
  * @param {string} shopId - Shop ID to get coordinates
  * @param {Object} deliveryAddress - Delivery address with coordinates
@@ -49,34 +49,35 @@ const calculateDistance = (lat1, lng1, lat2, lng2) => {
  */
 const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
     try {
+        const { calculateDeliveryFee: calculateLocationBasedFee } = require('./locationUtils');
+
         // Calculate subtotal from items
         const subtotal = items.reduce((sum, item) => {
             return sum + (item.price * item.quantity);
         }, 0);
 
-        // Get shop coordinates
+        // Get shop details with coordinates
         const shop = await Shop.findById(shopId);
         if (!shop || !shop.address.coordinates) {
             throw new Error('Shop not found or missing coordinates');
         }
 
-        // Calculate distance
-        const distance = calculateDistance(
+        // Calculate delivery fee based on shop's mode
+        const deliveryFeeCalculation = calculateLocationBasedFee(
             shop.address.coordinates.lat,
             shop.address.coordinates.lng,
             deliveryAddress.coordinates.lat,
-            deliveryAddress.coordinates.lng
+            deliveryAddress.coordinates.lng,
+            shop.deliveryFeeMode || 'fixed',
+            shop.deliveryFee || 30,
+            shop.feePerKm || 10
         );
 
-        // ONLY use shop's fixed delivery fee - no distance calculation
         console.log('Shop name:', shop.name);
-        console.log('Shop delivery fee from DB:', shop.deliveryFee);
-        console.log('Calculated distance:', distance);
+        console.log('Delivery mode:', shop.deliveryFeeMode);
+        console.log('Fee calculation:', deliveryFeeCalculation);
 
-        // Always use shop's delivery fee (default to 0 if not set)
-        const deliveryFee = shop.deliveryFee || 0;
-
-        console.log('Final delivery fee used:', deliveryFee);
+        const deliveryFee = deliveryFeeCalculation.totalFee;
 
         // Calculate taxes based on shop settings
         let taxes = 0;
@@ -100,8 +101,16 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
             serviceFee,
             discount: 0, // Can be added later if needed
             total: Math.round(total),
-            distance: Math.round(distance * 100) / 100, // Round to 2 decimal places
-            shopperEarning: deliveryFee // Shopper earns exactly the delivery fee
+            distance: deliveryFeeCalculation.distance, // Distance from shop in meters
+            distanceKm: deliveryFeeCalculation.distanceKm, // Distance in km for display
+            deliveryMode: deliveryFeeCalculation.mode,
+            locationMessage: deliveryFeeCalculation.message,
+            shopperEarning: deliveryFee, // Shopper earns exactly the delivery fee
+            deliveryFeeBreakdown: {
+                baseFee: deliveryFeeCalculation.baseFee,
+                distanceFee: deliveryFeeCalculation.distanceFee,
+                segments: deliveryFeeCalculation.segments
+            }
         };
     } catch (error) {
         console.error('Error calculating order pricing:', error);

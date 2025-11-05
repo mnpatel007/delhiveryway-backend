@@ -975,6 +975,8 @@ exports.updateShop = async (req, res) => {
         if (updateData.description !== undefined) shop.description = updateData.description?.trim();
         if (updateData.category) shop.category = updateData.category;
         if (updateData.deliveryFee !== undefined) shop.deliveryFee = parseFloat(updateData.deliveryFee) || 0;
+        if (updateData.deliveryFeeMode !== undefined) shop.deliveryFeeMode = updateData.deliveryFeeMode;
+        if (updateData.feePerKm !== undefined) shop.feePerKm = parseFloat(updateData.feePerKm) || 10;
         if (updateData.hasTax !== undefined) shop.hasTax = updateData.hasTax === true || updateData.hasTax === 'on' || updateData.hasTax === 'true';
         if (updateData.taxRate !== undefined) shop.taxRate = parseFloat(updateData.taxRate) || 5;
         if (updateData.inquiryAvailableTime !== undefined) {
@@ -1706,6 +1708,72 @@ exports.getAnalytics = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch analytics'
+        });
+    }
+};
+
+// Get platform settings
+exports.getSettings = async (req, res) => {
+    try {
+        const Settings = require('../models/Settings');
+        const settings = await Settings.getSettings();
+
+        res.json({
+            success: true,
+            data: settings
+        });
+
+    } catch (error) {
+        console.error('Get settings error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch settings'
+        });
+    }
+};
+
+// Update platform settings
+exports.updateSettings = async (req, res) => {
+    try {
+        const Settings = require('../models/Settings');
+        const updates = req.body;
+
+        // Validate delivery settings if provided
+        if (updates.deliverySettings) {
+            const { feePerKm, campusRadius } = updates.deliverySettings;
+
+            if (feePerKm !== undefined) {
+                if (feePerKm < 0 || feePerKm > 100) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Fee per 500m must be between ₹0 and ₹100'
+                    });
+                }
+            }
+
+            if (campusRadius !== undefined) {
+                if (campusRadius < 500 || campusRadius > 10000) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Campus radius must be between 500m and 10km'
+                    });
+                }
+            }
+        }
+
+        const settings = await Settings.updateSettings(updates);
+
+        res.json({
+            success: true,
+            message: 'Settings updated successfully',
+            data: settings
+        });
+
+    } catch (error) {
+        console.error('Update settings error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update settings'
         });
     }
 };

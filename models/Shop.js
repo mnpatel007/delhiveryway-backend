@@ -152,6 +152,17 @@ const shopSchema = new mongoose.Schema({
         default: 0,
         min: [0, 'Delivery fee cannot be negative']
     },
+    deliveryFeeMode: {
+        type: String,
+        enum: ['fixed', 'distance'],
+        default: 'fixed'
+    },
+    feePerKm: {
+        type: Number,
+        default: 10, // Fee per 500m when using distance mode
+        min: [0, 'Fee per 500m cannot be negative'],
+        max: [100, 'Fee per 500m cannot exceed ₹100']
+    },
     minOrderValue: {
         type: Number,
         default: 0,
