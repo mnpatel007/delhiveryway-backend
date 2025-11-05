@@ -24,6 +24,9 @@ const {
 } = require('../controllers/adminController');
 const { adminProtect } = require('../middleware/authMiddleware');
 
+// Import bulk product routes
+const bulkProductRoutes = require('./bulkProductRoutes');
+
 // Public admin routes
 router.post('/login', adminLogin);
 router.post('/logout', (req, res) => {
@@ -94,5 +97,8 @@ router.delete('/users/:userId', adminProtect, deleteUser);
 router.delete('/shops/:shopId', adminProtect, deleteShop);
 router.delete('/products/:productId', adminProtect, deleteProduct);
 router.delete('/shoppers/:shopperId', adminProtect, deletePersonalShopper);
+
+// Bulk product operations
+router.use('/products', bulkProductRoutes);
 
 module.exports = router;
