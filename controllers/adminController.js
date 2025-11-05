@@ -977,6 +977,12 @@ exports.updateShop = async (req, res) => {
         if (updateData.deliveryFee !== undefined) shop.deliveryFee = parseFloat(updateData.deliveryFee) || 0;
         if (updateData.hasTax !== undefined) shop.hasTax = updateData.hasTax === true || updateData.hasTax === 'on' || updateData.hasTax === 'true';
         if (updateData.taxRate !== undefined) shop.taxRate = parseFloat(updateData.taxRate) || 5;
+        if (updateData.inquiryAvailableTime !== undefined) {
+            const inquiryTime = parseInt(updateData.inquiryAvailableTime);
+            if (inquiryTime >= 5 && inquiryTime <= 120) {
+                shop.inquiryAvailableTime = inquiryTime;
+            }
+        }
 
         // Update address if provided
         if (updateData.address) {
