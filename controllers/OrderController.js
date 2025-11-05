@@ -1191,3 +1191,85 @@ exports.getOrderStats = async (req, res) => {
         });
     }
 };
+
+// Track customer inquiry
+exports.trackInquiry = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { method, timestamp } = req.body;
+        const customerId = req.user.id;
+
+        // Find the order
+        const order = await Order.findById(id)
+            .populate('personalShopperId', 'name phone');
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        // Verify the order belongs to the customer
+        if (order.customerId.toString() !== customerId) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied'
+            });
+        }
+
+        // Check if inquiry is available based on timing
+        const orderTime = new Date(order.createdAt);
+        const currentTime = new Date();
+        const timeDiff = (currentTime - orderTime) / (1000 * 60); // minutes
+        const inquiryTime = order.shopId?.inquiryAvailableTime || 15;
+
+        if (timeDiff < inquiryTime) {
+            return res.status(400).json({
+                success: false,
+                message: `Inquiry not available yet. Please wait ${Math.ceil(inquiryTime - timeDiff)} more minutes.`
+            });
+        }
+
+        // Add inquiry to timeline
+        order.timeline.push({
+            status: 'inquiry_made',
+            timestamp: timestamp || new Date(),
+            note: `Customer made inquiry via ${method}`,
+            updatedBy: 'customer'
+        });
+
+        await order.save();
+
+        // Notify shopper via socket if assigned
+        const io = req.app.get('io');
+        if (order.personalShopperId && io) {
+            io.to(`shopper_${order.personalShopperId._id}`).emit('customerInquiry', {
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                customerName: req.user.name,
+                method,
+                timestamp: timestamp || new Date(),
+                message: `Customer ${req.user.name} made an inquiry about order #${order.orderNumber} via ${method}`
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Inquiry tracked successfully',
+            data: {
+                orderId: order._id,
+                method,
+                timestamp: timestamp || new Date(),
+                shopper: order.personalShopperId
+            }
+        });
+
+    } catch (error) {
+        console.error('Track inquiry error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to track inquiry'
+        });
+    }
+};

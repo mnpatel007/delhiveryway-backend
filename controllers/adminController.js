@@ -116,6 +116,7 @@ exports.getDashboardStats = async (req, res) => {
             dailyOrders,
             deliveredOrders,
             cancelledOrders,
+            dailyInquiries,
             shopperStats
         ] = await Promise.all([
             User.countDocuments({ role: { $ne: 'admin' } }),
@@ -260,7 +261,41 @@ exports.getDashboardStats = async (req, res) => {
                 },
                 { $unwind: '$shopper' },
                 { $sort: { totalOrders: -1 } }
-            ])
+            ]),
+            // Daily inquiries count
+            Order.aggregate([
+                {
+                    $match: {
+                        createdAt: { $gte: today, $lt: tomorrow },
+                        'timeline.status': 'inquiry_made'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'customerId',
+                        foreignField: '_id',
+                        as: 'customer'
+                    }
+                },
+                {
+                    $match: {
+                        'customer.email': { $ne: 'meetnp007@gmail.com' }
+                    }
+                },
+                {
+                    $unwind: '$timeline'
+                },
+                {
+                    $match: {
+                        'timeline.status': 'inquiry_made',
+                        'timeline.timestamp': { $gte: today, $lt: tomorrow }
+                    }
+                },
+                {
+                    $count: 'total'
+                }
+            ]).then(result => result[0]?.total || 0)
         ]);
 
         // Calculate revenue stats
@@ -377,6 +412,7 @@ exports.getDashboardStats = async (req, res) => {
                     dailyOrders,
                     dailyDeliveredOrders: deliveredOrders,
                     dailyCancelledOrders: cancelledOrders,
+                    dailyInquiries,
                     totalRevenue: Math.round(revenue.totalRevenue),
                     deliveredRevenue: Math.round(revenue.deliveredRevenue),
                     averageOrderValue: Math.round(revenue.averageOrderValue)

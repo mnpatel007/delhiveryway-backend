@@ -136,6 +136,12 @@ const shopSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    inquiryAvailableTime: {
+        type: Number,
+        default: 15, // minutes after which customers can inquire
+        min: [5, 'Inquiry time must be at least 5 minutes'],
+        max: [120, 'Inquiry time cannot exceed 120 minutes']
+    },
     tags: [{
         type: String,
         trim: true,

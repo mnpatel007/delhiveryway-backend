@@ -41,6 +41,9 @@ router.post('/:id/approve-revision', authMiddleware.protect, authMiddleware.rest
 // Reject revised order (Customer only)
 router.post('/:id/reject-revision', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.rejectRevisedOrder);
 
+// Track customer inquiry (Customer only)
+router.post('/:id/inquiry', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.trackInquiry);
+
 // Get single order by ID
 router.get('/:orderId', authMiddleware.protect, orderController.getOrderById);
 
