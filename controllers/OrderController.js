@@ -256,7 +256,7 @@ exports.getCustomerOrders = async (req, res) => {
         console.log('Order filter:', filter);
 
         const orders = await Order.find(filter)
-            .populate('shopId', 'name address category images')
+            .populate('shopId', 'name address category images inquiryAvailableTime')
             .populate('personalShopperId', 'name phone rating')
             .sort({ createdAt: -1 })
             .skip(skip)
