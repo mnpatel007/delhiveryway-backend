@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const { detectUnit, detectUnitsForProducts, calculateConfidence } = require('../utils/unitDetection');
-const adminMiddleware = require('../middleware/adminMiddleware');
+const { adminProtect } = require('../middleware/authMiddleware');
 
 // Bulk upload products
-router.post('/bulk-upload', adminMiddleware, async (req, res) => {
+router.post('/bulk-upload', adminProtect, async (req, res) => {
     try {
         const { products } = req.body;
 
@@ -143,7 +143,7 @@ router.post('/bulk-upload', adminMiddleware, async (req, res) => {
 });
 
 // Test unit detection endpoint
-router.post('/test-unit-detection', adminMiddleware, async (req, res) => {
+router.post('/test-unit-detection', adminProtect, async (req, res) => {
     try {
         const { productNames } = req.body;
 
@@ -176,7 +176,7 @@ router.post('/test-unit-detection', adminMiddleware, async (req, res) => {
 });
 
 // Get unit detection statistics
-router.get('/unit-stats', adminMiddleware, async (req, res) => {
+router.get('/unit-stats', adminProtect, async (req, res) => {
     try {
         const products = await Product.find({}, 'name unit').lean();
 
