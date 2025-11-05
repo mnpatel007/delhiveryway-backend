@@ -73,9 +73,14 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
             shop.feePerKm || 10
         );
 
-        console.log('Shop name:', shop.name);
-        console.log('Delivery mode:', shop.deliveryFeeMode);
-        console.log('Fee calculation:', deliveryFeeCalculation);
+        console.log('🏪 SHOP DEBUG:');
+        console.log('  Shop name:', shop.name);
+        console.log('  Delivery mode:', shop.deliveryFeeMode);
+        console.log('  Fixed delivery fee:', shop.deliveryFee);
+        console.log('  Fee per 500m:', shop.feePerKm);
+        console.log('  Shop coordinates:', shop.address.coordinates);
+        console.log('  Customer coordinates:', deliveryAddress.coordinates);
+        console.log('💰 FEE CALCULATION RESULT:', deliveryFeeCalculation);
 
         const deliveryFee = deliveryFeeCalculation.totalFee;
 

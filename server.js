@@ -164,6 +164,7 @@ mongoose
         app.use('/api/contact', require('./routes/contactRoutes'));
         app.use('/api/notices', require('./routes/noticeRoutes'));
         app.use('/api/delivery', require('./routes/deliveryRoutes'));
+        app.use('/api/debug', require('./routes/debugRoutes'));
 
         // Notice refresh job removed - using real-time notices instead
 

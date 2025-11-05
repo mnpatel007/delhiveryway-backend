@@ -57,6 +57,13 @@ function calculateDeliveryFee(shopLat, shopLng, deliveryLat, deliveryLng, mode =
     const segments = Math.ceil(distance / 500); // Every 500m segment
     const totalFee = segments * feePerKm;
 
+    console.log('🚚 DELIVERY FEE DEBUG:');
+    console.log('  Distance (meters):', distance);
+    console.log('  Distance (km):', distanceInKm);
+    console.log('  Segments (500m each):', segments);
+    console.log('  Fee per 500m:', feePerKm);
+    console.log('  Total fee:', totalFee);
+
     return {
         totalFee: Math.round(totalFee),
         baseFee: 0,
