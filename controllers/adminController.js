@@ -840,6 +840,66 @@ exports.updateShopStatus = async (req, res) => {
     }
 };
 
+// Update shop visibility (Admin only)
+exports.updateShopVisibility = async (req, res) => {
+    try {
+        const { shopId } = req.params;
+        const { isVisible } = req.body;
+
+        // Validate shop ID
+        if (!mongoose.Types.ObjectId.isValid(shopId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid shop ID'
+            });
+        }
+
+        // Validate isVisible parameter
+        if (typeof isVisible !== 'boolean') {
+            return res.status(400).json({
+                success: false,
+                message: 'isVisible must be a boolean value'
+            });
+        }
+
+        // Find and update the shop
+        const shop = await Shop.findByIdAndUpdate(
+            shopId,
+            { isVisible },
+            { new: true, runValidators: true }
+        );
+
+        if (!shop) {
+            return res.status(404).json({
+                success: false,
+                message: 'Shop not found'
+            });
+        }
+
+        console.log(`✅ Shop visibility updated: ${shop.name} - ${isVisible ? 'Visible' : 'Hidden'}`);
+
+        res.json({
+            success: true,
+            message: `Shop ${isVisible ? 'shown to' : 'hidden from'} customers successfully`,
+            data: {
+                shop: {
+                    _id: shop._id,
+                    name: shop.name,
+                    isVisible: shop.isVisible
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error updating shop visibility:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+};
+
 // Update shop (Admin only)
 exports.updateShop = async (req, res) => {
     try {

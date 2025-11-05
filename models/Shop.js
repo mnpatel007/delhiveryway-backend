@@ -132,6 +132,10 @@ const shopSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    isVisible: {
+        type: Boolean,
+        default: true
+    },
     tags: [{
         type: String,
         trim: true,

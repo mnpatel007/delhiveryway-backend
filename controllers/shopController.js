@@ -311,7 +311,10 @@ exports.getAllShops = async (req, res) => {
         } = req.query;
 
         const skip = (page - 1) * limit;
-        const filter = { isActive: true };
+        const filter = {
+            isActive: true,
+            isVisible: { $ne: false } // Only show visible shops (handles both true and undefined)
+        };
 
         // Category filter
         if (category && category !== 'all') {
