@@ -802,10 +802,11 @@ exports.confirmUPIPayment = async (req, res) => {
             });
         }
 
-        // Update payment status
+        // Update payment status and order status
         order.payment.status = 'paid';
         order.payment.upiTransactionId = upiTransactionId;
         order.payment.paidAt = new Date();
+        order.status = 'payment_completed'; // Update main order status
 
         order.timeline.push({
             status: 'payment_completed',

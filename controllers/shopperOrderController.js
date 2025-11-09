@@ -78,13 +78,10 @@ const acceptOrder = async (req, res) => {
             });
         }
 
-        // Check if shopper has UPI payment setup
-        if (!shopper.upiPayment?.isSetup) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please setup your UPI payment method before accepting orders. Go to Settings > UPI Payment Setup.',
-                requiresUPISetup: true
-            });
+        // Check if shopper has UPI payment setup (allow without UPI for now)
+        const hasUPISetup = shopper.upiPayment?.isSetup;
+        if (!hasUPISetup) {
+            console.log('⚠️ Shopper accepting order without UPI setup - using default UPI');
         }
 
         // Check if order exists and is available
@@ -101,7 +98,7 @@ const acceptOrder = async (req, res) => {
         order.personalShopperId = shopperId;
         order.status = 'accepted_by_shopper';
         order.payment.status = 'awaiting_upi_payment';
-        order.payment.shopperUpiId = shopper.upiPayment.upiId;
+        order.payment.shopperUpiId = shopper.upiPayment?.upiId || 'shopper@upi';
         order.payment.paymentAmount = order.orderValue.total;
         order.payment.upiPaymentRequired = true;
         await order.save();
@@ -128,8 +125,8 @@ const acceptOrder = async (req, res) => {
         io.to(`customer_${order.customerId}`).emit('upiPaymentRequired', {
             orderId: order._id,
             orderNumber: order.orderNumber,
-            paymentAmount: order.payment.paymentAmount,
-            shopperUpiId: order.payment.shopperUpiId,
+            paymentAmount: order.payment.paymentAmount || order.orderValue.total,
+            shopperUpiId: order.payment.shopperUpiId || 'shopper@upi',
             shopperName: req.shopper?.name || 'Personal Shopper',
             message: 'Please scan the UPI QR code and complete payment to proceed with your order.',
             timestamp: new Date().toISOString()
