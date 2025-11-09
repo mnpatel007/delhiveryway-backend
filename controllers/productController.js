@@ -152,6 +152,9 @@ exports.getShopProducts = async (req, res) => {
         const skip = (page - 1) * limit;
         const filter = { shopId, isActive: true };
 
+        console.log(`📦 Shop ID being queried: ${shopId}`);
+        console.log(`📦 Checking if shopId is valid ObjectId:`, mongoose.Types.ObjectId.isValid(shopId));
+
         // Category filter
         if (category) {
             filter.category = category;
@@ -190,6 +193,8 @@ exports.getShopProducts = async (req, res) => {
         const total = await Product.countDocuments(filter);
 
         console.log(`📦 Found ${products.length} products for shop ${shopId}`);
+        console.log(`📦 Filter used:`, JSON.stringify(filter, null, 2));
+        console.log(`📦 Total products in DB for this shop:`, total);
 
         res.json({
             success: true,
