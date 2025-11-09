@@ -97,6 +97,12 @@ const acceptOrder = async (req, res) => {
         // Update order with shopper and set up UPI payment
         order.personalShopperId = shopperId;
         order.status = 'accepted_by_shopper';
+
+        // Initialize payment object if it doesn't exist
+        if (!order.payment) {
+            order.payment = {};
+        }
+
         order.payment.status = 'awaiting_upi_payment';
         order.payment.shopperUpiId = shopper.upiPayment?.upiId || 'shopper@upi';
         order.payment.paymentAmount = order.orderValue.total;

@@ -803,12 +803,20 @@ exports.confirmUPIPayment = async (req, res) => {
             });
         }
 
-        // Check if payment is pending
-        if (order.payment.status !== 'awaiting_upi_payment') {
+        // Check if payment is pending (allow multiple payment statuses)
+        const validPaymentStatuses = ['awaiting_upi_payment', 'pending'];
+        if (!validPaymentStatuses.includes(order.payment?.status)) {
+            console.log('❌ Invalid payment status:', order.payment?.status);
+            console.log('❌ Order payment object:', order.payment);
             return res.status(400).json({
                 success: false,
-                message: 'Payment is not pending for this order'
+                message: `Payment is not pending for this order. Current status: ${order.payment?.status || 'undefined'}`
             });
+        }
+
+        // Initialize payment object if it doesn't exist
+        if (!order.payment) {
+            order.payment = {};
         }
 
         // Update payment status and order status
@@ -858,10 +866,16 @@ exports.confirmUPIPayment = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Confirm UPI payment error:', error);
+        console.error('❌ Confirm UPI payment error:', error);
+        console.error('❌ Error details:', {
+            message: error.message,
+            stack: error.stack,
+            orderId,
+            upiTransactionId
+        });
         res.status(500).json({
             success: false,
-            message: 'Failed to confirm payment'
+            message: 'Failed to confirm payment: ' + error.message
         });
     }
 };
