@@ -140,6 +140,7 @@ const orderSchema = new mongoose.Schema({
         enum: [
             'pending_shopper',
             'accepted_by_shopper',
+            'payment_completed',
             'shopper_at_shop',
             'shopping_in_progress',
             'shopper_revised_order',
