@@ -32,6 +32,9 @@ router.put('/:id/reject-bill', authMiddleware.protect, authMiddleware.restrictTo
 // Rate order (Customer only)
 router.put('/:id/rate', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.rateOrder);
 
+// Confirm UPI payment (Customer only)
+router.post('/confirm-payment', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.confirmUPIPayment);
+
 // Revise order items (Shopper only)
 router.put('/:id/revise', shopperAuthMiddleware.authenticateShopper, orderController.reviseOrderItems);
 
