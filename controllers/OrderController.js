@@ -778,6 +778,15 @@ exports.confirmUPIPayment = async (req, res) => {
             });
         }
 
+        // Allow "0000" as test transaction ID for testing purposes
+        const isTestTransaction = upiTransactionId === '0000';
+        if (!isTestTransaction && upiTransactionId.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid transaction ID format'
+            });
+        }
+
         const order = await Order.findById(orderId);
         if (!order) {
             return res.status(404).json({
