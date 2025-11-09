@@ -12,8 +12,12 @@ const {
 } = require('../controllers/productController');
 const { protect, restrictTo, optionalAuth } = require('../middleware/authMiddleware');
 
-// Public routes
-router.get('/shop/:shopId', getShopProducts);
+// Public routes - no auth required
+router.get('/shop/:shopId', (req, res, next) => {
+    console.log('🌐 Public route /shop/:shopId accessed');
+    console.log('🌐 Headers:', req.headers.authorization ? 'Has auth' : 'No auth');
+    next();
+}, getShopProducts);
 router.get('/test/:shopId', async (req, res) => {
     const Product = require('../models/Product');
     const { shopId } = req.params;
