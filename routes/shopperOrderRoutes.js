@@ -1,5 +1,5 @@
 const express = require('express');
-const { acceptOrder, updateOrderStatus, getActiveOrders, getAvailableOrders, getShopperEarnings, getCompletedOrders, updateLocation, setupUPIPayment, getUPIPaymentStatus } = require('../controllers/shopperOrderController');
+const { acceptOrder, updateOrderStatus, getActiveOrders, getAvailableOrders, getShopperEarnings, getCompletedOrders, updateLocation } = require('../controllers/shopperOrderController');
 const { authenticateShopper } = require('../middleware/shopperAuthMiddleware');
 
 const router = express.Router();
@@ -17,9 +17,5 @@ router.get('/orders/completed', getCompletedOrders);
 
 // Earnings routes
 router.get('/earnings', getShopperEarnings);
-
-// UPI Payment routes
-router.post('/upi/setup', setupUPIPayment);
-router.get('/upi/status', getUPIPaymentStatus);
 
 module.exports = router;

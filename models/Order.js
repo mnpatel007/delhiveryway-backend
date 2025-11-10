@@ -140,7 +140,6 @@ const orderSchema = new mongoose.Schema({
         enum: [
             'pending_shopper',
             'accepted_by_shopper',
-            'payment_completed',
             'shopper_at_shop',
             'shopping_in_progress',
             'shopper_revised_order',
@@ -172,26 +171,19 @@ const orderSchema = new mongoose.Schema({
     payment: {
         method: {
             type: String,
-            enum: ['cash', 'upi', 'card'],
-            default: 'upi'
+            enum: ['cash', 'online', 'card', 'upi'],
+            default: 'cash'
         },
         status: {
             type: String,
-            enum: ['pending', 'awaiting_upi_payment', 'paid', 'failed', 'refunded', 'partial_refund'],
+            enum: ['pending', 'paid', 'failed', 'refunded', 'partial_refund'],
             default: 'pending'
         },
         transactionId: String,
-        upiTransactionId: String, // UPI transaction reference
+        paymentIntentId: String, // For Stripe
         refundId: String,
         paidAt: Date,
-        refundedAt: Date,
-        upiPaymentRequired: {
-            type: Boolean,
-            default: true
-        },
-        shopperUpiId: String, // UPI ID of the shopper for this order
-        paymentAmount: Number, // Amount to be paid via UPI
-        upiQRCode: String // UPI QR code for payment
+        refundedAt: Date
     },
     ratings: {
         customerRating: {
@@ -250,12 +242,12 @@ orderSchema.pre('save', async function (next) {
         const now = new Date();
         const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
         const istDate = new Date(now.getTime() + istOffset);
-
+        
         const day = String(istDate.getUTCDate()).padStart(2, '0');
         const month = String(istDate.getUTCMonth() + 1).padStart(2, '0');
         const year = String(istDate.getUTCFullYear()).slice(-2);
         const dateStr = `${day}${month}${year}`;
-
+        
         const sequence = await Counter.getNextSequence(dateStr);
         this.orderNumber = `${dateStr}${sequence}`;
     }

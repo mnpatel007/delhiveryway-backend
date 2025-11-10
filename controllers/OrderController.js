@@ -225,8 +225,7 @@ exports.placeOrder = async (req, res) => {
                     total: order.orderValue.total,
                     estimatedDeliveryTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
                     shop: order.shopId
-                },
-                paymentNotice: 'Once a shopper accepts your order, you will receive a QR code for payment. The shopper can only proceed after you complete the payment.'
+                }
             }
         });
 
@@ -762,120 +761,6 @@ exports.rejectBill = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to reject bill'
-        });
-    }
-};
-
-// Confirm UPI payment
-exports.confirmUPIPayment = async (req, res) => {
-    try {
-        const { orderId, upiTransactionId } = req.body;
-
-        if (!orderId || !upiTransactionId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Order ID and UPI transaction ID are required'
-            });
-        }
-
-        // Allow "0000" as test transaction ID for testing purposes
-        const isTestTransaction = upiTransactionId === '0000';
-        if (!isTestTransaction && upiTransactionId.length < 8) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid transaction ID format'
-            });
-        }
-
-        const order = await Order.findById(orderId);
-        if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found'
-            });
-        }
-
-        // Check if customer owns this order
-        if (order.customerId.toString() !== req.user._id.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied'
-            });
-        }
-
-        // Check if payment is pending (allow multiple payment statuses)
-        const validPaymentStatuses = ['awaiting_upi_payment', 'pending'];
-        if (!validPaymentStatuses.includes(order.payment?.status)) {
-            console.log('❌ Invalid payment status:', order.payment?.status);
-            console.log('❌ Order payment object:', order.payment);
-            return res.status(400).json({
-                success: false,
-                message: `Payment is not pending for this order. Current status: ${order.payment?.status || 'undefined'}`
-            });
-        }
-
-        // Initialize payment object if it doesn't exist
-        if (!order.payment) {
-            order.payment = {};
-        }
-
-        // Update payment status and order status
-        order.payment.status = 'paid';
-        order.payment.upiTransactionId = upiTransactionId;
-        order.payment.paidAt = new Date();
-        order.status = 'payment_completed'; // Update main order status
-
-        order.timeline.push({
-            status: 'payment_completed',
-            timestamp: new Date(),
-            note: `UPI payment completed. Transaction ID: ${upiTransactionId}`,
-            updatedBy: 'customer'
-        });
-
-        await order.save();
-
-        // Notify shopper that payment is complete
-        const io = req.app.get('io');
-        if (order.personalShopperId) {
-            io.to(`shopper_${order.personalShopperId}`).emit('paymentCompleted', {
-                orderId: order._id,
-                orderNumber: order.orderNumber,
-                message: '💰 Payment received! You can now proceed with shopping.',
-                transactionId: upiTransactionId,
-                timestamp: new Date().toISOString()
-            });
-        }
-
-        // Notify customer
-        io.to(`customer_${order.customerId}`).emit('paymentConfirmed', {
-            orderId: order._id,
-            orderNumber: order.orderNumber,
-            message: '✅ Payment confirmed! Your shopper will now proceed with your order.',
-            transactionId: upiTransactionId,
-            timestamp: new Date().toISOString()
-        });
-
-        res.json({
-            success: true,
-            message: 'Payment confirmed successfully',
-            data: {
-                orderId: order._id,
-                transactionId: upiTransactionId,
-                status: order.payment.status
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Confirm UPI payment error:', error);
-        console.error('❌ Error details:', {
-            message: error.message,
-            stack: error.stack,
-            orderId: req.body.orderId,
-            upiTransactionId: req.body.upiTransactionId
-        });
-        res.status(500).json({
-            success: false,
-            message: 'Failed to confirm payment: ' + error.message
         });
     }
 };

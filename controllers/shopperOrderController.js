@@ -72,16 +72,10 @@ const acceptOrder = async (req, res) => {
         // Check if shopper is online
         const shopper = await PersonalShopper.findById(shopperId);
         if (!shopper || !shopper.isOnline) {
-            return res.status(403).json({
-                success: false,
-                message: 'You are currently offline. Please contact admin to go online.'
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You are currently offline. Please contact admin to go online.' 
             });
-        }
-
-        // Check if shopper has UPI payment setup (allow without UPI for now)
-        const hasUPISetup = shopper.upiPayment?.isSetup;
-        if (!hasUPISetup) {
-            console.log('⚠️ Shopper accepting order without UPI setup - using default UPI');
         }
 
         // Check if order exists and is available
@@ -94,19 +88,9 @@ const acceptOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Order is no longer available' });
         }
 
-        // Update order with shopper and set up UPI payment
+        // Update order with shopper
         order.personalShopperId = shopperId;
         order.status = 'accepted_by_shopper';
-
-        // Initialize payment object if it doesn't exist
-        if (!order.payment) {
-            order.payment = {};
-        }
-
-        order.payment.status = 'awaiting_upi_payment';
-        order.payment.shopperUpiId = shopper.upiPayment?.upiId || 'shopper@upi';
-        order.payment.paymentAmount = order.orderValue.total;
-        order.payment.upiPaymentRequired = true;
         await order.save();
 
         // Update shopper status
@@ -117,24 +101,27 @@ const acceptOrder = async (req, res) => {
         // Emit comprehensive socket notifications
         const io = req.app.get('io');
 
-        // Notify customer with UPI payment requirement
-        io.to(`customer_${order.customerId}`).emit('orderAccepted', {
+        // Notify customer with detailed information
+        io.to(`customer_${order.customerId}`).emit('orderUpdate', {
             orderId: order._id,
             orderNumber: order.orderNumber,
-            message: '🎉 Great news! Your personal shopper has accepted your order.',
-            shopperName: req.shopper?.name || 'Personal Shopper',
-            nextStep: 'Please complete the UPI payment to allow your shopper to proceed.',
+            status: 'accepted_by_shopper',
+            message: 'Your order has been accepted by a personal shopper!',
+            shopperInfo: {
+                name: req.shopper?.name || 'Personal Shopper',
+                phone: req.shopper?.phone
+            },
+            estimatedTime: '30-45 minutes',
             timestamp: new Date().toISOString()
         });
 
-        // Send UPI payment request to customer
-        io.to(`customer_${order.customerId}`).emit('upiPaymentRequired', {
+        // Also send a specific notification for order acceptance
+        io.to(`customer_${order.customerId}`).emit('orderAccepted', {
             orderId: order._id,
             orderNumber: order.orderNumber,
-            paymentAmount: order.payment.paymentAmount || order.orderValue.total,
-            shopperUpiId: order.payment.shopperUpiId || 'shopper@upi',
+            message: '🎉 Great news! Your personal shopper is on their way to the store.',
             shopperName: req.shopper?.name || 'Personal Shopper',
-            message: 'Please scan the UPI QR code and complete payment to proceed with your order.',
+            nextStep: 'Your shopper will start shopping soon and keep you updated on progress.',
             timestamp: new Date().toISOString()
         });
 
@@ -163,9 +150,9 @@ const updateOrderStatus = async (req, res) => {
         // Check if shopper is online
         const shopper = await PersonalShopper.findById(shopperId);
         if (!shopper || !shopper.isOnline) {
-            return res.status(403).json({
-                success: false,
-                message: 'You are currently offline. Please contact admin to go online.'
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You are currently offline. Please contact admin to go online.' 
             });
         }
 
@@ -305,7 +292,6 @@ const getActiveOrders = async (req, res) => {
             status: {
                 $in: [
                     'accepted_by_shopper',
-                    'payment_completed',
                     'shopper_at_shop',
                     'shopping_in_progress',
                     'shopping',
@@ -518,96 +504,6 @@ const getLocationMessage = (status, order) => {
     return messages[status] || '📍 Your shopper location has been updated';
 };
 
-// Setup UPI payment for shopper
-const setupUPIPayment = async (req, res) => {
-    try {
-        const { upiId, qrCodeUrl } = req.body;
-        const shopperId = req.shopperId;
-
-        if (!upiId) {
-            return res.status(400).json({
-                success: false,
-                message: 'UPI ID is required (e.g., yourname@paytm, yourname@phonepe)'
-            });
-        }
-
-        // Basic UPI ID validation
-        const upiRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$/;
-        if (!upiRegex.test(upiId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid UPI ID format. Please enter a valid UPI ID like yourname@paytm'
-            });
-        }
-
-        const shopper = await PersonalShopper.findById(shopperId);
-        if (!shopper) {
-            return res.status(404).json({
-                success: false,
-                message: 'Shopper not found'
-            });
-        }
-
-        // Update shopper's UPI payment info
-        shopper.upiPayment = {
-            upiId: upiId.trim().toLowerCase(),
-            qrCodeUrl: qrCodeUrl || '',
-            isSetup: true,
-            setupAt: new Date(),
-            lastUpdated: new Date(),
-            verifiedUPI: false // Can be verified later by admin
-        };
-
-        await shopper.save();
-
-        res.json({
-            success: true,
-            message: 'UPI payment setup completed successfully! You can now accept orders.',
-            data: {
-                upiId: shopper.upiPayment.upiId,
-                isSetup: shopper.upiPayment.isSetup
-            }
-        });
-    } catch (error) {
-        console.error('Setup UPI payment error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to setup UPI payment'
-        });
-    }
-};
-
-// Get UPI payment status
-const getUPIPaymentStatus = async (req, res) => {
-    try {
-        const shopperId = req.shopperId;
-
-        const shopper = await PersonalShopper.findById(shopperId).select('upiPayment');
-        if (!shopper) {
-            return res.status(404).json({
-                success: false,
-                message: 'Shopper not found'
-            });
-        }
-
-        res.json({
-            success: true,
-            data: {
-                isSetup: shopper.upiPayment?.isSetup || false,
-                upiId: shopper.upiPayment?.upiId || '',
-                setupAt: shopper.upiPayment?.setupAt || null,
-                verifiedUPI: shopper.upiPayment?.verifiedUPI || false
-            }
-        });
-    } catch (error) {
-        console.error('Get UPI payment status error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to get UPI payment status'
-        });
-    }
-};
-
 module.exports = {
     acceptOrder,
     updateOrderStatus,
@@ -615,7 +511,5 @@ module.exports = {
     getActiveOrders,
     getShopperEarnings,
     getCompletedOrders,
-    updateLocation,
-    setupUPIPayment,
-    getUPIPaymentStatus
+    updateLocation
 };

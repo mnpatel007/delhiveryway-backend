@@ -111,20 +111,6 @@ const personalShopperSchema = new mongoose.Schema({
         accountHolderName: String,
         upiId: String
     },
-    upiPayment: {
-        upiId: String, // UPI ID like user@paytm, user@phonepe
-        qrCodeUrl: String, // URL to uploaded UPI QR code image
-        isSetup: {
-            type: Boolean,
-            default: false
-        },
-        setupAt: Date,
-        lastUpdated: Date,
-        verifiedUPI: {
-            type: Boolean,
-            default: false
-        }
-    },
     preferences: {
         maxOrderValue: {
             type: Number,
