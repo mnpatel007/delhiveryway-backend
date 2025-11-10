@@ -305,6 +305,7 @@ const getActiveOrders = async (req, res) => {
             status: {
                 $in: [
                     'accepted_by_shopper',
+                    'payment_completed',
                     'shopper_at_shop',
                     'shopping_in_progress',
                     'shopping',
