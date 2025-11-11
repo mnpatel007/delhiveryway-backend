@@ -109,6 +109,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Middleware to pass io instance to routes
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
+
 /* ------------------------------------------------------------------ */
 /*  Socket.IO logic                                                   */
 /* ------------------------------------------------------------------ */
@@ -163,6 +169,7 @@ mongoose
         app.use('/api/admin', require('./routes/adminRoutes'));
         app.use('/api/contact', require('./routes/contactRoutes'));
         app.use('/api/notices', require('./routes/noticeRoutes'));
+        app.use('/api/terms', require('./routes/termsRoutes'));
         app.use('/api/delivery', require('./routes/deliveryRoutes'));
         app.use('/api/debug', require('./routes/debugRoutes'));
 
