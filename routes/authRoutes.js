@@ -9,7 +9,9 @@ const {
     resetPassword,
     getProfile,
     updateProfile,
-    changePassword
+    changePassword,
+    getCurrentTermsForCustomer,
+    acceptTermsForCustomer
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -25,5 +27,9 @@ router.post('/reset-password', resetPassword);
 router.get('/profile', protect, getProfile);
 router.put('/profile', protect, updateProfile);
 router.put('/change-password', protect, changePassword);
+
+// Customer Terms routes
+router.get('/terms/current', protect, getCurrentTermsForCustomer);
+router.post('/terms/accept', protect, acceptTermsForCustomer);
 
 module.exports = router;
