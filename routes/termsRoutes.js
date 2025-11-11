@@ -8,6 +8,15 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 router.get('/current', protect, termsController.getCurrentTerms);
 router.post('/accept', protect, termsController.acceptTerms);
 
+// Debug route to test if terms routes are working
+router.get('/test', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Terms routes are working!',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Admin routes
 router.post('/create', adminProtect, termsController.createTerms);
 router.get('/all', adminProtect, termsController.getAllTerms);
