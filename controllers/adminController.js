@@ -566,7 +566,9 @@ exports.createShop = async (req, res) => {
             maxOrderValue,
             vendorId,
             hasTax,
-            taxRate
+            taxRate,
+            hasPackaging,
+            packagingCharges
         } = req.body;
 
         // Validate required fields
@@ -615,6 +617,8 @@ exports.createShop = async (req, res) => {
             maxOrderValue: maxOrderValue || 10000,
             hasTax: hasTax === true || hasTax === 'on' || hasTax === 'true',
             taxRate: (hasTax === true || hasTax === 'on' || hasTax === 'true') ? (taxRate || 5) : 5,
+            hasPackaging: hasPackaging === true || hasPackaging === 'on' || hasPackaging === 'true',
+            packagingCharges: (hasPackaging === true || hasPackaging === 'on' || hasPackaging === 'true') ? (packagingCharges || 10) : 10,
             isActive: true,
             createdBy: 'admin'
         };
@@ -980,6 +984,18 @@ exports.updateShop = async (req, res) => {
         if (updateData.feePerKm !== undefined) shop.feePerKm = parseFloat(updateData.feePerKm) || 10;
         if (updateData.hasTax !== undefined) shop.hasTax = updateData.hasTax === true || updateData.hasTax === 'on' || updateData.hasTax === 'true';
         if (updateData.taxRate !== undefined) shop.taxRate = parseFloat(updateData.taxRate) || 5;
+        if (updateData.hasPackaging !== undefined) {
+            console.log('Updating hasPackaging:', updateData.hasPackaging);
+            shop.hasPackaging = updateData.hasPackaging === true || updateData.hasPackaging === 'on' || updateData.hasPackaging === 'true';
+        }
+        if (updateData.packagingCharges !== undefined) {
+            console.log('Updating packagingCharges:', updateData.packagingCharges);
+            shop.packagingCharges = parseFloat(updateData.packagingCharges) || 10;
+            // Remove old field if it exists
+            if (shop.packagingRate !== undefined) {
+                shop.packagingRate = undefined;
+            }
+        }
         if (updateData.inquiryAvailableTime !== undefined) {
             const inquiryTime = parseInt(updateData.inquiryAvailableTime);
             if (inquiryTime >= 5 && inquiryTime <= 120) {
@@ -1712,7 +1728,6 @@ exports.getAnalytics = async (req, res) => {
         });
     }
 };
-// T
 // Terms and Conditions Management
 
 // Get current active terms

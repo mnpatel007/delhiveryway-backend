@@ -95,11 +95,11 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
 
         // Calculate packaging charges based on shop settings
         let packagingCharges = 0;
-        if (shop.hasPackaging && shop.packagingRate > 0) {
-            packagingCharges = Math.round((subtotal * shop.packagingRate) / 100);
-            console.log(`Packaging charges applied: ${shop.packagingRate}% on subtotal ${subtotal} = ${packagingCharges}`);
+        if (shop.hasPackaging && shop.packagingCharges > 0) {
+            packagingCharges = shop.packagingCharges;
+            console.log(`Packaging charges applied: ₹${shop.packagingCharges}`);
         } else {
-            console.log('No packaging charges applied - shop hasPackaging:', shop.hasPackaging, 'packagingRate:', shop.packagingRate);
+            console.log('No packaging charges applied - shop hasPackaging:', shop.hasPackaging, 'packagingCharges:', shop.packagingCharges);
         }
 
         // Service fee is removed as per new requirements
@@ -159,8 +159,8 @@ const recalculateRevisedPricing = (revisedItems, originalPricing, shop = null) =
 
     // Calculate packaging charges based on shop settings
     let packagingCharges = 0;
-    if (shop && shop.hasPackaging && shop.packagingRate > 0) {
-        packagingCharges = Math.round((subtotal * shop.packagingRate) / 100);
+    if (shop && shop.hasPackaging && shop.packagingCharges > 0) {
+        packagingCharges = shop.packagingCharges;
     }
 
     // Always use shop's delivery fee (default to original if shop not provided)

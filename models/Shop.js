@@ -200,11 +200,11 @@ const shopSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    packagingRate: {
+    packagingCharges: {
         type: Number,
-        default: 2,
-        min: [0, 'Packaging rate cannot be negative'],
-        max: [100, 'Packaging rate cannot exceed 100%']
+        default: 10,
+        min: [0, 'Packaging charges cannot be negative'],
+        max: [1000, 'Packaging charges cannot exceed ₹1000']
     }
 }, {
     timestamps: true
