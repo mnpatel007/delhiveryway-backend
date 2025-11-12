@@ -93,15 +93,25 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
             console.log('No tax applied - shop hasTax:', shop.hasTax, 'taxRate:', shop.taxRate);
         }
 
+        // Calculate packaging charges based on shop settings
+        let packagingCharges = 0;
+        if (shop.hasPackaging && shop.packagingRate > 0) {
+            packagingCharges = Math.round((subtotal * shop.packagingRate) / 100);
+            console.log(`Packaging charges applied: ${shop.packagingRate}% on subtotal ${subtotal} = ${packagingCharges}`);
+        } else {
+            console.log('No packaging charges applied - shop hasPackaging:', shop.hasPackaging, 'packagingRate:', shop.packagingRate);
+        }
+
         // Service fee is removed as per new requirements
         const serviceFee = 0;
 
-        // Calculate total (subtotal + delivery fee + taxes)
-        const total = subtotal + deliveryFee + taxes;
+        // Calculate total (subtotal + delivery fee + taxes + packaging charges)
+        const total = subtotal + deliveryFee + taxes + packagingCharges;
 
         return {
             subtotal: Math.round(subtotal),
             taxes,
+            packagingCharges,
             deliveryFee,
             serviceFee,
             discount: 0, // Can be added later if needed
@@ -147,15 +157,22 @@ const recalculateRevisedPricing = (revisedItems, originalPricing, shop = null) =
         taxes = Math.round((subtotal * shop.taxRate) / 100);
     }
 
+    // Calculate packaging charges based on shop settings
+    let packagingCharges = 0;
+    if (shop && shop.hasPackaging && shop.packagingRate > 0) {
+        packagingCharges = Math.round((subtotal * shop.packagingRate) / 100);
+    }
+
     // Always use shop's delivery fee (default to original if shop not provided)
     const deliveryFee = shop ? (shop.deliveryFee || 0) : originalPricing.deliveryFee;
 
-    // Calculate new total (subtotal + delivery fee + taxes)
-    const total = subtotal + deliveryFee + taxes;
+    // Calculate new total (subtotal + delivery fee + taxes + packaging charges)
+    const total = subtotal + deliveryFee + taxes + packagingCharges;
 
     return {
         subtotal: Math.round(subtotal),
         taxes,
+        packagingCharges,
         deliveryFee,
         discount: 0,
         total: Math.round(total),

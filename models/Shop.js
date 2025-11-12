@@ -195,6 +195,16 @@ const shopSchema = new mongoose.Schema({
         default: 5,
         min: [0, 'Tax rate cannot be negative'],
         max: [100, 'Tax rate cannot exceed 100%']
+    },
+    hasPackaging: {
+        type: Boolean,
+        default: false
+    },
+    packagingRate: {
+        type: Number,
+        default: 2,
+        min: [0, 'Packaging rate cannot be negative'],
+        max: [100, 'Packaging rate cannot exceed 100%']
     }
 }, {
     timestamps: true
