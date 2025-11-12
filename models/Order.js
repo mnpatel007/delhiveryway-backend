@@ -86,6 +86,11 @@ const orderSchema = new mongoose.Schema({
             default: 0,
             min: [0, 'Taxes cannot be negative']
         },
+        packagingCharges: {
+            type: Number,
+            default: 0,
+            min: [0, 'Packaging charges cannot be negative']
+        },
         discount: {
             type: Number,
             default: 0,
@@ -103,6 +108,7 @@ const orderSchema = new mongoose.Schema({
         deliveryFee: Number,
         serviceFee: Number,
         taxes: Number,
+        packagingCharges: Number,
         discount: Number,
         total: Number
     },
@@ -242,12 +248,12 @@ orderSchema.pre('save', async function (next) {
         const now = new Date();
         const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
         const istDate = new Date(now.getTime() + istOffset);
-        
+
         const day = String(istDate.getUTCDate()).padStart(2, '0');
         const month = String(istDate.getUTCMonth() + 1).padStart(2, '0');
         const year = String(istDate.getUTCFullYear()).slice(-2);
         const dateStr = `${day}${month}${year}`;
-        
+
         const sequence = await Counter.getNextSequence(dateStr);
         this.orderNumber = `${dateStr}${sequence}`;
     }
