@@ -1713,7 +1713,7 @@ exports.getAnalytics = async (req, res) => {
     }
 };
 // T
-erms and Conditions Management
+// Terms and Conditions Management
 
 // Get current active terms
 exports.getCurrentTerms = async (req, res) => {
