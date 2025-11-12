@@ -985,11 +985,9 @@ exports.updateShop = async (req, res) => {
         if (updateData.hasTax !== undefined) shop.hasTax = updateData.hasTax === true || updateData.hasTax === 'on' || updateData.hasTax === 'true';
         if (updateData.taxRate !== undefined) shop.taxRate = parseFloat(updateData.taxRate) || 5;
         if (updateData.hasPackaging !== undefined) {
-            console.log('Updating hasPackaging:', updateData.hasPackaging);
             shop.hasPackaging = updateData.hasPackaging === true || updateData.hasPackaging === 'on' || updateData.hasPackaging === 'true';
         }
         if (updateData.packagingCharges !== undefined) {
-            console.log('Updating packagingCharges:', updateData.packagingCharges);
             shop.packagingCharges = parseFloat(updateData.packagingCharges) || 10;
             // Remove old field if it exists
             if (shop.packagingRate !== undefined) {
