@@ -156,7 +156,8 @@ exports.placeOrder = async (req, res) => {
             items,
             deliveryAddress,
             specialInstructions,
-            paymentMethod = 'cash'
+            paymentMethod = 'cash',
+            confirmDuplicate = false // Allow bypassing similar order confirmation
         } = req.body;
 
         // Validate required fields
@@ -182,12 +183,12 @@ exports.placeOrder = async (req, res) => {
             });
         }
 
-        // Check for duplicate orders within the last 5 minutes
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        // Check for duplicate orders within the last 3 minutes
+        const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
         const recentOrder = await Order.findOne({
             customerId: req.user._id,
             shopId: shopId,
-            createdAt: { $gte: fiveMinutesAgo },
+            createdAt: { $gte: threeMinutesAgo },
             status: { $nin: ['cancelled', 'delivered'] }
         }).sort({ createdAt: -1 });
 
@@ -203,27 +204,59 @@ exports.placeOrder = async (req, res) => {
                 quantity: item.quantity
             }));
 
-            // Simple duplicate detection: same number of items and at least 80% match
+            // Calculate similarity percentage
             if (existingItems.length === newItems.length) {
-                let matchCount = 0;
+                let exactMatchCount = 0;
+                let similarMatchCount = 0;
+
                 for (const newItem of newItems) {
-                    const match = existingItems.find(existing =>
-                        existing.name === newItem.name &&
-                        Math.abs(existing.quantity - newItem.quantity) <= 1
+                    const exactMatch = existingItems.find(existing =>
+                        existing.name === newItem.name && existing.quantity === newItem.quantity
                     );
-                    if (match) matchCount++;
+                    const similarMatch = existingItems.find(existing =>
+                        existing.name === newItem.name && Math.abs(existing.quantity - newItem.quantity) <= 1
+                    );
+
+                    if (exactMatch) exactMatchCount++;
+                    if (similarMatch) similarMatchCount++;
                 }
 
-                const matchPercentage = (matchCount / newItems.length) * 100;
-                if (matchPercentage >= 80) {
-                    const timeDiff = Math.ceil((Date.now() - recentOrder.createdAt) / (1000 * 60));
+                const exactMatchPercentage = (exactMatchCount / newItems.length) * 100;
+                const similarMatchPercentage = (similarMatchCount / newItems.length) * 100;
+
+                const timeDiffMs = Date.now() - new Date(recentOrder.createdAt).getTime();
+                const timeDiffMinutes = Math.ceil(timeDiffMs / (1000 * 60));
+                const waitTimeMinutes = Math.max(0, 3 - timeDiffMinutes);
+
+                // 100% exact match - block completely until previous order is delivered
+                if (exactMatchPercentage === 100) {
                     return res.status(400).json({
                         success: false,
-                        message: `You placed a similar order ${timeDiff} minute${timeDiff !== 1 ? 's' : ''} ago (Order #${recentOrder.orderNumber}). Please wait a few minutes before placing another similar order to avoid confusion for shoppers.`,
+                        message: `You have placed the exact same order ${timeDiffMinutes} minute${timeDiffMinutes !== 1 ? 's' : ''} ago (Order #${recentOrder.orderNumber}). You can only place this order once your previous order is delivered.`,
                         duplicateOrder: true,
+                        duplicateType: 'exact',
                         existingOrderId: recentOrder._id,
                         existingOrderNumber: recentOrder.orderNumber,
-                        waitTime: Math.max(0, 5 - timeDiff) // Minutes to wait
+                        existingOrderStatus: recentOrder.status,
+                        timeDiffMinutes: timeDiffMinutes,
+                        blockUntilDelivered: true
+                    });
+                }
+
+                // 70-99% similar match - show confirmation dialog (unless user confirmed)
+                if (similarMatchPercentage >= 70 && !confirmDuplicate) {
+                    return res.status(409).json({
+                        success: false,
+                        message: `You placed a similar order ${timeDiffMinutes} minute${timeDiffMinutes !== 1 ? 's' : ''} ago (Order #${recentOrder.orderNumber}). Are you sure you want to place another similar order?`,
+                        duplicateOrder: true,
+                        duplicateType: 'similar',
+                        existingOrderId: recentOrder._id,
+                        existingOrderNumber: recentOrder.orderNumber,
+                        existingOrderStatus: recentOrder.status,
+                        existingOrderItems: recentOrder.items,
+                        timeDiffMinutes: timeDiffMinutes,
+                        similarityPercentage: Math.round(similarMatchPercentage),
+                        requiresConfirmation: true
                     });
                 }
             }
