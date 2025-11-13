@@ -6,6 +6,109 @@ const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
 
+// Check for recent duplicate orders for a customer
+exports.checkRecentOrders = async (req, res) => {
+    try {
+        const { customerId } = req.params;
+        const { minutes = 10 } = req.query;
+
+        const timeAgo = new Date(Date.now() - minutes * 60 * 1000);
+
+        const recentOrders = await Order.find({
+            customerId: customerId,
+            createdAt: { $gte: timeAgo },
+            status: { $nin: ['cancelled'] }
+        })
+            .populate('shopId', 'name')
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        // Group by shop and detect potential duplicates
+        const ordersByShop = {};
+        const potentialDuplicates = [];
+
+        recentOrders.forEach(order => {
+            const shopId = order.shopId._id.toString();
+            if (!ordersByShop[shopId]) {
+                ordersByShop[shopId] = [];
+            }
+            ordersByShop[shopId].push(order);
+        });
+
+        // Check for duplicates within each shop
+        Object.keys(ordersByShop).forEach(shopId => {
+            const orders = ordersByShop[shopId];
+            if (orders.length > 1) {
+                // Check if orders have similar items
+                for (let i = 0; i < orders.length - 1; i++) {
+                    for (let j = i + 1; j < orders.length; j++) {
+                        const order1 = orders[i];
+                        const order2 = orders[j];
+
+                        // Simple similarity check
+                        if (order1.items.length === order2.items.length) {
+                            let matchCount = 0;
+                            for (const item1 of order1.items) {
+                                const match = order2.items.find(item2 =>
+                                    item1.name.toLowerCase() === item2.name.toLowerCase() &&
+                                    Math.abs(item1.quantity - item2.quantity) <= 1
+                                );
+                                if (match) matchCount++;
+                            }
+
+                            const similarity = (matchCount / order1.items.length) * 100;
+                            if (similarity >= 70) {
+                                potentialDuplicates.push({
+                                    order1: {
+                                        id: order1._id,
+                                        orderNumber: order1.orderNumber,
+                                        createdAt: order1.createdAt,
+                                        status: order1.status,
+                                        total: order1.orderValue.total
+                                    },
+                                    order2: {
+                                        id: order2._id,
+                                        orderNumber: order2.orderNumber,
+                                        createdAt: order2.createdAt,
+                                        status: order2.status,
+                                        total: order2.orderValue.total
+                                    },
+                                    similarity: Math.round(similarity),
+                                    timeDifference: Math.round((order1.createdAt - order2.createdAt) / (1000 * 60))
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        res.json({
+            success: true,
+            data: {
+                recentOrdersCount: recentOrders.length,
+                potentialDuplicates: potentialDuplicates,
+                recentOrders: recentOrders.map(order => ({
+                    id: order._id,
+                    orderNumber: order.orderNumber,
+                    shopName: order.shopId.name,
+                    status: order.status,
+                    total: order.orderValue.total,
+                    itemCount: order.items.length,
+                    createdAt: order.createdAt
+                }))
+            }
+        });
+
+    } catch (error) {
+        console.error('Error checking recent orders:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to check recent orders'
+        });
+    }
+};
+
 // Get estimated order acceptance time based on pending orders
 exports.getOrderAcceptanceTime = async (req, res) => {
     try {
@@ -77,6 +180,53 @@ exports.placeOrder = async (req, res) => {
                 success: false,
                 message: 'Delivery address coordinates are required for distance calculation'
             });
+        }
+
+        // Check for duplicate orders within the last 5 minutes
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const recentOrder = await Order.findOne({
+            customerId: req.user._id,
+            shopId: shopId,
+            createdAt: { $gte: fiveMinutesAgo },
+            status: { $nin: ['cancelled', 'delivered'] }
+        }).sort({ createdAt: -1 });
+
+        if (recentOrder) {
+            // Check if items are similar (same items with similar quantities)
+            const existingItems = recentOrder.items.map(item => ({
+                name: item.name.toLowerCase().trim(),
+                quantity: item.quantity
+            }));
+
+            const newItems = items.map(item => ({
+                name: item.name.toLowerCase().trim(),
+                quantity: item.quantity
+            }));
+
+            // Simple duplicate detection: same number of items and at least 80% match
+            if (existingItems.length === newItems.length) {
+                let matchCount = 0;
+                for (const newItem of newItems) {
+                    const match = existingItems.find(existing =>
+                        existing.name === newItem.name &&
+                        Math.abs(existing.quantity - newItem.quantity) <= 1
+                    );
+                    if (match) matchCount++;
+                }
+
+                const matchPercentage = (matchCount / newItems.length) * 100;
+                if (matchPercentage >= 80) {
+                    const timeDiff = Math.ceil((Date.now() - recentOrder.createdAt) / (1000 * 60));
+                    return res.status(400).json({
+                        success: false,
+                        message: `You placed a similar order ${timeDiff} minute${timeDiff !== 1 ? 's' : ''} ago (Order #${recentOrder.orderNumber}). Please wait a few minutes before placing another similar order to avoid confusion for shoppers.`,
+                        duplicateOrder: true,
+                        existingOrderId: recentOrder._id,
+                        existingOrderNumber: recentOrder.orderNumber,
+                        waitTime: Math.max(0, 5 - timeDiff) // Minutes to wait
+                    });
+                }
+            }
         }
 
         // Validate shop exists and is active

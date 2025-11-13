@@ -8,6 +8,9 @@ const upload = require('../middleware/uploadMiddleware');
 // Get estimated order acceptance time for a shop
 router.get('/acceptance-time/:shopId', orderController.getOrderAcceptanceTime);
 
+// Check for recent duplicate orders (Admin only)
+router.get('/recent/:customerId', authMiddleware.protect, authMiddleware.restrictTo('admin'), orderController.checkRecentOrders);
+
 // Place a new order (Customer only)
 router.post('/', authMiddleware.protect, authMiddleware.restrictTo('customer'), orderController.placeOrder);
 
