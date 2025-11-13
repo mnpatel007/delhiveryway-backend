@@ -183,12 +183,10 @@ exports.placeOrder = async (req, res) => {
             });
         }
 
-        // Check for duplicate orders within the last 3 minutes
-        const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+        // Check for duplicate orders (no time window - check all active orders)
         const recentOrder = await Order.findOne({
             customerId: req.user._id,
             shopId: shopId,
-            createdAt: { $gte: threeMinutesAgo },
             status: { $nin: ['cancelled', 'delivered'] }
         }).sort({ createdAt: -1 });
 
@@ -224,21 +222,16 @@ exports.placeOrder = async (req, res) => {
                 const exactMatchPercentage = (exactMatchCount / newItems.length) * 100;
                 const similarMatchPercentage = (similarMatchCount / newItems.length) * 100;
 
-                const timeDiffMs = Date.now() - new Date(recentOrder.createdAt).getTime();
-                const timeDiffMinutes = Math.ceil(timeDiffMs / (1000 * 60));
-                const waitTimeMinutes = Math.max(0, 3 - timeDiffMinutes);
-
                 // 100% exact match - block completely until previous order is delivered
                 if (exactMatchPercentage === 100) {
                     return res.status(400).json({
                         success: false,
-                        message: `You have placed the exact same order ${timeDiffMinutes} minute${timeDiffMinutes !== 1 ? 's' : ''} ago (Order #${recentOrder.orderNumber}). You can only place this order once your previous order is delivered.`,
+                        message: `You have already placed this exact order (Order #${recentOrder.orderNumber}). You can only place this order again once your previous order is delivered.`,
                         duplicateOrder: true,
                         duplicateType: 'exact',
                         existingOrderId: recentOrder._id,
                         existingOrderNumber: recentOrder.orderNumber,
                         existingOrderStatus: recentOrder.status,
-                        timeDiffMinutes: timeDiffMinutes,
                         blockUntilDelivered: true
                     });
                 }
@@ -247,14 +240,13 @@ exports.placeOrder = async (req, res) => {
                 if (similarMatchPercentage >= 70 && !confirmDuplicate) {
                     return res.status(409).json({
                         success: false,
-                        message: `You placed a similar order ${timeDiffMinutes} minute${timeDiffMinutes !== 1 ? 's' : ''} ago (Order #${recentOrder.orderNumber}). Are you sure you want to place another similar order?`,
+                        message: `You have a similar order in progress (Order #${recentOrder.orderNumber}). Are you sure you want to place another similar order?`,
                         duplicateOrder: true,
                         duplicateType: 'similar',
                         existingOrderId: recentOrder._id,
                         existingOrderNumber: recentOrder.orderNumber,
                         existingOrderStatus: recentOrder.status,
                         existingOrderItems: recentOrder.items,
-                        timeDiffMinutes: timeDiffMinutes,
                         similarityPercentage: Math.round(similarMatchPercentage),
                         requiresConfirmation: true
                     });
