@@ -1138,6 +1138,102 @@ exports.updateOrderStatus = async (req, res) => {
     }
 };
 
+// Cancel order with reason (Admin only)
+exports.cancelOrderWithReason = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { reason } = req.body;
+
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cancellation reason is required'
+            });
+        }
+
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        // Check if order can be cancelled
+        if (order.status === 'delivered') {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot cancel delivered orders'
+            });
+        }
+
+        if (order.status === 'cancelled') {
+            return res.status(400).json({
+                success: false,
+                message: 'Order is already cancelled'
+            });
+        }
+
+        // Update order with cancellation details
+        order.status = 'cancelled';
+        order.cancelledBy = 'admin';
+        order.cancellationReason = reason.trim();
+        order.cancelledAt = new Date();
+
+        order.timeline.push({
+            status: 'cancelled',
+            timestamp: new Date(),
+            note: `Order cancelled by admin: ${reason.trim()}`,
+            updatedBy: 'admin'
+        });
+
+        await order.save();
+
+        // Emit socket events
+        const io = req.app.get('io');
+
+        // Notify customer
+        io.to(`customer_${order.customerId}`).emit('orderCancelled', {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            reason: reason.trim(),
+            cancelledBy: 'admin'
+        });
+
+        // Notify shopper if assigned
+        if (order.personalShopperId) {
+            io.to(`shopper_${order.personalShopperId}`).emit('orderCancelled', {
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                reason: reason.trim(),
+                cancelledBy: 'admin'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Order cancelled successfully',
+            data: {
+                order: {
+                    _id: order._id,
+                    status: order.status,
+                    cancellationReason: order.cancellationReason,
+                    cancelledBy: order.cancelledBy,
+                    cancelledAt: order.cancelledAt
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Admin cancel order error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to cancel order'
+        });
+    }
+};
+
 // Delete user
 exports.deleteUser = async (req, res) => {
     try {
