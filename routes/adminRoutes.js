@@ -91,8 +91,8 @@ router.put('/users/:userId/status', adminProtect, updateUserStatus);
 router.put('/shops/:shopId', adminProtect, updateShop);
 router.put('/shops/:shopId/status', adminProtect, updateShopStatus);
 router.put('/shops/:shopId/visibility', adminProtect, updateShopVisibility);
-router.put('/orders/:orderId/status', adminProtect, updateOrderStatus);
 router.put('/orders/:orderId/cancel', adminProtect, cancelOrderWithReason);
+router.put('/orders/:orderId/status', adminProtect, updateOrderStatus);
 router.put('/shoppers/:shopperId', adminProtect, updateShopperStatus);
 router.put('/products/:productId', adminProtect, updateProduct);
 

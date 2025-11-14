@@ -1140,6 +1140,10 @@ exports.updateOrderStatus = async (req, res) => {
 
 // Cancel order with reason (Admin only)
 exports.cancelOrderWithReason = async (req, res) => {
+    console.log('🔄 Admin cancel order request received');
+    console.log('🔄 Order ID:', req.params.orderId);
+    console.log('🔄 Request body:', req.body);
+
     try {
         const { orderId } = req.params;
         const { reason } = req.body;
