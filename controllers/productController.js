@@ -661,10 +661,10 @@ exports.getProductsIndex = async (req, res) => {
         const products = await Product.find({ isActive: true })
             .select('_id name shopId price images tags')
             .limit(limit)
-            .populate('shopId', 'name isActive');
+            .populate('shopId', 'name isActive isVisible');
 
-        // Filter out products from inactive shops
-        const filtered = products.filter(p => p.shopId && p.shopId.isActive);
+        // Filter out products from inactive or hidden shops
+        const filtered = products.filter(p => p.shopId && p.shopId.isActive && p.shopId.isVisible);
 
         res.json({
             success: true,
