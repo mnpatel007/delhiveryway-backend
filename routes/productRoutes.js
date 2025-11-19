@@ -29,6 +29,11 @@ router.get('/all', async (req, res) => {
     const products = await Product.find({}).populate('shopId', 'name');
     res.json({ totalProducts: products.length, products });
 });
+router.get('/index', (req, res) => {
+    // lightweight index for client-side instant search
+    const controller = require('../controllers/productController');
+    return controller.getProductsIndex(req, res);
+});
 router.get('/search', searchProducts);
 router.get('/:id', optionalAuth, getProductById);
 

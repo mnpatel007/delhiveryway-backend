@@ -652,6 +652,31 @@ exports.searchProducts = async (req, res) => {
     }
 };
 
+// Lightweight products index for client-side instant search
+exports.getProductsIndex = async (req, res) => {
+    try {
+        // limit to a reasonable number to avoid huge payloads
+        const limit = parseInt(req.query.limit) || 20000;
+
+        const products = await Product.find({ isActive: true })
+            .select('_id name shopId price images tags')
+            .limit(limit)
+            .populate('shopId', 'name');
+
+        res.json({
+            success: true,
+            data: {
+                total: products.length,
+                products
+            }
+        });
+
+    } catch (error) {
+        console.error('Get products index error:', error);
+        res.status(500).json({ success: false, message: 'Failed to get products index' });
+    }
+};
+
 // Helper function to calculate distance between two points
 function calculateDistance(lat1, lng1, lat2, lng2) {
     const R = 6371; // Earth's radius in km
