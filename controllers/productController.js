@@ -655,19 +655,22 @@ exports.searchProducts = async (req, res) => {
 // Lightweight products index for client-side instant search
 exports.getProductsIndex = async (req, res) => {
     try {
-        // limit to a reasonable number to avoid huge payloads
-        const limit = parseInt(req.query.limit) || 20000;
+        // Fetch significantly more products to ensure all shops are represented
+        const limit = parseInt(req.query.limit) || 100000;
 
         const products = await Product.find({ isActive: true })
             .select('_id name shopId price images tags')
             .limit(limit)
-            .populate('shopId', 'name');
+            .populate('shopId', 'name isActive');
+
+        // Filter out products from inactive shops
+        const filtered = products.filter(p => p.shopId && p.shopId.isActive);
 
         res.json({
             success: true,
             data: {
-                total: products.length,
-                products
+                total: filtered.length,
+                products: filtered
             }
         });
 
