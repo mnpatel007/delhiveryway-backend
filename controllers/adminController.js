@@ -1935,10 +1935,21 @@ exports.createTerms = async (req, res) => {
     try {
         const { title, content, version } = req.body;
 
+        console.log('📝 Create terms request:', { title, version });
+        console.log('🔍 Admin user:', { id: req.user?._id, name: req.user?.name });
+
         if (!title || !content) {
             return res.status(400).json({
                 success: false,
                 message: 'Title and content are required'
+            });
+        }
+
+        if (!req.user) {
+            console.error('❌ Create terms error: req.user is undefined');
+            return res.status(401).json({
+                success: false,
+                message: 'User authentication required'
             });
         }
 
@@ -1948,16 +1959,25 @@ exports.createTerms = async (req, res) => {
             { isActive: false }
         );
 
-        // Create new terms
+        // Create new terms - handle both system admin (string id) and database admins (ObjectId)
+        let createdById = req.user._id;
+        
+        // If system admin (id === 'admin'), create a temporary ObjectId for reference
+        if (createdById === 'admin') {
+            createdById = new mongoose.Types.ObjectId();
+        }
+
         const terms = new TermsAndConditions({
             title: title.trim(),
             content: content.trim(),
             version: version?.trim() || '1.0',
-            createdBy: req.user._id,
+            createdBy: createdById,
             isActive: true
         });
 
         await terms.save();
+
+        console.log('✅ Terms created:', { id: terms._id, title: terms.title });
 
         // Emit real-time notification to all customers
         if (req.io) {
@@ -1967,6 +1987,7 @@ exports.createTerms = async (req, res) => {
                 version: terms.version,
                 createdAt: terms.createdAt
             });
+            console.log('📡 Socket event emitted: newTermsCreated');
         }
 
         res.status(201).json({
@@ -1976,10 +1997,12 @@ exports.createTerms = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Create terms error:', error);
+        console.error('❌ Create terms error:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({
             success: false,
-            message: 'Failed to create terms and conditions'
+            message: 'Failed to create terms and conditions',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
