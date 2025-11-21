@@ -5,7 +5,9 @@ const { protect, adminProtect } = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
 
 // Public/Customer routes
-router.get('/current', protect, termsController.getCurrentTerms);
+// Serve current terms publicly so anonymous visitors can preview the Terms & Conditions
+router.get('/current', termsController.getCurrentTerms);
+// Accept route requires authentication so we can record which user accepted
 router.post('/accept', protect, termsController.acceptTerms);
 
 // Debug route to test if terms routes are working

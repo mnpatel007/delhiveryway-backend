@@ -105,25 +105,8 @@ router.delete('/shoppers/:shopperId', adminProtect, deletePersonalShopper);
 // Bulk product operations
 router.use('/products', bulkProductRoutes);
 
-// Terms and Conditions routes
-const {
-    getCurrentTerms,
-    acceptTerms,
-    createTerms,
-    getAllTerms,
-    getTermsAcceptanceDetails,
-    getLiveAcceptanceCount
-} = require('../controllers/adminController');
-
-// Terms routes (accessible to both customers and admins)
-router.get('/terms/current', adminProtect, getCurrentTerms);
-router.post('/terms/accept', adminProtect, acceptTerms);
-
-// Admin-only terms routes
-router.post('/terms/create', adminProtect, createTerms);
-router.get('/terms/all', adminProtect, getAllTerms);
-router.get('/terms/:termsId/details', adminProtect, getTermsAcceptanceDetails);
-router.get('/terms/:termsId/count', adminProtect, getLiveAcceptanceCount);
+// Terms and Conditions management is exposed under /api/terms via dedicated routes
+// Admin routes for terms management are handled in that module; keep admin routes focused.
 
 // Test route for terms
 router.get('/terms/test', (req, res) => {
