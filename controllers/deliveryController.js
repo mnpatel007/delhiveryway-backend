@@ -178,7 +178,7 @@ exports.createDiscount = async (req, res) => {
             endDate,
             description,
             shopId: shopId || null,
-            createdBy: req.user._id
+            createdBy: req.user._id === 'admin' ? null : req.user._id
         });
 
         await discount.save();
