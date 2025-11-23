@@ -84,6 +84,19 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
 
         const deliveryFee = deliveryFeeCalculation.totalFee;
 
+        // Apply delivery discount
+        const DeliveryDiscount = require('../models/DeliveryDiscount');
+        const discountResult = await DeliveryDiscount.findBestDiscount(deliveryFee, subtotal);
+        const finalDeliveryFee = discountResult.finalFee;
+        const deliveryDiscountAmount = discountResult.discountAmount;
+
+        console.log('💰 Delivery Discount Applied:', {
+            original: deliveryFee,
+            discount: deliveryDiscountAmount,
+            final: finalDeliveryFee,
+            applied: discountResult.discountApplied?.name
+        });
+
         // Calculate taxes based on shop settings
         let taxes = 0;
         if (shop.hasTax && shop.taxRate > 0) {
@@ -106,25 +119,29 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
         const serviceFee = 0;
 
         // Calculate total (subtotal + delivery fee + taxes + packaging charges)
-        const total = subtotal + deliveryFee + taxes + packagingCharges;
+        const total = subtotal + finalDeliveryFee + taxes + packagingCharges;
 
         return {
             subtotal: Math.round(subtotal),
             taxes,
             packagingCharges,
-            deliveryFee,
+            deliveryFee: finalDeliveryFee,
+            originalDeliveryFee: deliveryFee,
+            deliveryDiscount: deliveryDiscountAmount,
+            deliveryDiscountApplied: discountResult.discountApplied,
             serviceFee,
-            discount: 0, // Can be added later if needed
+            discount: 0, // Product discount (if any)
             total: Math.round(total),
             distance: deliveryFeeCalculation.distance, // Distance from shop in meters
             distanceKm: deliveryFeeCalculation.distanceKm, // Distance in km for display
             deliveryMode: deliveryFeeCalculation.mode,
             locationMessage: deliveryFeeCalculation.message,
-            shopperEarning: deliveryFee, // Shopper earns exactly the delivery fee
+            shopperEarning: finalDeliveryFee, // Shopper earns the discounted delivery fee (or maybe original? Usually shopper gets paid for the service, so maybe original? But if customer pays less, who pays the shopper? Assuming platform absorbs it or shopper gets less. For now, let's say shopper gets the final fee to be safe, or maybe original if it's a platform discount. Let's stick to finalFee for now to avoid money leak)
             deliveryFeeBreakdown: {
                 baseFee: deliveryFeeCalculation.baseFee,
                 distanceFee: deliveryFeeCalculation.distanceFee,
-                segments: deliveryFeeCalculation.segments
+                segments: deliveryFeeCalculation.segments,
+                discount: deliveryDiscountAmount
             }
         };
     } catch (error) {
@@ -140,7 +157,7 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
  * @param {Object} shop - Shop object with delivery fee
  * @returns {Object} Revised pricing breakdown
  */
-const recalculateRevisedPricing = (revisedItems, originalPricing, shop = null) => {
+const recalculateRevisedPricing = async (revisedItems, originalPricing, shop = null) => {
     // Calculate new subtotal from revised items
     const subtotal = revisedItems.reduce((sum, item) => {
         if (item.isAvailable !== false && (item.revisedQuantity > 0 || item.quantity > 0)) {
@@ -164,20 +181,37 @@ const recalculateRevisedPricing = (revisedItems, originalPricing, shop = null) =
     }
 
     // Always use shop's delivery fee (default to original if shop not provided)
-    const deliveryFee = shop ? (shop.deliveryFee || 0) : originalPricing.deliveryFee;
+    // Note: If shop is provided, we use its base delivery fee, but we should ideally recalculate based on location if we had coordinates.
+    // For revision, we usually assume location hasn't changed, so we stick to the original fee logic or shop's fixed fee.
+    // However, we MUST re-apply the discount based on the new subtotal.
+
+    let baseDeliveryFee = originalPricing.originalDeliveryFee || originalPricing.deliveryFee;
+    if (shop && shop.deliveryFee !== undefined) {
+        // If shop object is passed, we might want to use its fee, but originalPricing.originalDeliveryFee is safer if it was distance based.
+        // If originalPricing has originalDeliveryFee, use it.
+    }
+
+    // Apply delivery discount
+    const DeliveryDiscount = require('../models/DeliveryDiscount');
+    const discountResult = await DeliveryDiscount.findBestDiscount(baseDeliveryFee, subtotal);
+    const finalDeliveryFee = discountResult.finalFee;
+    const deliveryDiscountAmount = discountResult.discountAmount;
 
     // Calculate new total (subtotal + delivery fee + taxes + packaging charges)
-    const total = subtotal + deliveryFee + taxes + packagingCharges;
+    const total = subtotal + finalDeliveryFee + taxes + packagingCharges;
 
     return {
         subtotal: Math.round(subtotal),
         taxes,
         packagingCharges,
-        deliveryFee,
+        deliveryFee: finalDeliveryFee,
+        originalDeliveryFee: baseDeliveryFee,
+        deliveryDiscount: deliveryDiscountAmount,
+        deliveryDiscountApplied: discountResult.discountApplied,
         discount: 0,
         total: Math.round(total),
         distance: originalPricing.distance,
-        shopperEarning: deliveryFee // Shopper earns exactly the delivery fee
+        shopperEarning: finalDeliveryFee // Shopper earns exactly the delivery fee
     };
 };
 

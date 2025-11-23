@@ -76,6 +76,14 @@ const orderSchema = new mongoose.Schema({
             default: 0,
             min: [0, 'Delivery fee cannot be negative']
         },
+        originalDeliveryFee: {
+            type: Number,
+            default: 0
+        },
+        deliveryDiscount: {
+            type: Number,
+            default: 0
+        },
         serviceFee: {
             type: Number,
             default: 0,

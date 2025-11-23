@@ -1139,22 +1139,6 @@ exports.reviseOrderItems = async (req, res) => {
         order.shopperCommission = pricing.deliveryFee;
         order.status = 'customer_reviewing_revision';
 
-        order.timeline.push({
-            status: 'customer_reviewing_revision',
-            timestamp: new Date(),
-            note: shopperNotes || 'Shopper revised order based on item availability',
-            updatedBy: 'shopper',
-            pricingDetails: {
-                subtotal: pricing.subtotal,
-                deliveryFee: pricing.deliveryFee,
-                taxes: 0,
-                total: pricing.subtotal + pricing.deliveryFee,
-                shopperEarning: pricing.deliveryFee
-            }
-        });
-
-        await order.save();
-
         // Notify customer about revision
         const io = req.app.get('io');
         io.to(`customer_${order.customerId._id}`).emit('orderRevised', {
