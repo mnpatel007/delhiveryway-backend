@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const deliveryDiscountSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Discount name is required'],
         trim: true
     },
     discountType: {
@@ -37,6 +36,11 @@ const deliveryDiscountSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    shopId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Shop',
+        default: null // null means applies to all shops
+    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
@@ -46,7 +50,7 @@ const deliveryDiscountSchema = new mongoose.Schema({
 });
 
 // Index for efficient querying of active discounts
-deliveryDiscountSchema.index({ isActive: 1, startDate: 1, endDate: 1 });
+deliveryDiscountSchema.index({ isActive: 1, startDate: 1, endDate: 1, shopId: 1 });
 
 // Method to check if discount is currently valid
 deliveryDiscountSchema.methods.isValid = function () {
@@ -55,14 +59,31 @@ deliveryDiscountSchema.methods.isValid = function () {
 };
 
 // Static method to find the best applicable discount
-deliveryDiscountSchema.statics.findBestDiscount = async function (originalFee, orderValue = 0) {
+deliveryDiscountSchema.statics.findBestDiscount = async function (originalFee, orderValue = 0, shopId = null) {
     const now = new Date();
-    const activeDiscounts = await this.find({
+
+    // Build query
+    const query = {
         isActive: true,
         startDate: { $lte: now },
         endDate: { $gte: now },
         minOrderValue: { $lte: orderValue }
-    });
+    };
+
+    // If shopId is provided, find discounts for this shop OR global discounts (shopId: null)
+    if (shopId) {
+        query.$or = [
+            { shopId: shopId },
+            { shopId: null },
+            { shopId: { $exists: false } } // For backward compatibility
+        ];
+    } else {
+        // If no shopId provided (shouldn't happen for real orders but maybe for general estimates),
+        // only return global discounts
+        query.shopId = null;
+    }
+
+    const activeDiscounts = await this.find(query);
 
     let bestDiscount = null;
     let discountAmount = 0;

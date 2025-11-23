@@ -3,47 +3,18 @@ const DeliveryDiscount = require('../models/DeliveryDiscount');
 const { calculateDeliveryFee } = require('../utils/locationUtils');
 
 // Helper to find and apply best discount
-const applyBestDiscount = async (originalFee, orderValue = 0) => {
+const applyBestDiscount = async (originalFee, orderValue = 0, shopId = null) => {
     try {
-        const now = new Date();
-        const activeDiscounts = await DeliveryDiscount.find({
-            isActive: true,
-            startDate: { $lte: now },
-            endDate: { $gte: now },
-            minOrderValue: { $lte: orderValue }
-        });
-
-        let bestDiscount = null;
-        let discountAmount = 0;
-
-        for (const discount of activeDiscounts) {
-            let currentDiscountAmount = 0;
-            if (discount.discountType === 'free') {
-                currentDiscountAmount = originalFee;
-            } else if (discount.discountType === 'fixed') {
-                currentDiscountAmount = discount.discountValue;
-            } else if (discount.discountType === 'percentage') {
-                currentDiscountAmount = (originalFee * discount.discountValue) / 100;
-            }
-
-            // Cap discount at original fee (no negative delivery fee)
-            currentDiscountAmount = Math.min(currentDiscountAmount, originalFee);
-
-            if (currentDiscountAmount > discountAmount) {
-                discountAmount = currentDiscountAmount;
-                bestDiscount = discount;
-            }
-        }
-
+        const discountResult = await DeliveryDiscount.findBestDiscount(originalFee, orderValue, shopId);
         return {
-            finalFee: originalFee - discountAmount,
-            originalFee,
-            discountApplied: bestDiscount ? {
-                id: bestDiscount._id,
-                name: bestDiscount.name,
-                type: bestDiscount.discountType,
-                value: bestDiscount.discountValue,
-                amount: discountAmount
+            finalFee: discountResult.finalFee,
+            originalFee: discountResult.originalFee,
+            discountApplied: discountResult.discountApplied ? {
+                id: discountResult.discountApplied._id,
+                name: discountResult.discountApplied.name || 'Discount',
+                type: discountResult.discountApplied.discountType,
+                value: discountResult.discountApplied.discountValue,
+                amount: discountResult.discountAmount
             } : null
         };
     } catch (error) {
@@ -90,7 +61,7 @@ exports.calculateFee = async (req, res) => {
         );
 
         // Apply discount
-        const discountResult = await applyBestDiscount(feeCalculation.totalFee, orderValue);
+        const discountResult = await applyBestDiscount(feeCalculation.totalFee, orderValue, shopId);
 
         res.json({
             success: true,
@@ -135,10 +106,6 @@ exports.calculateFeesBulk = async (req, res) => {
         const shops = await Shop.find({ _id: { $in: shopIds } });
         const results = [];
 
-        // Pre-fetch best discount for this order value (optimization: do it once if not shop-specific)
-        // Note: If we add shop-specific discounts later, this needs to move inside the loop.
-        // For now, discounts are global.
-
         for (const shop of shops) {
             try {
                 if (!shop.address?.coordinates?.lat || !shop.address?.coordinates?.lng) {
@@ -161,7 +128,7 @@ exports.calculateFeesBulk = async (req, res) => {
                     shop.feePerKm || 10
                 );
 
-                const discountResult = await applyBestDiscount(feeCalculation.totalFee, orderValue);
+                const discountResult = await applyBestDiscount(feeCalculation.totalFee, orderValue, shop._id);
 
                 results.push({
                     shopId: shop._id,
@@ -200,16 +167,17 @@ exports.calculateFeesBulk = async (req, res) => {
 // Admin: Create discount
 exports.createDiscount = async (req, res) => {
     try {
-        const { name, discountType, discountValue, minOrderValue, startDate, endDate, description } = req.body;
+        const { name, discountType, discountValue, minOrderValue, startDate, endDate, description, shopId } = req.body;
 
         const discount = new DeliveryDiscount({
             name,
             discountType,
             discountValue,
-            minOrderValue,
+            minOrderValue: minOrderValue || 0,
             startDate,
             endDate,
             description,
+            shopId: shopId || null,
             createdBy: req.user._id
         });
 
@@ -230,12 +198,47 @@ exports.createDiscount = async (req, res) => {
     }
 };
 
+// Admin: Update discount
+exports.updateDiscount = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+
+        const discount = await DeliveryDiscount.findByIdAndUpdate(
+            id,
+            { $set: updates },
+            { new: true, runValidators: true }
+        );
+
+        if (!discount) {
+            return res.status(404).json({
+                success: false,
+                message: 'Discount not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Delivery discount updated successfully',
+            data: { discount }
+        });
+    } catch (error) {
+        console.error('Error updating discount:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update discount',
+            error: error.message
+        });
+    }
+};
+
 // Admin: Get all discounts
 exports.getAllDiscounts = async (req, res) => {
     try {
         const discounts = await DeliveryDiscount.find()
             .sort({ createdAt: -1 })
-            .populate('createdBy', 'name email');
+            .populate('createdBy', 'name email')
+            .populate('shopId', 'name');
 
         res.json({
             success: true,
