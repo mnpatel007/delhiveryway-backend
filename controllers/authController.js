@@ -775,6 +775,19 @@ exports.getCurrentTermsForCustomer = async (req, res) => {
             });
         }
 
+        // Check if terms are in testing mode
+        if (terms.isTesting) {
+            const allowedEmails = ['meetnp007@gmail.com', 'ayupro916@gmail.com', 'ce230004015@iiti.ac.in'];
+            const userEmail = req.user.email;
+
+            if (!allowedEmails.includes(userEmail)) {
+                return res.json({
+                    success: true,
+                    data: { terms: null }
+                });
+            }
+        }
+
         // Check if current user has accepted these terms
         let hasAccepted = false;
         if (req.user) {

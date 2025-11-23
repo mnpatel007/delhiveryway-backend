@@ -13,6 +13,14 @@ exports.getCurrentTerms = async (req, res) => {
             });
         }
 
+        // If terms are in testing mode, return null for public access
+        if (terms.isTesting) {
+            return res.json({
+                success: true,
+                data: { terms: null }
+            });
+        }
+
         // Check if current user has accepted these terms
         let hasAccepted = false;
         if (req.user) {
@@ -106,7 +114,7 @@ exports.acceptTerms = async (req, res) => {
 // Admin: Create new terms
 exports.createTerms = async (req, res) => {
     try {
-        const { title, content, version } = req.body;
+        const { title, content, version, isTesting } = req.body;
 
         console.log('📝 Create terms request:', { title, version });
         console.log('🔍 Admin user:', { id: req.user?._id, name: req.user?.name });
@@ -134,7 +142,7 @@ exports.createTerms = async (req, res) => {
 
         // Create new terms - handle both system admin (string id) and database admins (ObjectId)
         let createdById = req.user._id;
-        
+
         // If system admin (id === 'admin'), create a temporary ObjectId for reference
         if (createdById === 'admin') {
             const mongoose = require('mongoose');
@@ -146,7 +154,8 @@ exports.createTerms = async (req, res) => {
             content: content.trim(),
             version: version?.trim() || '1.0',
             createdBy: createdById,
-            isActive: true
+            isActive: true,
+            isTesting: !!isTesting
         });
 
         await terms.save();
@@ -159,7 +168,8 @@ exports.createTerms = async (req, res) => {
                 termsId: terms._id,
                 title: terms.title,
                 version: terms.version,
-                createdAt: terms.createdAt
+                createdAt: terms.createdAt,
+                isTesting: terms.isTesting
             });
             console.log('📡 Socket event emitted: newTermsCreated');
         }
@@ -194,6 +204,7 @@ exports.getAllTerms = async (req, res) => {
             content: term.content,
             version: term.version,
             isActive: term.isActive,
+            isTesting: term.isTesting,
             acceptanceCount: term.acceptanceCount,
             createdBy: term.createdBy,
             createdAt: term.createdAt,
@@ -272,6 +283,36 @@ exports.getLiveAcceptanceCount = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch acceptance count'
+        });
+    }
+};
+
+// Admin: Delete terms
+exports.deleteTerms = async (req, res) => {
+    try {
+        const { termsId } = req.params;
+
+        const terms = await TermsAndConditions.findById(termsId);
+
+        if (!terms) {
+            return res.status(404).json({
+                success: false,
+                message: 'Terms and conditions not found'
+            });
+        }
+
+        await TermsAndConditions.findByIdAndDelete(termsId);
+
+        res.json({
+            success: true,
+            message: 'Terms and conditions deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('Delete terms error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete terms'
         });
     }
 };

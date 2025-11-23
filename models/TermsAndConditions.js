@@ -22,6 +22,10 @@ const termsAndConditionsSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    isTesting: {
+        type: Boolean,
+        default: false
+    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

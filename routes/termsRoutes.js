@@ -24,5 +24,6 @@ router.post('/create', adminProtect, termsController.createTerms);
 router.get('/all', adminProtect, termsController.getAllTerms);
 router.get('/:termsId/details', adminProtect, termsController.getTermsAcceptanceDetails);
 router.get('/:termsId/count', adminProtect, termsController.getLiveAcceptanceCount);
+router.delete('/:termsId', adminProtect, termsController.deleteTerms);
 
 module.exports = router;
