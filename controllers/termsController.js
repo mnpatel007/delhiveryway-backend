@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const TermsAndConditions = require('../models/TermsAndConditions');
 const User = require('../models/User');
 
@@ -145,7 +146,6 @@ exports.createTerms = async (req, res) => {
 
         // If system admin (id === 'admin'), create a temporary ObjectId for reference
         if (createdById === 'admin') {
-            const mongoose = require('mongoose');
             createdById = new mongoose.Types.ObjectId();
         }
 
