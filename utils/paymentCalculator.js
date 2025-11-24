@@ -86,7 +86,8 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
 
         // Apply delivery discount
         const DeliveryDiscount = require('../models/DeliveryDiscount');
-        const discountResult = await DeliveryDiscount.findBestDiscount(deliveryFee, subtotal);
+        // FIX: Pass shopId to findBestDiscount to ensure shop-specific discounts are found
+        const discountResult = await DeliveryDiscount.findBestDiscount(deliveryFee, subtotal, shopId);
         const finalDeliveryFee = discountResult.finalFee;
         const deliveryDiscountAmount = discountResult.discountAmount;
 
@@ -136,7 +137,7 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
             distanceKm: deliveryFeeCalculation.distanceKm, // Distance in km for display
             deliveryMode: deliveryFeeCalculation.mode,
             locationMessage: deliveryFeeCalculation.message,
-            shopperEarning: finalDeliveryFee, // Shopper earns the discounted delivery fee (or maybe original? Usually shopper gets paid for the service, so maybe original? But if customer pays less, who pays the shopper? Assuming platform absorbs it or shopper gets less. For now, let's say shopper gets the final fee to be safe, or maybe original if it's a platform discount. Let's stick to finalFee for now to avoid money leak)
+            shopperEarning: finalDeliveryFee, // Shopper earns the discounted delivery fee
             deliveryFeeBreakdown: {
                 baseFee: deliveryFeeCalculation.baseFee,
                 distanceFee: deliveryFeeCalculation.distanceFee,
@@ -193,7 +194,8 @@ const recalculateRevisedPricing = async (revisedItems, originalPricing, shop = n
 
     // Apply delivery discount
     const DeliveryDiscount = require('../models/DeliveryDiscount');
-    const discountResult = await DeliveryDiscount.findBestDiscount(baseDeliveryFee, subtotal);
+    // FIX: Pass shop._id if available
+    const discountResult = await DeliveryDiscount.findBestDiscount(baseDeliveryFee, subtotal, shop ? shop._id : null);
     const finalDeliveryFee = discountResult.finalFee;
     const deliveryDiscountAmount = discountResult.discountAmount;
 
