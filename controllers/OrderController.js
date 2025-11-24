@@ -336,6 +336,8 @@ exports.placeOrder = async (req, res) => {
             orderValue: {
                 subtotal: pricing.subtotal,
                 deliveryFee: pricing.deliveryFee,
+                originalDeliveryFee: pricing.originalDeliveryFee,
+                deliveryDiscount: pricing.deliveryDiscount,
                 serviceFee: pricing.serviceFee,
                 taxes: pricing.taxes,
                 packagingCharges: pricing.packagingCharges,
@@ -806,72 +808,6 @@ exports.cancelOrder = async (req, res) => {
     }
 };
 
-// Approve bill
-exports.approveBill = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const order = await Order.findById(id);
-        if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found'
-            });
-        }
-
-        // Check if customer owns this order
-        if (order.customerId.toString() !== req.user._id.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied'
-            });
-        }
-
-        if (order.status !== 'bill_uploaded') {
-            return res.status(400).json({
-                success: false,
-                message: 'No bill to approve'
-            });
-        }
-
-        order.status = 'bill_approved';
-        order.actualBill.approvedAt = new Date();
-
-        order.timeline.push({
-            status: 'bill_approved',
-            timestamp: new Date(),
-            note: 'Bill approved by customer',
-            updatedBy: 'customer'
-        });
-
-        await order.save();
-
-        // Emit socket events
-        const io = req.app.get('io');
-
-        // Notify shopper
-        if (order.personalShopperId) {
-            io.to(`shopper_${order.personalShopperId}`).emit('billApproved', {
-                orderId: order._id,
-                orderNumber: order.orderNumber,
-                message: 'Bill approved! You can now proceed for delivery.'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Bill approved successfully'
-        });
-
-    } catch (error) {
-        console.error('Approve bill error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to approve bill'
-        });
-    }
-};
-
 // Reject bill
 exports.rejectBill = async (req, res) => {
     try {
@@ -1023,11 +959,6 @@ exports.rateOrder = async (req, res) => {
 exports.reviseOrderItems = async (req, res) => {
     try {
         console.log('🔄 Revise order items called');
-        console.log('📋 Request params:', req.params);
-        console.log('📋 Request body:', req.body);
-        console.log('👤 Shopper ID from auth:', req.shopperId);
-        console.log('👤 Shopper object:', req.shopper);
-
         const { id } = req.params;
         const { revisedItems, shopperNotes } = req.body;
 
@@ -1037,53 +968,21 @@ exports.reviseOrderItems = async (req, res) => {
             .populate('shopId');
 
         if (!order) {
-            console.log('❌ Order not found:', id);
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found'
-            });
+            return res.status(404).json({ success: false, message: 'Order not found' });
         }
-
-        console.log('📦 Order found:', {
-            id: order._id,
-            status: order.status,
-            personalShopperId: order.personalShopperId?._id
-        });
 
         // Check if shopper owns this order
         if (!order.personalShopperId || order.personalShopperId._id.toString() !== req.shopperId.toString()) {
-            console.log('❌ Access denied - shopper mismatch');
-            console.log('Order shopper:', order.personalShopperId?._id?.toString());
-            console.log('Request shopper:', req.shopperId?.toString());
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied'
-            });
+            return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
         if (order.status !== 'shopping_in_progress') {
-            return res.status(400).json({
-                success: false,
-                message: 'Order cannot be revised at this stage'
-            });
+            return res.status(400).json({ success: false, message: 'Order cannot be revised at this stage' });
         }
 
-        // Validate revised items: if marked available, quantity must be >= 1
+        // Validate revised items
         if (!Array.isArray(revisedItems) || revisedItems.length === 0) {
             return res.status(400).json({ success: false, message: 'Revised items are required' });
-        }
-
-        for (const r of revisedItems) {
-            const isAvail = r.isAvailable !== false; // treat undefined as available
-            if (isAvail) {
-                const q = Number(r.quantity);
-                if (!Number.isFinite(q) || q < 1) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Quantity cannot be zero for available items. Mark item as not available instead.'
-                    });
-                }
-            }
         }
 
         // Update items with revised quantities and availability
@@ -1099,7 +998,7 @@ exports.reviseOrderItems = async (req, res) => {
             return item;
         });
 
-        // Filter out unavailable items and prepare items for price calculation
+        // Prepare available items for pricing calculation
         const availableItems = updatedItems
             .filter(item => item.isAvailable !== false)
             .map(item => ({
@@ -1108,23 +1007,11 @@ exports.reviseOrderItems = async (req, res) => {
                 quantity: Number.isFinite(Number(item.revisedQuantity)) && Number(item.revisedQuantity) > 0 ? item.revisedQuantity : item.quantity
             }));
 
-        // Get delivery address from the order
+        // Calculate new pricing
         const deliveryAddress = order.deliveryAddress;
-        if (!deliveryAddress || !deliveryAddress.coordinates) {
-            return res.status(400).json({
-                success: false,
-                message: 'Delivery address coordinates are missing'
-            });
-        }
+        const pricing = await calculateOrderPricing(availableItems, order.shopId._id, deliveryAddress);
 
-        // Calculate new pricing using the payment calculator
-        const pricing = await calculateOrderPricing(
-            availableItems,
-            order.shopId._id,
-            deliveryAddress
-        );
-
-        // Update order with revised items and pricing
+        // Update order
         order.items = updatedItems;
         order.revisedOrderValue = {
             subtotal: pricing.subtotal,
@@ -1135,44 +1022,30 @@ exports.reviseOrderItems = async (req, res) => {
             total: pricing.total
         };
 
-        // Shopper earns exactly the delivery fee amount
         order.shopperCommission = pricing.deliveryFee;
         order.status = 'customer_reviewing_revision';
 
-        // Notify customer about revision
+        await order.save();
+
+        // Notify customer
         const io = req.app.get('io');
         io.to(`customer_${order.customerId._id}`).emit('orderRevised', {
             orderId: order._id,
             orderNumber: order.orderNumber,
             message: 'Your shopper has revised your order. Please review the changes.',
             revisedTotal: pricing.total,
-            pricingBreakdown: {
-                subtotal: pricing.subtotal,
-                deliveryFee: pricing.deliveryFee,
-                taxes: pricing.taxes,
-                total: pricing.total
-            }
+            pricingBreakdown: pricing
         });
 
         res.json({
             success: true,
             message: 'Order revised successfully',
-            data: {
-                order: {
-                    _id: order._id,
-                    status: order.status,
-                    revisedOrderValue: order.revisedOrderValue,
-                    shopperCommission: order.shopperCommission
-                }
-            }
+            data: { order }
         });
 
     } catch (error) {
         console.error('Revise order error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to revise order'
-        });
+        res.status(500).json({ success: false, message: 'Failed to revise order' });
     }
 };
 
