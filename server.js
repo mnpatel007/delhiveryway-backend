@@ -145,6 +145,48 @@ io.on('connection', (socket) => {
         console.log(`🛒 Personal Shopper ${shopperId} joined shopper rooms`);
     });
 
+    // Handle Shopper Location Updates
+    socket.on('shopperLocationUpdate', async (data) => {
+        try {
+            const { shopperId, location } = data;
+            // console.log(`📍 Location update from Shopper ${shopperId}`);
+
+            // Find all active orders for this shopper
+            const Order = require('./models/Order');
+            const activeOrders = await Order.find({
+                personalShopperId: shopperId,
+                status: {
+                    $in: [
+                        'accepted_by_shopper',
+                        'shopper_at_shop',
+                        'shopping_in_progress',
+                        'shopper_revised_order',
+                        'customer_reviewing_revision',
+                        'customer_approved_revision',
+                        'final_shopping',
+                        'picked_up',
+                        'out_for_delivery'
+                    ]
+                }
+            }).select('customerId _id');
+
+            // Relay location to each customer
+            activeOrders.forEach(order => {
+                if (order.customerId) {
+                    io.to(`customer_${order.customerId}`).emit('shopperLocationUpdate', {
+                        orderId: order._id,
+                        shopperId: shopperId,
+                        location: location
+                    });
+                    // console.log(`📡 Relayed to Customer ${order.customerId}`);
+                }
+            });
+
+        } catch (error) {
+            console.error('Error relaying location:', error);
+        }
+    });
+
     socket.on('disconnect', () => {
         console.log('🔌 Socket disconnected:', socket.id);
     });
