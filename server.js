@@ -178,12 +178,21 @@ io.on('connection', (socket) => {
                         shopperId: shopperId,
                         location: location
                     });
-                    // console.log(`📡 Relayed to Customer ${order.customerId}`);
                 }
             });
 
+            // DEBUG BROADCAST: Help us debug why it might fail
+            const debugInfo = {
+                msg: 'Server received loc update',
+                shopperId,
+                ordersFound: activeOrders.length,
+                customers: activeOrders.map(o => o.customerId)
+            };
+            io.emit('debug_server_msg', debugInfo); // Broadcast to all for easy debugging
+
         } catch (error) {
             console.error('Error relaying location:', error);
+            io.emit('debug_server_msg', { error: error.message });
         }
     });
 
