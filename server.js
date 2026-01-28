@@ -30,6 +30,7 @@ const allowedOrigins = [
     'https://stagging.admin.delhiveryway.com',
     'capacitor://localhost',
     'http://localhost', // For Android/iOS
+    'https://localhost', // For Android Production Build
     'http://10.0.2.2', // For Android Emulator
     process.env.FRONTEND_URL,
     process.env.ADMIN_FRONTEND_URL,
