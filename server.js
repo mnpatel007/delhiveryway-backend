@@ -27,6 +27,10 @@ const allowedOrigins = [
     'https://shopper.delhiveryway.com',
     'https://stagging.delhiveryway.com',
     'https://stagging.admin.delhiveryway.com',
+    'https://stagging.admin.delhiveryway.com',
+    'capacitor://localhost',
+    'http://localhost', // For Android/iOS
+    'http://10.0.2.2', // For Android Emulator
     process.env.FRONTEND_URL,
     process.env.ADMIN_FRONTEND_URL,
     process.env.SHOPPER_FRONTEND_URL
