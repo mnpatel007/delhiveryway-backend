@@ -72,9 +72,9 @@ const acceptOrder = async (req, res) => {
         // Check if shopper is online
         const shopper = await PersonalShopper.findById(shopperId);
         if (!shopper || !shopper.isOnline) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'You are currently offline. Please contact admin to go online.' 
+            return res.status(403).json({
+                success: false,
+                message: 'You are currently offline. Please contact admin to go online.'
             });
         }
 
@@ -150,9 +150,9 @@ const updateOrderStatus = async (req, res) => {
         // Check if shopper is online
         const shopper = await PersonalShopper.findById(shopperId);
         if (!shopper || !shopper.isOnline) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'You are currently offline. Please contact admin to go online.' 
+            return res.status(403).json({
+                success: false,
+                message: 'You are currently offline. Please contact admin to go online.'
             });
         }
 
@@ -185,6 +185,12 @@ const updateOrderStatus = async (req, res) => {
                 note: getStatusNote(status),
                 updatedBy: 'shopper'
             });
+
+            // Set actualDeliveryTime if delivered
+            if (status === 'delivered') {
+                order.actualDeliveryTime = new Date();
+                order.payment.status = 'paid'; // Assume paid on delivery for now (cash/upi)
+            }
         }
 
         await order.save();
@@ -412,7 +418,7 @@ const getCompletedOrders = async (req, res) => {
         })
             .populate('customerId', 'name phone')
             .populate('shopId', 'name address')
-            .sort({ deliveredAt: -1 })
+            .sort({ actualDeliveryTime: -1, updatedAt: -1 })
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
