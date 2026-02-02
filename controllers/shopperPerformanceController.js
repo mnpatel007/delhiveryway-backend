@@ -7,6 +7,18 @@ exports.getShopperPerformance = async (req, res) => {
         const { days = 30, sortBy = 'rating', order = 'desc' } = req.query;
 
         // Calculate date range
+        // If days is provided, filter by date. If not or if large value, show all history or larger range.
+        // The user complained about missing 2025 data. If we remove the filter or make it optional, it solves it.
+        // Let's rely on the query param but default to a much larger window if they want "all history" behavior effectively,
+        // or just let the frontend control it. The frontend sends days=30.
+        // I will change the default in the controller to a larger value if not provided, 
+        // AND handle the case where we might want all time.
+        // But the frontend is explicitly requesting `days=30`. I should check if I can update the frontend request too.
+        // For now, let's just respect the 'days' param but fix the controller logic if it's filtering incorrectly. 
+        // Actually, the user says "no data from 2025". If the frontend asks for 30 days, they won't see 2025 data if it's older than 30 days.
+        // I will update the frontend to request `days=365` or similar to show more history.
+        // But here in the backend, I should just ensure we don't accidentally filter out recent valid data.
+        // The existing logic seems correct for `days`.
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - parseInt(days));
 
@@ -173,14 +185,14 @@ exports.getShopperPerformance = async (req, res) => {
                             totalRatings: ratedOrders.length,
                             onTimeDeliveryRate: Math.round(onTimeDeliveryRate * 10) / 10,
                             avgDeliveryTime,
-                            totalEarnings: Math.round(totalEarnings),
-                            avgEarningsPerOrder: Math.round(avgEarningsPerOrder),
+                            totalEarnings: Math.round(totalEarnings * 100) / 100, // Keep 2 decimal places
+                            avgEarningsPerOrder: Math.round(avgEarningsPerOrder * 100) / 100, // Keep 2 decimal places
                             customerSatisfactionRate: Math.round(customerSatisfactionRate * 10) / 10,
                             ordersThisWeek,
-                            earningsThisWeek: Math.round(earningsThisWeek),
-                            earningsToday: Math.round(earningsToday),
-                            earningsYesterday: Math.round(earningsYesterday),
-                            earningsDayBefore: Math.round(earningsDayBefore),
+                            earningsThisWeek: Math.round(earningsThisWeek * 100) / 100,
+                            earningsToday: Math.round(earningsToday * 100) / 100,
+                            earningsYesterday: Math.round(earningsYesterday * 100) / 100,
+                            earningsDayBefore: Math.round(earningsDayBefore * 100) / 100,
                             lastOrderDate,
                             complaints
                         }
