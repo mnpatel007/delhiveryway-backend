@@ -61,7 +61,12 @@ exports.calculateFee = async (req, res) => {
         );
 
         // Apply discount
+        // console.log(`Calculating fees for Shop: ${shop.name} (${shop._id}), Order Value: ${orderValue}, Original Fee: ${feeCalculation.totalFee}`);
         const discountResult = await applyBestDiscount(feeCalculation.totalFee, orderValue, shopId);
+
+        if (discountResult.discountApplied) {
+            console.log(`✅ Discount Applied for ${shop.name}: ${discountResult.discountApplied.name} (-${discountResult.discountAmount})`);
+        }
 
         res.json({
             success: true,

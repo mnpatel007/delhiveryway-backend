@@ -72,11 +72,28 @@ deliveryDiscountSchema.statics.findBestDiscount = async function (originalFee, o
 
     // If shopId is provided, find discounts for this shop OR global discounts (shopId: null)
     if (shopId) {
-        query.$or = [
-            { shopId: shopId },
-            { shopId: null },
-            { shopId: { $exists: false } } // For backward compatibility
-        ];
+        // Ensure shopId is an ObjectId
+        let shopObjectId = shopId;
+        try {
+            if (typeof shopId === 'string') {
+                shopObjectId = new mongoose.Types.ObjectId(shopId);
+            }
+        } catch (e) {
+            console.error('Invalid shopId provided to findBestDiscount:', shopId);
+            // If invalid ObjectId, just return global discounts, don't crash
+            shopObjectId = null;
+        }
+
+        if (shopObjectId) {
+            query.$or = [
+                { shopId: shopObjectId },
+                { shopId: null },
+                { shopId: { $exists: false } } // For backward compatibility
+            ];
+        } else {
+            query.shopId = null;
+        }
+
     } else {
         // If no shopId provided (shouldn't happen for real orders but maybe for general estimates),
         // only return global discounts
