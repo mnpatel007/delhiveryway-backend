@@ -56,7 +56,7 @@ async function sendMail({ to, subject, text, html, replyTo }) {
 
             // 3. Send over HTTP (port 443 allows bypass of Render SMTP block)
             const response = await axios.post(
-                'https://gmail.googleapis.com/upload/gmail/v1/users/me/messages/send',
+                'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
                 { raw: encodedMessage },
                 {
                     headers: {
