@@ -580,7 +580,7 @@ exports.getProfile = async (req, res) => {
 // Update user profile
 exports.updateProfile = async (req, res) => {
     try {
-        const { name, phone, address } = req.body;
+        const { name, phone, countryCode, address } = req.body;
         const user = await User.findById(req.user._id);
 
         if (!user) {
@@ -592,6 +592,7 @@ exports.updateProfile = async (req, res) => {
 
         // Update allowed fields
         if (name) user.name = name.trim();
+        if (countryCode) user.countryCode = countryCode.trim();
         if (phone) {
             const phoneRegex = /^[0-9]{10}$/;
             if (!phoneRegex.test(phone)) {
