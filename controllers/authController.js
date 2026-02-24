@@ -603,7 +603,16 @@ exports.updateProfile = async (req, res) => {
             }
             user.phone = phone.trim();
         }
-        if (address) user.address = address;
+        if (address) {
+            // Ensure we don't overwrite the entire address object (e.g., losing coordinates)
+            user.address = {
+                ...user.address,
+                street: address.street !== undefined ? address.street : user.address?.street,
+                city: address.city !== undefined ? address.city : user.address?.city,
+                state: address.state !== undefined ? address.state : user.address?.state,
+                zipCode: address.zipCode !== undefined ? address.zipCode : user.address?.zipCode,
+            };
+        }
 
         await user.save();
 
