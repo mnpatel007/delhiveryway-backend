@@ -15,7 +15,7 @@ exports.sendContactMessage = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
         }
 
-        const recipient = 'meetnp007@gmail.com';
+        const recipient = process.env.GMAIL_USER || 'meetnp007@gmail.com';
         const finalSubject = `[Contact] ${subject && subject.trim() ? subject.trim() : 'New message from customer'}`;
 
         const safe = (v) => String(v || '').replace(/[<>]/g, '');

@@ -31,7 +31,7 @@ function createTransport() {
 async function sendMail({ to, subject, text, html, replyTo }) {
     const transporter = createTransport();
 
-    const from = process.env.MAIL_FROM || 'DelhiveryWay Support <no-reply@delhiveryway.com>';
+    const from = process.env.MAIL_FROM || 'DelhiveryWay <meetnp007@gmail.com>';
 
     const info = await transporter.sendMail({
         from,
