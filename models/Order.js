@@ -147,7 +147,9 @@ const orderSchema = new mongoose.Schema({
         },
         instructions: String,
         contactName: String,
-        contactPhone: String
+        contactPhone: String,
+        permanentContactPhone: String,
+        permanentCountryCode: String
     },
     status: {
         type: String,

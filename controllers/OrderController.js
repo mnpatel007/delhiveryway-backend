@@ -347,7 +347,9 @@ exports.placeOrder = async (req, res) => {
             deliveryAddress: {
                 ...deliveryAddress,
                 contactName: deliveryAddress.contactName || req.user.name,
-                contactPhone: deliveryAddress.contactPhone || req.user.phone
+                contactPhone: deliveryAddress.contactPhone || req.user.phone,
+                permanentContactPhone: deliveryAddress.permanentContactPhone,
+                permanentCountryCode: deliveryAddress.permanentCountryCode
             },
             specialInstructions,
             payment: {
