@@ -3,7 +3,7 @@ const axios = require('axios');
 const { OAuth2Client } = require('google-auth-library');
 
 async function sendMail({ to, subject, text, html, replyTo }) {
-    const from = process.env.MAIL_FROM || `DelhiveryWay <${process.env.GMAIL_USER || 'meetnp007@gmail.com'}>`;
+    const from = process.env.MAIL_FROM || `DelhiveryWay <${process.env.GMAIL_USER || 'delhiveryway@gmail.com'}>`;
 
     // Priority 1: Generic SMTP settings (if you upgrade hosting in the future)
     if (process.env.SMTP_HOST) {
