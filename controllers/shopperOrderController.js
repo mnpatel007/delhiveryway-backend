@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const PersonalShopper = require('../models/PersonalShopper');
+const { sendOrderBill } = require('../utils/mailer');
 
 // Helper function to get status note
 const getStatusNote = (status) => {
@@ -159,7 +160,9 @@ const updateOrderStatus = async (req, res) => {
         const order = await Order.findOne({
             _id: orderId,
             personalShopperId: shopperId
-        });
+        })
+            .populate('customerId', 'name email')
+            .populate('shopId', 'name');
 
         if (!order) {
             return res.status(404).json({ message: 'Order not found or not assigned to you' });
@@ -235,6 +238,11 @@ const updateOrderStatus = async (req, res) => {
             details: statusInfo.details,
             timestamp: new Date().toISOString()
         });
+
+        // Send automated billing email if delivered or cancelled
+        if (status === 'delivered' || status === 'cancelled') {
+            sendOrderBill(order, status).catch(err => console.error('Bill email error:', err));
+        }
 
         res.json({
             message: 'Order status updated successfully',

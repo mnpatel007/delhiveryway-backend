@@ -5,6 +5,7 @@ const Order = require('../models/Order');
 const PersonalShopper = require('../models/PersonalShopper');
 const TermsAndConditions = require('../models/TermsAndConditions');
 const mongoose = require('mongoose');
+const { sendOrderBill } = require('../utils/mailer');
 
 // Admin login
 exports.adminLogin = async (req, res) => {
@@ -1961,7 +1962,7 @@ exports.createTerms = async (req, res) => {
 
         // Create new terms - handle both system admin (string id) and database admins (ObjectId)
         let createdById = req.user._id;
-        
+
         // If system admin (id === 'admin'), create a temporary ObjectId for reference
         if (createdById === 'admin') {
             createdById = new mongoose.Types.ObjectId();

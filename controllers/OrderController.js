@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const PersonalShopper = require('../models/PersonalShopper');
 const User = require('../models/User');
 const { calculateOrderPricing } = require('../utils/paymentCalculator');
+const { sendOrderBill } = require('../utils/mailer');
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
@@ -588,7 +589,8 @@ exports.updateOrderStatus = async (req, res) => {
         const { status, note, billPhoto, billAmount } = req.body;
 
         const order = await Order.findById(id)
-            .populate('customerId', 'name phone')
+            .populate('customerId', 'name phone email')
+            .populate('shopId', 'name')
             .populate('personalShopperId', 'name phone');
 
         if (!order) {
@@ -709,6 +711,11 @@ exports.updateOrderStatus = async (req, res) => {
             });
         }
 
+        // Send automated billing email if delivered or cancelled
+        if (status === 'delivered' || status === 'cancelled') {
+            sendOrderBill(order, status).catch(err => console.error('Bill email error:', err));
+        }
+
         res.json({
             success: true,
             message: 'Order status updated successfully',
@@ -736,7 +743,9 @@ exports.cancelOrder = async (req, res) => {
         const { id } = req.params;
         const { reason } = req.body;
 
-        const order = await Order.findById(id);
+        const order = await Order.findById(id)
+            .populate('customerId', 'name email')
+            .populate('shopId', 'name');
         if (!order) {
             return res.status(404).json({
                 success: false,
@@ -795,6 +804,9 @@ exports.cancelOrder = async (req, res) => {
                 reason: order.cancellationReason
             });
         }
+
+        // Send automated cancellation email
+        sendOrderBill(order, 'cancelled').catch(err => console.error('Cancellation email error:', err));
 
         res.json({
             success: true,
