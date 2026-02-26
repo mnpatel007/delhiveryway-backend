@@ -109,27 +109,57 @@ exports.signup = async (req, res) => {
 
                 // Send verification email via standard mailer
                 const emailHtml = `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                        <h2 style="color: #4a90e2;">Welcome to DelhiveryWay!</h2>
-                        <p>Thank you for signing up. Please verify your email address to complete your registration.</p>
-                        <div style="text-align: center; margin: 30px 0;">
-                            <a href="${verificationLink}" 
-                               style="background-color: #4a90e2; color: white; padding: 12px 30px; 
-                                      text-decoration: none; border-radius: 5px; display: inline-block;">
-                                Verify Email Address
-                            </a>
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="utf-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Verify your email</title>
+                        <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+                            body { font-family: 'Inter', Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; }
+                            .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+                            .header { background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; padding: 40px 30px; text-align: center; }
+                            .header h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+                            .header p { margin: 10px 0 0; font-size: 15px; opacity: 0.9; }
+                            .content { padding: 40px 30px; text-align: center; }
+                            .greeting { font-size: 18px; font-weight: 600; color: #111827; margin-top: 0; margin-bottom: 20px; }
+                            .message { color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
+                            .btn { display: inline-block; background: linear-gradient(135deg, #4f46e5, #4338ca); color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3); transition: transform 0.2s; }
+                            .link-box { margin-top: 30px; background: #f9fafb; padding: 15px; border-radius: 8px; font-size: 13px; color: #6b7280; word-break: break-all; }
+                            .warning { color: #dc2626; font-size: 14px; font-weight: 600; margin-top: 20px; }
+                            .footer { background: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #e5e7eb; }
+                            .disclaimer { font-size: 12px; color: #9ca3af; margin: 0; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>Welcome to DelhiveryWay!</h1>
+                                <p>We're thrilled to have you here.</p>
+                            </div>
+                            
+                            <div class="content">
+                                <p class="greeting">Hi ${user.name || 'there'},</p>
+                                <p class="message">Thank you for signing up. Please verify your email address to complete your registration and start discovering amazing local stores.</p>
+                                
+                                <a href="${verificationLink}" class="btn">Verify Email Address</a>
+                                
+                                <div class="link-box">
+                                    If the button doesn't work, copy and paste this link into your browser:<br><br>
+                                    <a href="${verificationLink}" style="color: #4f46e5;">${verificationLink}</a>
+                                </div>
+                                
+                                <p class="warning">📧 Can't find this email? Please check your spam/junk folder!</p>
+                            </div>
+                            
+                            <div class="footer">
+                                <p class="disclaimer">This link will expire in 24 hours. If you didn't create an account, please ignore this email.</p>
+                                <p class="disclaimer" style="margin-top: 10px;">&copy; ${new Date().getFullYear()} DelhiveryWay. All rights reserved.</p>
+                            </div>
                         </div>
-                        <p style="color: #666; font-size: 14px;">
-                            If the button doesn't work, copy and paste this link into your browser:<br>
-                            <a href="${verificationLink}">${verificationLink}</a>
-                        </p>
-                        <p style="color: #666; font-size: 12px;">
-                            This link will expire in 24 hours. If you didn't create an account, please ignore this email.
-                        </p>
-                        <p style="color: #e74c3c; font-size: 14px; font-weight: bold; text-align: center; margin-top: 20px;">
-                            📧 Can't find this email? Please check your spam/junk folder!
-                        </p>
-                    </div>
+                    </body>
+                    </html>
                 `;
                 const emailText = `Welcome to DelhiveryWay!\n\nThank you for signing up. Please verify your email address to complete your registration.\n\nVerify using this link:\n${verificationLink}\n\nThis link will expire in 24 hours. If you didn't create an account, please ignore this email.`;
 
@@ -436,24 +466,54 @@ exports.forgotPassword = async (req, res) => {
             const resetLink = `${frontendURL}/reset-password?token=${resetToken}&email=${email}`;
 
             const resetHtml = `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #4a90e2;">Password Reset Request</h2>
-                    <p>You requested a password reset for your DelhiveryWay account.</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="${resetLink}" 
-                           style="background-color: #4a90e2; color: white; padding: 12px 30px; 
-                                  text-decoration: none; border-radius: 5px; display: inline-block;">
-                            Reset Password
-                        </a>
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Password Reset Request</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+                        body { font-family: 'Inter', Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; }
+                        .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+                        .header { background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; padding: 40px 30px; text-align: center; }
+                        .header h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+                        .header p { margin: 10px 0 0; font-size: 15px; opacity: 0.9; }
+                        .content { padding: 40px 30px; text-align: center; }
+                        .greeting { font-size: 18px; font-weight: 600; color: #111827; margin-top: 0; margin-bottom: 20px; }
+                        .message { color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
+                        .btn { display: inline-block; background: linear-gradient(135deg, #4f46e5, #4338ca); color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3); transition: transform 0.2s; }
+                        .link-box { margin-top: 30px; background: #f9fafb; padding: 15px; border-radius: 8px; font-size: 13px; color: #6b7280; word-break: break-all; }
+                        .footer { background: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #e5e7eb; }
+                        .disclaimer { font-size: 12px; color: #9ca3af; margin: 0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>Password Reset</h1>
+                            <p>Secure Account Recovery</p>
+                        </div>
+                        
+                        <div class="content">
+                            <p class="greeting">Hi ${user.name || 'there'},</p>
+                            <p class="message">We received a request to reset the password for your DelhiveryWay account. Click the button below to choose a new password.</p>
+                            
+                            <a href="${resetLink}" class="btn">Reset Password</a>
+                            
+                            <div class="link-box">
+                                If the button doesn't work, copy and paste this link into your browser:<br><br>
+                                <a href="${resetLink}" style="color: #4f46e5;">${resetLink}</a>
+                            </div>
+                        </div>
+                        
+                        <div class="footer">
+                            <p class="disclaimer">This link will expire in 30 minutes. If you didn't request a password reset, you can safely ignore this email.</p>
+                            <p class="disclaimer" style="margin-top: 10px;">&copy; ${new Date().getFullYear()} DelhiveryWay. All rights reserved.</p>
+                        </div>
                     </div>
-                    <p style="color: #666; font-size: 14px;">
-                        If the button doesn't work, copy and paste this link into your browser:<br>
-                        <a href="${resetLink}">${resetLink}</a>
-                    </p>
-                    <p style="color: #666; font-size: 12px;">
-                        This link will expire in 30 minutes. If you didn't request this reset, please ignore this email.
-                    </p>
-                </div>
+                </body>
+                </html>
             `;
             const resetText = `Password Reset Request\n\nYou requested a password reset for your DelhiveryWay account.\nReset using this link:\n${resetLink}\n\nThis link will expire in 30 minutes. If you didn't request this reset, please ignore this email.`;
 
