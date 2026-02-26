@@ -205,7 +205,7 @@ const updateOrderStatus = async (req, res) => {
         const statusInfo = getStatusNotificationInfo(status, order);
 
         // Notify customer with detailed information
-        io.to(`customer_${order.customerId}`).emit('orderUpdate', {
+        io.to(`customer_${order.customerId._id || order.customerId}`).emit('orderUpdate', {
             orderId: order._id,
             orderNumber: order.orderNumber,
             status: status,
@@ -220,7 +220,7 @@ const updateOrderStatus = async (req, res) => {
         });
 
         // Also emit a standard orderStatusUpdate for customer listeners
-        io.to(`customer_${order.customerId}`).emit('orderStatusUpdate', {
+        io.to(`customer_${order.customerId._id || order.customerId}`).emit('orderStatusUpdate', {
             orderId: order._id,
             orderNumber: order.orderNumber,
             status: status,
@@ -229,7 +229,7 @@ const updateOrderStatus = async (req, res) => {
         });
 
         // Send specific notification based on status
-        io.to(`customer_${order.customerId}`).emit('shopperAction', {
+        io.to(`customer_${order.customerId._id || order.customerId}`).emit('shopperAction', {
             orderId: order._id,
             orderNumber: order.orderNumber,
             action: status,

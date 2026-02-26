@@ -1109,7 +1109,7 @@ exports.updateOrderStatus = async (req, res) => {
         const io = req.app.get('io');
 
         // Notify customer
-        io.to(`customer_${order.customerId}`).emit('orderStatusUpdate', {
+        io.to(`customer_${order.customerId._id || order.customerId}`).emit('orderStatusUpdate', {
             orderId: order._id,
             orderNumber: order.orderNumber,
             status: order.status,
@@ -1203,7 +1203,7 @@ exports.cancelOrderWithReason = async (req, res) => {
         const io = req.app.get('io');
 
         // Notify customer
-        io.to(`customer_${order.customerId}`).emit('orderCancelled', {
+        io.to(`customer_${order.customerId._id || order.customerId}`).emit('orderCancelled', {
             orderId: order._id,
             orderNumber: order.orderNumber,
             reason: reason.trim(),

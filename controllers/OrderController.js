@@ -790,7 +790,7 @@ exports.cancelOrder = async (req, res) => {
         const io = req.app.get('io');
 
         // Notify customer
-        io.to(`customer_${order.customerId}`).emit('orderCancelled', {
+        io.to(`customer_${order.customerId._id || order.customerId}`).emit('orderCancelled', {
             orderId: order._id,
             orderNumber: order.orderNumber,
             reason: order.cancellationReason
