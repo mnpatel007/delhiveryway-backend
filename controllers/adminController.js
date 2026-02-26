@@ -1071,7 +1071,9 @@ exports.updateOrderStatus = async (req, res) => {
         const { orderId } = req.params;
         const { status, note } = req.body;
 
-        const order = await Order.findById(orderId);
+        const order = await Order.findById(orderId)
+            .populate('customerId', 'name email')
+            .populate('shopId', 'name');
 
         if (!order) {
             return res.status(404).json({
@@ -1156,7 +1158,9 @@ exports.cancelOrderWithReason = async (req, res) => {
             });
         }
 
-        const order = await Order.findById(orderId);
+        const order = await Order.findById(orderId)
+            .populate('customerId', 'name email')
+            .populate('shopId', 'name');
 
         if (!order) {
             return res.status(404).json({
@@ -1215,6 +1219,9 @@ exports.cancelOrderWithReason = async (req, res) => {
                 cancelledBy: 'admin'
             });
         }
+
+        // Send automated cancellation email
+        sendOrderBill(order, 'cancelled').catch(err => console.error('Cancellation email error:', err));
 
         res.json({
             success: true,
