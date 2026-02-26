@@ -88,8 +88,8 @@ exports.sendContactMessage = async (req, res) => {
                         <p style="color:#6b7280; font-size: 14px; line-height: 1.5; margin-bottom: 20px;">Join our community online and never miss an update on incredible discoveries from your local stores.</p>
                         
                         <div class="socials">
-                            <a href="https://instagram.com/delhiveryway" class="btn-insta">Follow Instagram</a>
-                            <a href="https://facebook.com/delhiveryway" class="btn-fb">Like Facebook</a>
+                            <a href="https://instagram.com/delhiveryway" class="btn-insta" style="color: #ffffff !important; text-decoration: none;">Follow Instagram</a>
+                            <a href="https://facebook.com/delhiveryway" class="btn-fb" style="color: #ffffff !important; text-decoration: none;">Like Facebook</a>
                         </div>
                         
                         <p class="disclaimer">This is an automated response to your contact form submission.</p>

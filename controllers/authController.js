@@ -143,7 +143,7 @@ exports.signup = async (req, res) => {
                                 <p class="greeting">Hi ${user.name || 'there'},</p>
                                 <p class="message">Thank you for signing up. Please verify your email address to complete your registration and start discovering amazing local stores.</p>
                                 
-                                <a href="${verificationLink}" class="btn">Verify Email Address</a>
+                                <a href="${verificationLink}" class="btn" style="color: #ffffff !important; text-decoration: none;">Verify Email Address</a>
                                 
                                 <div class="link-box">
                                     If the button doesn't work, copy and paste this link into your browser:<br><br>
@@ -499,7 +499,7 @@ exports.forgotPassword = async (req, res) => {
                             <p class="greeting">Hi ${user.name || 'there'},</p>
                             <p class="message">We received a request to reset the password for your DelhiveryWay account. Click the button below to choose a new password.</p>
                             
-                            <a href="${resetLink}" class="btn">Reset Password</a>
+                            <a href="${resetLink}" class="btn" style="color: #ffffff !important; text-decoration: none;">Reset Password</a>
                             
                             <div class="link-box">
                                 If the button doesn't work, copy and paste this link into your browser:<br><br>
