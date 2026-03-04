@@ -135,7 +135,7 @@ exports.getDashboardStats = async (req, res) => {
                 },
                 {
                     $match: {
-                        'customer.email': { $ne: 'meetnp007@gmail.com' }
+                        'customer.email': { $nin: ['meetnp007@gmail.com', 'ayupro916@gmail.com', 'ce230004015@iiti.ac.in'] }
                     }
                 },
                 {
@@ -181,7 +181,7 @@ exports.getDashboardStats = async (req, res) => {
                 },
                 {
                     $match: {
-                        'customer.email': { $ne: 'meetnp007@gmail.com' }
+                        'customer.email': { $nin: ['meetnp007@gmail.com', 'ayupro916@gmail.com', 'ce230004015@iiti.ac.in'] }
                     }
                 },
                 {
@@ -206,7 +206,7 @@ exports.getDashboardStats = async (req, res) => {
                 },
                 {
                     $match: {
-                        'customer.email': { $ne: 'meetnp007@gmail.com' }
+                        'customer.email': { $nin: ['meetnp007@gmail.com', 'ayupro916@gmail.com', 'ce230004015@iiti.ac.in'] }
                     }
                 },
                 {
@@ -231,7 +231,7 @@ exports.getDashboardStats = async (req, res) => {
                 },
                 {
                     $match: {
-                        'customer.email': { $ne: 'meetnp007@gmail.com' }
+                        'customer.email': { $nin: ['meetnp007@gmail.com', 'ayupro916@gmail.com', 'ce230004015@iiti.ac.in'] }
                     }
                 },
                 {
@@ -282,7 +282,7 @@ exports.getDashboardStats = async (req, res) => {
                 },
                 {
                     $match: {
-                        'customer.email': { $ne: 'meetnp007@gmail.com' }
+                        'customer.email': { $nin: ['meetnp007@gmail.com', 'ayupro916@gmail.com', 'ce230004015@iiti.ac.in'] }
                     }
                 },
                 {
