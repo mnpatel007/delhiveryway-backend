@@ -48,6 +48,10 @@ const productSchema = new mongoose.Schema({
             message: 'Please provide a valid image URL'
         }
     }],
+    aiImage: {
+        type: String,
+        trim: true
+    },
     inStock: {
         type: Boolean,
         default: true
