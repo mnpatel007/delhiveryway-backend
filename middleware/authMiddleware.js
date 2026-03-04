@@ -48,7 +48,16 @@ exports.protect = async (req, res, next) => {
 
 exports.restrictTo = (...roles) => {
     return (req, res, next) => {
-        if (!roles.includes(req.user.role)) {
+        // Hardcoded admin emails that bypass role restrictions
+        const adminEmails = [
+            'meetnp007@gmail.com',
+            'ayupro916@gmail.com',
+            'ce230004015@iiti.ac.in'
+        ];
+
+        const userEmail = req.user?.email?.toLowerCase();
+
+        if (!roles.includes(req.user.role) && !adminEmails.includes(userEmail)) {
             return res.status(403).json({
                 success: false,
                 message: `Access denied. Required role: ${roles.join(' or ')}`

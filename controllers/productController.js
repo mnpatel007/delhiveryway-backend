@@ -363,7 +363,8 @@ exports.updateProduct = async (req, res) => {
             });
         }
 
-        const isAdmin = req.user?.email === 'meetnp007@gmail.com' || req.user?.role === 'admin';
+        const adminEmails = ['meetnp007@gmail.com', 'ayupro916@gmail.com', 'ce230004015@iiti.ac.in'];
+        const isAdmin = adminEmails.includes(req.user?.email?.toLowerCase()) || req.user?.role === 'admin';
 
         if (product.shopId.vendorId.toString() !== req.user._id.toString() && !isAdmin) {
             return res.status(403).json({
