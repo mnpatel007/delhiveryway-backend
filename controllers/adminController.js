@@ -1834,6 +1834,73 @@ exports.getAnalytics = async (req, res) => {
         });
     }
 };
+// GET Shop-wise Revenue by Month (Admin only)
+exports.getShopRevenue = async (req, res) => {
+    try {
+        console.log('📊 Admin revenue aggregation request received');
+
+        const revenueData = await Order.aggregate([
+            {
+                $match: {
+                    status: 'delivered'
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        shopId: '$shopId',
+                        year: { $year: '$createdAt' },
+                        month: { $month: '$createdAt' }
+                    },
+                    monthlyRevenue: { $sum: '$orderValue.total' },
+                    orderCount: { $sum: 1 }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'shops',
+                    localField: '_id.shopId',
+                    foreignField: '_id',
+                    as: 'shopInfo'
+                }
+            },
+            {
+                $unwind: '$shopInfo'
+            },
+            {
+                $project: {
+                    _id: 0,
+                    shopId: '$_id.shopId',
+                    shopName: '$shopInfo.name',
+                    year: '$_id.year',
+                    month: '$_id.month',
+                    revenue: '$monthlyRevenue',
+                    orders: '$orderCount'
+                }
+            },
+            {
+                $sort: { year: -1, month: -1, shopName: 1 }
+            }
+        ]);
+
+        console.log(`✅ Revenue data aggregated: ${revenueData.length} records found`);
+
+        res.json({
+            success: true,
+            data: {
+                revenue: revenueData
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Get shop revenue error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch shop revenue details'
+        });
+    }
+};
+
 // Terms and Conditions Management
 
 // Get current active terms

@@ -22,7 +22,8 @@ const {
     deleteUser,
     deleteShop,
     deletePersonalShopper,
-    getAnalytics
+    getAnalytics,
+    getShopRevenue
 } = require('../controllers/adminController');
 const { adminProtect } = require('../middleware/authMiddleware');
 
@@ -85,6 +86,7 @@ const { getShopperPerformance, getShopperDetailedPerformance } = require('../con
 router.get('/shoppers/performance', adminProtect, getShopperPerformance);
 router.get('/shoppers/:shopperId/performance', adminProtect, getShopperDetailedPerformance);
 router.get('/analytics', adminProtect, getAnalytics);
+router.get('/revenue', adminProtect, getShopRevenue);
 
 // Update operations
 router.put('/users/:userId/status', adminProtect, updateUserStatus);
