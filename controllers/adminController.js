@@ -1839,10 +1839,55 @@ exports.getShopRevenue = async (req, res) => {
     try {
         console.log('📊 Admin revenue aggregation request received');
 
-        const revenueData = await Order.aggregate([
+        const testShopId = new mongoose.Types.ObjectId('672be9c530e3770de238690f');
+
+        // 1. Get total partnered shops (excluding test shop)
+        const totalShops = await Shop.countDocuments({ _id: { $ne: testShopId } });
+
+        // 2. Global statistics (delivered orders only, excluding test shop)
+        const globalStats = await Order.aggregate([
             {
                 $match: {
-                    status: 'delivered'
+                    status: 'delivered',
+                    shopId: { $ne: testShopId }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$orderValue.total' },
+                    totalOrders: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // 3. Monthly statistics for the current month
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const currentMonthStats = await Order.aggregate([
+            {
+                $match: {
+                    status: 'delivered',
+                    shopId: { $ne: testShopId },
+                    createdAt: { $gte: startOfMonth }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    revenue: { $sum: '$orderValue.total' },
+                    orders: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // 4. Per-shop detailed breakdown (all-time + monthly, excluding test shop)
+        const revenueByShop = await Order.aggregate([
+            {
+                $match: {
+                    status: 'delivered',
+                    shopId: { $ne: testShopId }
                 }
             },
             {
@@ -1853,13 +1898,28 @@ exports.getShopRevenue = async (req, res) => {
                         month: { $month: '$createdAt' }
                     },
                     monthlyRevenue: { $sum: '$orderValue.total' },
-                    orderCount: { $sum: 1 }
+                    monthlyOrders: { $sum: 1 }
+                }
+            },
+            {
+                $group: {
+                    _id: '$_id.shopId',
+                    allTimeRevenue: { $sum: '$monthlyRevenue' },
+                    allTimeOrders: { $sum: '$monthlyOrders' },
+                    monthlyBreakdown: {
+                        $push: {
+                            year: '$_id.year',
+                            month: '$_id.month',
+                            revenue: '$monthlyRevenue',
+                            orders: '$monthlyOrders'
+                        }
+                    }
                 }
             },
             {
                 $lookup: {
                     from: 'shops',
-                    localField: '_id.shopId',
+                    localField: '_id',
                     foreignField: '_id',
                     as: 'shopInfo'
                 }
@@ -1870,25 +1930,47 @@ exports.getShopRevenue = async (req, res) => {
             {
                 $project: {
                     _id: 0,
-                    shopId: '$_id.shopId',
+                    shopId: '$_id',
                     shopName: '$shopInfo.name',
-                    year: '$_id.year',
-                    month: '$_id.month',
-                    revenue: '$monthlyRevenue',
-                    orders: '$orderCount'
+                    allTimeRevenue: 1,
+                    allTimeOrders: 1,
+                    monthlyBreakdown: 1
                 }
             },
             {
-                $sort: { year: -1, month: -1, shopName: 1 }
+                $sort: { shopName: 1 }
             }
         ]);
 
-        console.log(`✅ Revenue data aggregated: ${revenueData.length} records found`);
+        // 5. Add shops that haven't made any sales yet
+        const activeShops = await Shop.find({ _id: { $ne: testShopId } }, { name: 1, _id: 1 });
+        const revenueShopIds = new Set(revenueByShop.map(s => s.shopId.toString()));
+
+        activeShops.forEach(shop => {
+            if (!revenueShopIds.has(shop._id.toString())) {
+                revenueByShop.push({
+                    shopId: shop._id,
+                    shopName: shop.name,
+                    allTimeRevenue: 0,
+                    allTimeOrders: 0,
+                    monthlyBreakdown: []
+                });
+            }
+        });
+
+        console.log(`✅ Revenue data aggregated and filtered.`);
 
         res.json({
             success: true,
             data: {
-                revenue: revenueData
+                summary: {
+                    partnerShops: totalShops,
+                    totalRevenue: globalStats[0]?.totalRevenue || 0,
+                    totalOrders: globalStats[0]?.totalOrders || 0,
+                    currentMonthRevenue: currentMonthStats[0]?.revenue || 0,
+                    currentMonthOrders: currentMonthStats[0]?.orders || 0
+                },
+                shops: revenueByShop
             }
         });
 
