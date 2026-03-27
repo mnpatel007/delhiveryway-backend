@@ -1839,17 +1839,20 @@ exports.getShopRevenue = async (req, res) => {
     try {
         console.log('📊 Admin revenue aggregation request received');
 
-        const testShopId = new mongoose.Types.ObjectId('672be9c530e3770de238690f');
+        const testShopIds = [
+            new mongoose.Types.ObjectId('670940cc247be91357f12bc8'), // Sample Test shop
+            new mongoose.Types.ObjectId('672be9c530e3770de238690f')  // Sample Test Shop
+        ];
 
-        // 1. Get total partnered shops (excluding test shop)
-        const totalShops = await Shop.countDocuments({ _id: { $ne: testShopId } });
+        // 1. Get total partnered shops (excluding test shops)
+        const totalShops = await Shop.countDocuments({ _id: { $nin: testShopIds } });
 
-        // 2. Global statistics (delivered orders only, excluding test shop)
+        // 2. Global statistics (delivered orders only, excluding test shops)
         const globalStats = await Order.aggregate([
             {
                 $match: {
                     status: 'delivered',
-                    shopId: { $ne: testShopId }
+                    shopId: { $nin: testShopIds }
                 }
             },
             {
@@ -1869,7 +1872,7 @@ exports.getShopRevenue = async (req, res) => {
             {
                 $match: {
                     status: 'delivered',
-                    shopId: { $ne: testShopId },
+                    shopId: { $nin: testShopIds },
                     createdAt: { $gte: startOfMonth }
                 }
             },
@@ -1882,12 +1885,12 @@ exports.getShopRevenue = async (req, res) => {
             }
         ]);
 
-        // 4. Per-shop detailed breakdown (all-time + monthly, excluding test shop)
+        // 4. Per-shop detailed breakdown (all-time + monthly, excluding test shops)
         const revenueByShop = await Order.aggregate([
             {
                 $match: {
                     status: 'delivered',
-                    shopId: { $ne: testShopId }
+                    shopId: { $nin: testShopIds }
                 }
             },
             {
@@ -1932,18 +1935,16 @@ exports.getShopRevenue = async (req, res) => {
                     _id: 0,
                     shopId: '$_id',
                     shopName: '$shopInfo.name',
+                    isVisible: '$shopInfo.isVisible',
                     allTimeRevenue: 1,
                     allTimeOrders: 1,
                     monthlyBreakdown: 1
                 }
-            },
-            {
-                $sort: { shopName: 1 }
             }
         ]);
 
         // 5. Add shops that haven't made any sales yet
-        const activeShops = await Shop.find({ _id: { $ne: testShopId } }, { name: 1, _id: 1 });
+        const activeShops = await Shop.find({ _id: { $nin: testShopIds } }, { name: 1, _id: 1, isVisible: 1 });
         const revenueShopIds = new Set(revenueByShop.map(s => s.shopId.toString()));
 
         activeShops.forEach(shop => {
@@ -1951,6 +1952,7 @@ exports.getShopRevenue = async (req, res) => {
                 revenueByShop.push({
                     shopId: shop._id,
                     shopName: shop.name,
+                    isVisible: shop.isVisible,
                     allTimeRevenue: 0,
                     allTimeOrders: 0,
                     monthlyBreakdown: []
@@ -1958,7 +1960,15 @@ exports.getShopRevenue = async (req, res) => {
             }
         });
 
-        console.log(`✅ Revenue data aggregated and filtered.`);
+        // 6. Sort by visibility (Visible first) and then by name
+        revenueByShop.sort((a, b) => {
+            if (a.isVisible !== b.isVisible) {
+                return a.isVisible ? -1 : 1;
+            }
+            return a.shopName.localeCompare(b.shopName);
+        });
+
+        console.log(`✅ Revenue data aggregated and filtered with sorting.`);
 
         res.json({
             success: true,
