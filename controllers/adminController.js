@@ -119,7 +119,8 @@ exports.getDashboardStats = async (req, res) => {
             deliveredOrders,
             cancelledOrders,
             dailyInquiries,
-            shopperStats
+            shopperStats,
+            pendingShoppersCount
         ] = await Promise.all([
             User.countDocuments({ role: { $ne: 'admin' } }),
             Shop.countDocuments(),
@@ -297,7 +298,8 @@ exports.getDashboardStats = async (req, res) => {
                 {
                     $count: 'total'
                 }
-            ]).then(result => result[0]?.total || 0)
+            ]).then(result => result[0]?.total || 0),
+            PersonalShopper.countDocuments({ "verification.isVerified": false })
         ]);
 
         // Calculate revenue stats
@@ -411,6 +413,7 @@ exports.getDashboardStats = async (req, res) => {
                     totalProducts,
                     totalOrders,
                     totalShoppers,
+                    pendingShoppersCount,
                     dailyOrders,
                     dailyDeliveredOrders: deliveredOrders,
                     dailyCancelledOrders: cancelledOrders,
@@ -1288,6 +1291,45 @@ exports.deleteUser = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to delete user'
+        });
+    }
+};
+
+// Verify personal shopper (approve/reject)
+exports.verifyShopper = async (req, res) => {
+    try {
+        const { shopperId } = req.params;
+        const { isVerified } = req.body;
+
+        const shopper = await PersonalShopper.findByIdAndUpdate(
+            shopperId,
+            { 
+                "verification.isVerified": isVerified,
+                "verification.verifiedAt": isVerified ? new Date() : null
+            },
+            { new: true }
+        );
+
+        if (!shopper) {
+            return res.status(404).json({
+                success: false,
+                message: 'Personal shopper not found'
+            });
+        }
+
+        console.log(`📡 Admin ${isVerified ? 'approved' : 'unverified'} shopper ${shopper.name}`);
+
+        res.json({
+            success: true,
+            message: `Shopper ${isVerified ? 'approved' : 'unverified'} successfully`,
+            data: { shopper }
+        });
+
+    } catch (error) {
+        console.error('Verify shopper error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to verify shopper'
         });
     }
 };

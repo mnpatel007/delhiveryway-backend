@@ -26,6 +26,18 @@ const registerShopper = async (req, res) => {
 
         await shopper.save();
 
+        // Notify admins about new shopper signup
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('newShopperSignup', {
+                shopperId: shopper._id,
+                name: shopper.name,
+                email: shopper.email,
+                message: `New shopper signed up: ${shopper.name}`
+            });
+            console.log(`🔔 New shopper registered: ${shopper.name}`);
+        }
+
         // Generate JWT token
         const token = jwt.sign(
             { shopperId: shopper._id, email: shopper.email },
@@ -66,6 +78,15 @@ const loginShopper = async (req, res) => {
         const isPasswordValid = await bcrypt.compare(password, shopper.password);
         if (!isPasswordValid) {
             return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // Check verification status
+        if (shopper.verification && shopper.verification.isVerified === false) {
+            return res.status(403).json({ 
+                success: false,
+                message: "The admins didn't allow you so sorry",
+                isVerified: false
+            });
         }
 
         // Generate JWT token

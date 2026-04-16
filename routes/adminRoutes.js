@@ -22,6 +22,7 @@ const {
     deleteUser,
     deleteShop,
     deletePersonalShopper,
+    verifyShopper,
     getAnalytics,
     getShopRevenue
 } = require('../controllers/adminController');
@@ -95,6 +96,7 @@ router.put('/shops/:shopId/status', adminProtect, updateShopStatus);
 router.put('/shops/:shopId/visibility', adminProtect, updateShopVisibility);
 router.put('/orders/:orderId/cancel', adminProtect, cancelOrderWithReason);
 router.put('/orders/:orderId/status', adminProtect, updateOrderStatus);
+router.put('/shoppers/:shopperId/verify', adminProtect, verifyShopper);
 router.put('/shoppers/:shopperId', adminProtect, updateShopperStatus);
 router.put('/products/:productId', adminProtect, updateProduct);
 
