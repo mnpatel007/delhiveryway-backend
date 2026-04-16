@@ -297,16 +297,40 @@ exports.placeOrder = async (req, res) => {
 
         console.log('✅ Shop is open:', shop.name, 'Delivery Fee:', shop.deliveryFee);
 
+        // Fetch ALL products from DB to strictly enforce ownership and prices
+        const Product = require('../models/Product');
+        const productIds = items.map(item => item.productId).filter(Boolean);
+        const dbProducts = await Product.find({ _id: { $in: productIds } });
+
         // Validate and prepare items
         const validatedItems = items.map(item => {
             if (!item.name || !item.price || !item.quantity) {
                 throw new Error('Each item must have name, price, and quantity');
             }
 
+            // CRITICAL SECURITY ENFORCEMENT: Identify Database product
+            const productId = item.productId || null;
+            
+            if (!productId) {
+                throw new Error(`All items must have a valid productId (failed on: ${item.name})`);
+            }
+
+            const dbProduct = dbProducts.find(p => p._id.toString() === productId.toString());
+            
+            if (!dbProduct) {
+                throw new Error(`Product mapping error: Cannot find product ${item.name} in database.`);
+            }
+            
+            // SHOP OWNERSHIP CONSTRAINT: This entirely ends the cross-shop glitch
+            if (dbProduct.shopId.toString() !== shopId.toString()) {
+                console.error(`🚨 EXTREME SECURITY BLOCK: Attempted cross-shop ordering. Item ${dbProduct.name} belongs to ${dbProduct.shopId}, but order is for ${shopId}`);
+                throw new Error(`CRITICAL ERROR: Item "${dbProduct.name}" does NOT belong to the requested shop! Your order has been blocked.`);
+            }
+
             return {
-                productId: item.productId || null,
-                name: item.name,
-                price: item.price,
+                productId: dbProduct._id,
+                name: dbProduct.name, // Use database trusted name
+                price: dbProduct.price, // SECURITY: Use database trusted price, overrides client value
                 quantity: item.quantity,
                 notes: item.notes || ''
             };
