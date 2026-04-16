@@ -38,16 +38,9 @@ const registerShopper = async (req, res) => {
             console.log(`🔔 New shopper registered: ${shopper.name}`);
         }
 
-        // Generate JWT token
-        const token = jwt.sign(
-            { shopperId: shopper._id, email: shopper.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-
         res.status(201).json({
-            message: 'Personal Shopper registered successfully',
-            token,
+            success: true,
+            message: 'Personal Shopper registered successfully. Please wait for admin approval before logging in.',
             shopper: {
                 id: shopper._id,
                 name: shopper.name,
