@@ -113,7 +113,7 @@ const calculateOrderPricing = async (items, shopId, deliveryAddress) => {
             packagingCharges = shop.packagingCharges;
             console.log(`Packaging charges applied: ₹${shop.packagingCharges}`);
         } else {
-            console.log('No packaging charges applied - shop hasPackaging:', shop.hasPackaging, 'packagingCharges:', shop.packagingCharges);
+            console.log('No packaging charges applied - shop hasPackaging:', shop.hasPackaging);
         }
 
         // Service fee is removed as per new requirements

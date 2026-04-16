@@ -619,7 +619,7 @@ exports.createShop = async (req, res) => {
             hasTax: hasTax === true || hasTax === 'on' || hasTax === 'true',
             taxRate: (hasTax === true || hasTax === 'on' || hasTax === 'true') ? (taxRate || 5) : 5,
             hasPackaging: hasPackaging === true || hasPackaging === 'on' || hasPackaging === 'true',
-            packagingCharges: (hasPackaging === true || hasPackaging === 'on' || hasPackaging === 'true') ? (packagingCharges || 10) : 10,
+            packagingCharges: (hasPackaging === true || hasPackaging === 'on' || hasPackaging === 'true') ? (parseFloat(packagingCharges) || 10) : 10,
             isActive: true,
             createdBy: 'admin'
         };
@@ -990,10 +990,6 @@ exports.updateShop = async (req, res) => {
         }
         if (updateData.packagingCharges !== undefined) {
             shop.packagingCharges = parseFloat(updateData.packagingCharges) || 10;
-            // Remove old field if it exists
-            if (shop.packagingRate !== undefined) {
-                shop.packagingRate = undefined;
-            }
         }
         if (updateData.inquiryAvailableTime !== undefined) {
             const inquiryTime = parseInt(updateData.inquiryAvailableTime);
