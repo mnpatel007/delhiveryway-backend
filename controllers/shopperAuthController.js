@@ -41,6 +41,7 @@ const registerShopper = async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Personal Shopper registered successfully. Please wait for admin approval before logging in.',
+            token: null,
             shopper: {
                 id: shopper._id,
                 name: shopper.name,
