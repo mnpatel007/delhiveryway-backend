@@ -78,7 +78,7 @@ const loginShopper = async (req, res) => {
         if (shopper.verification && shopper.verification.isVerified === false) {
             return res.status(403).json({ 
                 success: false,
-                message: "The admins didn't allow you so sorry",
+                message: "Your verification is still pending",
                 isVerified: false
             });
         }
