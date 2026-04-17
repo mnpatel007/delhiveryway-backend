@@ -18,6 +18,17 @@ const authenticateShopper = async (req, res, next) => {
 
         req.shopperId = decoded.shopperId;
         req.shopper = shopper;
+
+        // NUCLEAR SECURITY CHECK: Block all unverified shoppers at the server level
+        if (shopper.verification && shopper.verification.isVerified === false) {
+            console.warn(`🛑 Blocked unverified API access for shopper: ${shopper.email}`);
+            return res.status(403).json({ 
+                success: false,
+                message: 'Your verification is still pending',
+                isVerified: false 
+            });
+        }
+
         next();
     } catch (error) {
         console.error('Auth middleware error:', error);
