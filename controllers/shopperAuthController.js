@@ -100,6 +100,7 @@ const loginShopper = async (req, res) => {
                 phone: shopper.phone,
                 isOnline: shopper.isOnline,
                 rating: shopper.rating,
+                verification: shopper.verification,
                 totalOrders: shopper.totalOrders,
                 earnings: shopper.earnings
             }
