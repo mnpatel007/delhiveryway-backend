@@ -186,3 +186,64 @@ exports.getAvailableShops = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
+
+// Get Shop Orders
+exports.getShopOrders = async (req, res) => {
+    try {
+        const shop = await getVendorShop(req.user._id);
+        if (!shop) return res.status(404).json({ success: false, message: 'Shop not found' });
+
+        const orders = await Order.find({ shopId: shop._id })
+            .populate('customerId', 'name phone')
+            .populate('personalShopperId', 'name phone')
+            .sort({ createdAt: -1 });
+
+        res.json({
+            success: true,
+            data: { orders }
+        });
+    } catch (error) {
+        console.error('Get shop orders error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// Update Order Status (for Vendor)
+exports.updateOrderStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        
+        const shop = await getVendorShop(req.user._id);
+        if (!shop) return res.status(404).json({ success: false, message: 'Shop not found' });
+
+        const order = await Order.findOne({ _id: id, shopId: shop._id });
+        if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+        // Validate allowed status transitions for vendor
+        const allowedStatuses = ['accepted_by_shop', 'preparing', 'ready_for_pickup', 'cancelled_by_shop'];
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({ success: false, message: 'Invalid status update for vendor' });
+        }
+
+        order.status = status;
+        
+        // Add timeline event
+        order.timeline.push({
+            status,
+            description: `Order marked as ${status.replace(/_/g, ' ')} by shop owner`,
+            timestamp: new Date()
+        });
+
+        await order.save();
+
+        res.json({
+            success: true,
+            message: 'Order status updated successfully',
+            data: { order }
+        });
+    } catch (error) {
+        console.error('Update order status error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};

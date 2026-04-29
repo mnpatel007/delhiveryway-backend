@@ -7,7 +7,9 @@ const {
     getCommission,
     updateCommission,
     getMonthlyStats,
-    getAvailableShops
+    getAvailableShops,
+    getShopOrders,
+    updateOrderStatus
 } = require('../controllers/shopOwnerController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -24,5 +26,9 @@ router.put('/timings', updateTimings);
 router.get('/commission', getCommission);
 router.put('/commission', updateCommission);
 router.get('/monthly-stats', getMonthlyStats);
+
+// Order management routes
+router.get('/orders', getShopOrders);
+router.put('/orders/:id/status', updateOrderStatus);
 
 module.exports = router;
