@@ -1272,13 +1272,10 @@ exports.deleteUser = async (req, res) => {
             });
         }
 
-        // If user is a vendor, also delete their shops and products
+        // If user is a vendor, unlink their shops so they can be claimed by a new vendor.
+        // Shops are admin-managed assets and must NOT be deleted along with the vendor account.
         if (user.role === 'vendor') {
-            const shops = await Shop.find({ vendorId: userId });
-            const shopIds = shops.map(shop => shop._id);
-
-            await Product.deleteMany({ shopId: { $in: shopIds } });
-            await Shop.deleteMany({ vendorId: userId });
+            await Shop.updateMany({ vendorId: userId }, { $unset: { vendorId: '' } });
         }
 
         res.json({
