@@ -206,7 +206,14 @@ exports.getMonthlyStats = async (req, res) => {
 // Get Available Shops (shops without a vendor)
 exports.getAvailableShops = async (req, res) => {
     try {
-        const shops = await Shop.find({ $or: [{ vendorId: null }, { vendorId: { $exists: false } }] });
+        // Treat any non-ObjectId vendorId (null, missing, empty string, falsy) as unclaimed
+        const shops = await Shop.find({
+            $or: [
+                { vendorId: null },
+                { vendorId: { $exists: false } },
+                { vendorId: { $not: { $type: 'objectId' } } }
+            ]
+        });
         res.json({
             success: true,
             data: { shops }
