@@ -176,12 +176,8 @@ exports.getMonthlyStats = async (req, res) => {
 // Get Available Shops (shops without a vendor)
 exports.getAvailableShops = async (req, res) => {
     try {
-        const shops = await Shop.find({ 
-            $or: [
-                { vendorId: { $exists: false } },
-                { vendorId: null }
-            ]
-        }).select('_id name address category');
+        // Temporarily return ALL shops to debug visibility
+        const shops = await Shop.find({}).select('_id name address category');
         res.json({
             success: true,
             data: { shops }
