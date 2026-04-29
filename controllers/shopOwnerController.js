@@ -12,12 +12,28 @@ const getVendorShop = async (vendorId) => {
 exports.getProfile = async (req, res) => {
     try {
         const vendor = await User.findById(req.user._id).select('-password');
-        const shop = await getVendorShop(req.user._id);
+        let shop = await Shop.findOne({ vendorId: vendor._id });
+
+        // SYSTEMATIC FIX: If no shop is linked by ID, try linking by matching contact email
+        if (!shop && vendor.role === 'vendor') {
+            shop = await Shop.findOne({ 
+                $or: [
+                    { 'contact.email': vendor.email },
+                    { 'contact.email': vendor.email.toLowerCase() }
+                ]
+            });
+
+            if (shop) {
+                shop.vendorId = vendor._id;
+                await shop.save();
+                console.log(`✅ Systematically synced ${vendor.email} with shop: ${shop.name}`);
+            }
+        }
 
         if (!shop) {
             return res.status(404).json({
                 success: false,
-                message: 'No shop associated with this vendor account'
+                message: 'No shop associated with this vendor account. Please ensure your shop contact email matches your login email.'
             });
         }
 
