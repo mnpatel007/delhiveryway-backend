@@ -180,6 +180,7 @@ exports.getMonthlyStats = async (req, res) => {
         res.json({
             success: true,
             data: {
+                shopId: shop._id,
                 month: startOfLastMonth.toLocaleString('default', { month: 'long', year: 'numeric' }),
                 totalOrders,
                 grossSales,
