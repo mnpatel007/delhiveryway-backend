@@ -48,6 +48,20 @@ router.get('/maintenance/list-shops', async (req, res) => {
     }
 });
 
+router.get('/maintenance/check-order/:orderNumber', async (req, res) => {
+    try {
+        const Order = require('../models/Order');
+        const Shop = require('../models/Shop');
+        const order = await Order.findOne({ orderNumber: req.params.orderNumber });
+        if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+        
+        const shop = await Shop.findById(order.shopId);
+        res.json({ success: true, order, shop });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // All routes are protected and restricted to vendor
 router.use(protect);
 router.use(restrictTo('vendor'));
