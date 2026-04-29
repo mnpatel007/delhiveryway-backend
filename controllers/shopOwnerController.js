@@ -179,8 +179,7 @@ exports.getAvailableShops = async (req, res) => {
         const shops = await Shop.find({ 
             $or: [
                 { vendorId: { $exists: false } },
-                { vendorId: null },
-                { vendorId: '' }
+                { vendorId: null }
             ]
         }).select('_id name address category');
         res.json({
