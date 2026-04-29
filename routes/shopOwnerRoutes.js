@@ -16,22 +16,7 @@ const { protect, restrictTo } = require('../middleware/authMiddleware');
 // Public routes
 router.get('/available-shops', getAvailableShops);
 
-// All routes are protected and restricted to vendor
-router.use(protect);
-router.use(restrictTo('vendor'));
-
-router.get('/profile', getProfile);
-router.put('/consent', updateConsent);
-router.put('/timings', updateTimings);
-router.get('/commission', getCommission);
-router.put('/commission', updateCommission);
-router.get('/monthly-stats', getMonthlyStats);
-
-// Order management routes
-router.get('/orders', getShopOrders);
-router.put('/orders/:id/status', updateOrderStatus);
-
-// Temporary Maintenance Route
+// Temporary Maintenance Route (Move this to public for now)
 router.post('/maintenance/fix-shop-association', async (req, res) => {
     try {
         const { email, shopName } = req.body;
@@ -52,5 +37,20 @@ router.post('/maintenance/fix-shop-association', async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 });
+
+// All routes are protected and restricted to vendor
+router.use(protect);
+router.use(restrictTo('vendor'));
+
+router.get('/profile', getProfile);
+router.put('/consent', updateConsent);
+router.put('/timings', updateTimings);
+router.get('/commission', getCommission);
+router.put('/commission', updateCommission);
+router.get('/monthly-stats', getMonthlyStats);
+
+// Order management routes
+router.get('/orders', getShopOrders);
+router.put('/orders/:id/status', updateOrderStatus);
 
 module.exports = router;
