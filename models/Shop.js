@@ -205,6 +205,32 @@ const shopSchema = new mongoose.Schema({
         default: 10,
         min: [0, 'Packaging charges cannot be negative'],
         max: [1000, 'Packaging charges cannot exceed ₹1000']
+    },
+    consent: {
+        hasAgreed: { type: Boolean, default: false },
+        agreedAt: { type: Date }
+    },
+    commission: {
+        commissionType: { type: String, enum: ['percentage', 'fixed'], default: 'percentage' },
+        commissionValue: { 
+            type: Number, 
+            default: 10,
+            min: [0, 'Commission cannot be negative'],
+            validate: {
+                validator: function(v) {
+                    const type = this.commission ? this.commission.commissionType : 'percentage';
+                    if (type === 'percentage' && v > 100) {
+                        return false;
+                    }
+                    return true;
+                },
+                message: 'Percentage commission cannot exceed 100%'
+            }
+        }
+    },
+    isTemporarilyClosed: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true
@@ -225,6 +251,8 @@ shopSchema.virtual('fullAddress').get(function () {
 // Method to check if shop is open
 shopSchema.methods.isOpenNow = function () {
     try {
+        if (this.isTemporarilyClosed) return false;
+
         // Get current time in IST (Indian Standard Time)
         const day = getCurrentISTDay();
         const currentTime = getCurrentISTTimeString();

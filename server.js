@@ -18,6 +18,7 @@ const allowedOrigins = [
     'http://localhost:3000', // Customer app
     'http://localhost:3001', // Admin app
     'http://localhost:3002', // Personal Shopper app
+    'http://localhost:3003', // Shop Owner app
     'https://delhiveryway-customer.vercel.app',
     'https://delhiveryway-shopper.vercel.app',
     'https://delhiveryway-admin.vercel.app',
@@ -217,6 +218,7 @@ mongoose
         // API Routes
         app.use('/api/auth', require('./routes/authRoutes'));
         app.use('/api/shops', require('./routes/shopRoutes'));
+        app.use('/api/shop-owner', require('./routes/shopOwnerRoutes'));
         app.use('/api/products', require('./routes/productRoutes'));
         app.use('/api/orders', require('./routes/orderRoutes'));
         app.use('/api/payment', require('./routes/paymentRoutes'));
