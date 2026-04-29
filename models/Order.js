@@ -165,7 +165,11 @@ const orderSchema = new mongoose.Schema({
             'out_for_delivery',
             'delivered',
             'cancelled',
-            'refunded'
+            'refunded',
+            'accepted_by_shop',
+            'preparing',
+            'ready_for_pickup',
+            'cancelled_by_shop'
         ],
         default: 'pending_shopper'
     },
@@ -181,7 +185,7 @@ const orderSchema = new mongoose.Schema({
         note: String,
         updatedBy: {
             type: String,
-            enum: ['customer', 'shopper', 'admin', 'system']
+            enum: ['customer', 'shopper', 'admin', 'system', 'vendor']
         }
     }],
     payment: {
@@ -313,7 +317,11 @@ orderSchema.methods.getStatusMessage = function () {
         'out_for_delivery': 'Your order is out for delivery',
         'delivered': 'Your order has been delivered successfully',
         'cancelled': 'Your order has been cancelled',
-        'refunded': 'Your order has been refunded'
+        'refunded': 'Your order has been refunded',
+        'accepted_by_shop': 'The shop has accepted your order and will start preparing it soon',
+        'preparing': 'The shop is currently preparing your order',
+        'ready_for_pickup': 'Your order is ready and waiting for the personal shopper',
+        'cancelled_by_shop': 'The shop was unable to fulfill your order and has cancelled it'
     };
 
     return messages[this.status] || 'Unknown status';
