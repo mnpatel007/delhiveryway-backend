@@ -12,32 +12,21 @@ const getVendorShop = async (vendorId) => {
 exports.getProfile = async (req, res) => {
     try {
         const vendor = await User.findById(req.user._id).select('-password');
-        let shop = await getVendorShop(req.user._id);
+        const shop = await getVendorShop(req.user._id);
 
-        // Auto-fix: If vendor has no shop, try to find one that might be theirs
-        // or the first available shop (useful for initial setup/testing)
-        if (!shop && vendor.role === 'vendor') {
-            console.log(`🔍 Auto-fixing shop association for vendor: ${vendor.email}`);
-            
-            // Try to find a shop that has no vendor
-            const availableShop = await Shop.findOne({ 
-                $or: [
-                    { vendorId: { $exists: false } },
-                    { vendorId: null }
-                ]
+        if (!shop) {
+            return res.status(404).json({
+                success: false,
+                message: 'No shop associated with this vendor account'
             });
-
-            if (availableShop) {
-                availableShop.vendorId = vendor._id;
-                await availableShop.save();
-                shop = availableShop;
-                console.log(`✅ Auto-associated ${vendor.email} with ${shop.name}`);
-            }
         }
 
         res.json({
             success: true,
-            data: { vendor, shop }
+            data: {
+                vendor,
+                shop
+            }
         });
     } catch (error) {
         console.error('Get profile error:', error);
