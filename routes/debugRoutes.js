@@ -123,22 +123,4 @@ router.post('/update-shop-delivery', async (req, res) => {
     }
 });
 
-/**
- * ONE-TIME USE: Reset all shop vendorIds so they appear as available on signup.
- * DELETE THIS ROUTE after use.
- * POST /api/debug/reset-shop-vendors
- */
-router.post('/reset-shop-vendors', async (req, res) => {
-    try {
-        const result = await Shop.updateMany({}, { $unset: { vendorId: '' } });
-        res.json({
-            success: true,
-            message: `Cleared vendorId from ${result.modifiedCount} shops. All shops are now available for signup.`
-        });
-    } catch (error) {
-        console.error('Reset shop vendors error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 module.exports = router;
