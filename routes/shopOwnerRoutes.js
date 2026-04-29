@@ -38,6 +38,16 @@ router.post('/maintenance/fix-shop-association', async (req, res) => {
     }
 });
 
+router.get('/maintenance/list-shops', async (req, res) => {
+    try {
+        const Shop = require('../models/Shop');
+        const shops = await Shop.find({}).select('name deliveryFee vendorId address.city');
+        res.json({ success: true, shops });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // All routes are protected and restricted to vendor
 router.use(protect);
 router.use(restrictTo('vendor'));
