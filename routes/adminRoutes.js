@@ -27,6 +27,11 @@ const {
     getShopRevenue
 } = require('../controllers/adminController');
 const { adminProtect } = require('../middleware/authMiddleware');
+const {
+    getClosureStatus,
+    closeAllShops,
+    reopenAllShops
+} = require('../controllers/globalClosureController');
 
 // Import bulk product routes
 const bulkProductRoutes = require('./bulkProductRoutes');
@@ -88,6 +93,11 @@ router.get('/shoppers/performance', adminProtect, getShopperPerformance);
 router.get('/shoppers/:shopperId/performance', adminProtect, getShopperDetailedPerformance);
 router.get('/analytics', adminProtect, getAnalytics);
 router.get('/revenue', adminProtect, getShopRevenue);
+
+// Global shop closure (must be registered before :shopId routes to avoid conflict)
+router.get('/shops/closure', adminProtect, getClosureStatus);
+router.post('/shops/closure', adminProtect, closeAllShops);
+router.delete('/shops/closure', adminProtect, reopenAllShops);
 
 // Update operations
 router.put('/users/:userId/status', adminProtect, updateUserStatus);

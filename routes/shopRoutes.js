@@ -11,8 +11,10 @@ const {
     getShopStats
 } = require('../controllers/shopController');
 const { protect, restrictTo, optionalAuth } = require('../middleware/authMiddleware');
+const { getClosureStatus } = require('../controllers/globalClosureController');
 
 // Public routes
+router.get('/closure-status', getClosureStatus);
 router.get('/', getAllShops);
 router.get('/:id', optionalAuth, getShopById);
 

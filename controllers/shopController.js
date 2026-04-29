@@ -1,6 +1,7 @@
 const Shop = require('../models/Shop');
 const Product = require('../models/Product');
 const User = require('../models/User');
+const GlobalShopClosure = require('../models/GlobalShopClosure');
 const mongoose = require('mongoose');
 const axios = require('axios');
 
@@ -367,6 +368,8 @@ exports.getAllShops = async (req, res) => {
 
         const total = await Shop.countDocuments(filter);
 
+        const activeClosure = await GlobalShopClosure.getActiveClosure();
+
         // Add additional info to each shop
         const shopsWithInfo = await Promise.all(
             shops.map(async (shop) => {
@@ -383,7 +386,7 @@ exports.getAllShops = async (req, res) => {
                 return {
                     ...shop.toObject(),
                     productCount,
-                    isOpenNow: shop.isOpenNow(),
+                    isOpenNow: activeClosure ? false : shop.isOpenNow(),
                     distance: distance ? Math.round(distance * 10) / 10 : null
                 };
             })
@@ -401,7 +404,13 @@ exports.getAllShops = async (req, res) => {
                 filters: {
                     categories: await Shop.distinct('category', { isActive: true }),
                     totalShops: await Shop.countDocuments({ isActive: true })
-                }
+                },
+                globalClosure: activeClosure ? {
+                    isClosed: true,
+                    mode: activeClosure.mode,
+                    reopenAt: activeClosure.reopenAt,
+                    reason: activeClosure.reason
+                } : { isClosed: false }
             }
         });
 
@@ -453,16 +462,26 @@ exports.getShopById = async (req, res) => {
             .limit(8)
             .select('name price images category');
 
+        const activeClosure = await GlobalShopClosure.getActiveClosure();
+
         const shopData = {
             ...shop.toObject(),
             productCount,
-            isOpenNow: shop.isOpenNow(),
+            isOpenNow: activeClosure ? false : shop.isOpenNow(),
             recentProducts
         };
 
         res.json({
             success: true,
-            data: { shop: shopData }
+            data: {
+                shop: shopData,
+                globalClosure: activeClosure ? {
+                    isClosed: true,
+                    mode: activeClosure.mode,
+                    reopenAt: activeClosure.reopenAt,
+                    reason: activeClosure.reason
+                } : { isClosed: false }
+            }
         });
 
     } catch (error) {
