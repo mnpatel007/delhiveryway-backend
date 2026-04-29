@@ -6,7 +6,6 @@ const {
     getVendorProducts,
     getProductById,
     updateProduct,
-    deleteProduct,
     toggleProductStatus,
     searchProducts
 } = require('../controllers/productController');
@@ -41,7 +40,6 @@ router.get('/:id', optionalAuth, getProductById);
 router.post('/', protect, restrictTo('vendor'), createProduct);
 router.get('/vendor/my-products', protect, restrictTo('vendor'), getVendorProducts);
 router.put('/:id', protect, restrictTo('vendor', 'admin'), updateProduct);
-router.delete('/:id', protect, restrictTo('vendor'), deleteProduct);
 router.patch('/:id/toggle-status', protect, restrictTo('vendor'), toggleProductStatus);
 
 module.exports = router;

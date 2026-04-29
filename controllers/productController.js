@@ -423,58 +423,6 @@ exports.updateProduct = async (req, res) => {
     }
 };
 
-// Delete product
-exports.deleteProduct = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        // Find product and verify ownership
-        const product = await Product.findById(id).populate('shopId');
-
-        if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: 'Product not found'
-            });
-        }
-
-        if (product.shopId.vendorId.toString() !== req.user._id.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied'
-            });
-        }
-
-        // Check if product is in any active orders
-        const Order = require('../models/Order');
-        const activeOrders = await Order.countDocuments({
-            'items.productId': product._id,
-            status: { $nin: ['delivered', 'cancelled', 'refunded'] }
-        });
-
-        if (activeOrders > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Cannot delete product with active orders'
-            });
-        }
-
-        await Product.findByIdAndDelete(id);
-
-        res.json({
-            success: true,
-            message: 'Product deleted successfully'
-        });
-
-    } catch (error) {
-        console.error('Delete product error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to delete product'
-        });
-    }
-};
-
 // Toggle product status
 exports.toggleProductStatus = async (req, res) => {
     try {

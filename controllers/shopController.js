@@ -553,54 +553,6 @@ exports.updateShop = async (req, res) => {
     }
 };
 
-// Delete shop
-exports.deleteShop = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const shop = await Shop.findOne({ _id: id, vendorId: req.user._id });
-
-        if (!shop) {
-            return res.status(404).json({
-                success: false,
-                message: 'Shop not found or access denied'
-            });
-        }
-
-        // Check if shop has active orders
-        const Order = require('../models/Order');
-        const activeOrders = await Order.countDocuments({
-            shopId: shop._id,
-            status: { $nin: ['delivered', 'cancelled', 'refunded'] }
-        });
-
-        if (activeOrders > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Cannot delete shop with active orders'
-            });
-        }
-
-        // Delete all products under this shop
-        await Product.deleteMany({ shopId: shop._id });
-
-        // Delete the shop
-        await Shop.findByIdAndDelete(shop._id);
-
-        res.json({
-            success: true,
-            message: 'Shop and its products deleted successfully'
-        });
-
-    } catch (error) {
-        console.error('Delete shop error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to delete shop'
-        });
-    }
-};
-
 // Toggle shop status
 exports.toggleShopStatus = async (req, res) => {
     try {
