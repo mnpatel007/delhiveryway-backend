@@ -62,6 +62,17 @@ router.get('/maintenance/check-order/:orderNumber', async (req, res) => {
     }
 });
 
+router.get('/maintenance/check-user/:email', async (req, res) => {
+    try {
+        const User = require('../models/User');
+        const user = await User.findOne({ email: req.params.email });
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+        res.json({ success: true, user });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // All routes are protected and restricted to vendor
 router.use(protect);
 router.use(restrictTo('vendor'));
