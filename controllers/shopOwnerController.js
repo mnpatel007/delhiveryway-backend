@@ -14,19 +14,22 @@ exports.getProfile = async (req, res) => {
         const vendor = await User.findById(req.user._id).select('-password');
         let shop = await Shop.findOne({ vendorId: vendor._id });
 
-        // SYSTEMATIC FIX: If no shop is linked by ID, try linking by matching contact email
+        // Fallback: link by contact email only if the shop is unclaimed
         if (!shop && vendor.role === 'vendor') {
-            shop = await Shop.findOne({ 
-                $or: [
-                    { 'contact.email': vendor.email },
-                    { 'contact.email': vendor.email.toLowerCase() }
+            shop = await Shop.findOne({
+                $and: [
+                    { $or: [
+                        { 'contact.email': vendor.email },
+                        { 'contact.email': vendor.email.toLowerCase() }
+                    ]},
+                    { $or: [{ vendorId: null }, { vendorId: { $exists: false } }] }
                 ]
             });
 
             if (shop) {
                 shop.vendorId = vendor._id;
                 await shop.save();
-                console.log(`✅ Systematically synced ${vendor.email} with shop: ${shop.name}`);
+                console.log(`Synced ${vendor.email} with unclaimed shop: ${shop.name}`);
             }
         }
 
@@ -203,8 +206,7 @@ exports.getMonthlyStats = async (req, res) => {
 // Get Available Shops (shops without a vendor)
 exports.getAvailableShops = async (req, res) => {
     try {
-        // Temporarily return ALL shops to debug visibility
-        const shops = await Shop.find({});
+        const shops = await Shop.find({ $or: [{ vendorId: null }, { vendorId: { $exists: false } }] });
         res.json({
             success: true,
             data: { shops }
