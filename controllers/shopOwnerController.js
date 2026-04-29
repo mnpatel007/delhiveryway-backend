@@ -198,7 +198,7 @@ exports.getMonthlyStats = async (req, res) => {
 exports.getAvailableShops = async (req, res) => {
     try {
         // Temporarily return ALL shops to debug visibility
-        const shops = await Shop.find({}).select('_id name address category');
+        const shops = await Shop.find({}).select('_id name address category deliveryFee');
         res.json({
             success: true,
             data: { shops }
