@@ -584,11 +584,8 @@ exports.createShop = async (req, res) => {
         }
 
         // Handle admin-created shops or validate vendor
-        let validVendorId = vendorId;
-        if (!vendorId || vendorId === 'admin-created') {
-            // Create a system vendor for admin-created shops
-            validVendorId = new mongoose.Types.ObjectId();
-        } else {
+        let validVendorId = null;
+        if (vendorId && vendorId !== 'admin-created') {
             const vendor = await User.findById(vendorId);
             if (!vendor || vendor.role !== 'vendor') {
                 return res.status(400).json({
@@ -596,6 +593,7 @@ exports.createShop = async (req, res) => {
                     message: 'Invalid vendor ID'
                 });
             }
+            validVendorId = vendorId;
         }
 
         // Validate address structure
