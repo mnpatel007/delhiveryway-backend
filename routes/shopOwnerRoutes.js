@@ -73,6 +73,18 @@ router.get('/maintenance/check-user/:email', async (req, res) => {
     }
 });
 
+router.get('/maintenance/check-shop-customers/:shopId', async (req, res) => {
+    try {
+        const Order = require('../models/Order');
+        const orders = await Order.find({ shopId: req.params.shopId })
+            .populate('customerId', 'name')
+            .limit(50);
+        res.json({ success: true, count: orders.length, orders: orders.map(o => ({ num: o.orderNumber, cust: o.customerId?.name })) });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // All routes are protected and restricted to vendor
 router.use(protect);
 router.use(restrictTo('vendor'));
