@@ -31,4 +31,26 @@ router.get('/monthly-stats', getMonthlyStats);
 router.get('/orders', getShopOrders);
 router.put('/orders/:id/status', updateOrderStatus);
 
+// Temporary Maintenance Route
+router.post('/maintenance/fix-shop-association', async (req, res) => {
+    try {
+        const { email, shopName } = req.body;
+        const Shop = require('../models/Shop');
+        const User = require('../models/User');
+        
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+        
+        const shop = await Shop.findOne({ name: { $regex: shopName, $options: 'i' } });
+        if (!shop) return res.status(404).json({ success: false, message: 'Shop not found' });
+        
+        shop.vendorId = user._id;
+        await shop.save();
+        
+        res.json({ success: true, message: `Successfully associated ${user.email} with ${shop.name}` });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 module.exports = router;

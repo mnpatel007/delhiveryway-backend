@@ -93,7 +93,7 @@ exports.signup = async (req, res) => {
         if (role === 'vendor' && req.body.shopId) {
             const Shop = require('../models/Shop');
             const shop = await Shop.findById(req.body.shopId);
-            if (shop && (!shop.vendorId || !shop.vendorId.toString())) {
+            if (shop) {
                 shop.vendorId = user._id;
                 await shop.save();
             }
