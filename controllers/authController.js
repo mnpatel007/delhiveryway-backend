@@ -110,7 +110,7 @@ exports.signup = async (req, res) => {
                 console.log('📧 Gmail Pass Length:', process.env.GMAIL_PASS ? process.env.GMAIL_PASS.length : 0);
 
                 const frontendURL = role === 'vendor'
-                    ? (process.env.SHOPKEEPER_FRONTEND_URL || process.env.VENDOR_FRONTEND_URL)
+                    ? (process.env.SHOPKEEPER_FRONTEND_URL || 'https://shopkeeper.delhiveryway.com')
                     : process.env.FRONTEND_URL;
 
                 const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
@@ -469,7 +469,7 @@ exports.forgotPassword = async (req, res) => {
         // Send reset email
         try {
             const frontendURL = user.role === 'vendor'
-                ? (process.env.SHOPKEEPER_FRONTEND_URL || process.env.VENDOR_FRONTEND_URL)
+                ? (process.env.SHOPKEEPER_FRONTEND_URL || 'https://shopkeeper.delhiveryway.com')
                 : process.env.FRONTEND_URL;
 
             const resetLink = `${frontendURL}/reset-password?token=${resetToken}&email=${email}`;
