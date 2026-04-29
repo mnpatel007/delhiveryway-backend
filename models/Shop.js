@@ -15,8 +15,7 @@ const shopSchema = new mongoose.Schema({
     },
     vendorId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: [true, 'Vendor ID is required']
+        ref: 'User'
     },
     category: {
         type: String,

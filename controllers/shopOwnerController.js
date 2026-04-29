@@ -172,3 +172,17 @@ exports.getMonthlyStats = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
+
+// Get Available Shops (shops without a vendor)
+exports.getAvailableShops = async (req, res) => {
+    try {
+        const shops = await Shop.find({ vendorId: { $exists: false } }).select('_id name address category');
+        res.json({
+            success: true,
+            data: { shops }
+        });
+    } catch (error) {
+        console.error('Get available shops error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};

@@ -6,9 +6,13 @@ const {
     updateTimings,
     getCommission,
     updateCommission,
-    getMonthlyStats
+    getMonthlyStats,
+    getAvailableShops
 } = require('../controllers/shopOwnerController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
+
+// Public routes
+router.get('/available-shops', getAvailableShops);
 
 // All routes are protected and restricted to vendor
 router.use(protect);
