@@ -1867,7 +1867,7 @@ exports.getAnalytics = async (req, res) => {
         });
     }
 };
-// GET Shop-wise Revenue by Month (Admin only)
+// GET Shop-wise Revenue by Month & Day (Admin only)
 exports.getShopRevenue = async (req, res) => {
     try {
         console.log('📊 Admin revenue aggregation request received');
@@ -1897,25 +1897,42 @@ exports.getShopRevenue = async (req, res) => {
             }
         ]);
 
-        // 3. Monthly statistics for the current month
+        // 3. Time-based statistics (Current Month, Today, Yesterday)
+        const istOffset = 5.5 * 60 * 60 * 1000;
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const nowIST = new Date(now.getTime() + istOffset);
+        
+        // Month stats
+        const startOfMonth = new Date(nowIST.getUTCFullYear(), nowIST.getUTCMonth(), 1);
+        const startOfMonthUTC = new Date(startOfMonth.getTime() - istOffset);
 
-        const currentMonthStats = await Order.aggregate([
-            {
-                $match: {
-                    status: 'delivered',
-                    shopId: { $nin: testShopIds },
-                    createdAt: { $gte: startOfMonth }
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    revenue: { $sum: '$orderValue.total' },
-                    orders: { $sum: 1 }
-                }
-            }
+        // Day stats
+        const todayStartIST = new Date(nowIST);
+        todayStartIST.setUTCHours(0, 0, 0, 0);
+        const todayEndIST = new Date(todayStartIST);
+        todayEndIST.setUTCDate(todayEndIST.getUTCDate() + 1);
+        
+        const yesterdayStartIST = new Date(todayStartIST);
+        yesterdayStartIST.setUTCDate(yesterdayStartIST.getUTCDate() - 1);
+
+        const todayStartUTC = new Date(todayStartIST.getTime() - istOffset);
+        const todayEndUTC = new Date(todayEndIST.getTime() - istOffset);
+        const yesterdayStartUTC = new Date(yesterdayStartIST.getTime() - istOffset);
+        const yesterdayEndUTC = todayStartUTC;
+
+        const [monthStats, todayStats, yesterdayStats] = await Promise.all([
+            Order.aggregate([
+                { $match: { status: 'delivered', shopId: { $nin: testShopIds }, createdAt: { $gte: startOfMonthUTC } } },
+                { $group: { _id: null, revenue: { $sum: '$orderValue.total' }, orders: { $sum: 1 } } }
+            ]),
+            Order.aggregate([
+                { $match: { status: 'delivered', shopId: { $nin: testShopIds }, createdAt: { $gte: todayStartUTC, $lt: todayEndUTC } } },
+                { $group: { _id: null, revenue: { $sum: '$orderValue.total' }, orders: { $sum: 1 } } }
+            ]),
+            Order.aggregate([
+                { $match: { status: 'delivered', shopId: { $nin: testShopIds }, createdAt: { $gte: yesterdayStartUTC, $lt: yesterdayEndUTC } } },
+                { $group: { _id: null, revenue: { $sum: '$orderValue.total' }, orders: { $sum: 1 } } }
+            ])
         ]);
 
         // 4. Per-shop detailed breakdown (all-time + monthly, excluding test shops)
@@ -1930,8 +1947,8 @@ exports.getShopRevenue = async (req, res) => {
                 $group: {
                     _id: {
                         shopId: '$shopId',
-                        year: { $year: '$createdAt' },
-                        month: { $month: '$createdAt' }
+                        year: { $year: { $add: ["$createdAt", istOffset] } },
+                        month: { $month: { $add: ["$createdAt", istOffset] } }
                     },
                     monthlyRevenue: { $sum: '$orderValue.total' },
                     monthlyOrders: { $sum: 1 }
@@ -1951,50 +1968,72 @@ exports.getShopRevenue = async (req, res) => {
                         }
                     }
                 }
-            },
+            }
+        ]);
+
+        // 5. Per-shop daily breakdown (last 30 days)
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const dailyRevenueByShop = await Order.aggregate([
             {
-                $lookup: {
-                    from: 'shops',
-                    localField: '_id',
-                    foreignField: '_id',
-                    as: 'shopInfo'
+                $match: {
+                    status: 'delivered',
+                    shopId: { $nin: testShopIds },
+                    createdAt: { $gte: thirtyDaysAgo }
                 }
             },
             {
-                $unwind: '$shopInfo'
+                $group: {
+                    _id: {
+                        shopId: '$shopId',
+                        date: { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$createdAt", istOffset] } } }
+                    },
+                    dailyRevenue: { $sum: '$orderValue.total' },
+                    dailyOrders: { $sum: 1 }
+                }
             },
             {
-                $project: {
-                    _id: 0,
-                    shopId: '$_id',
-                    shopName: '$shopInfo.name',
-                    isVisible: '$shopInfo.isVisible',
-                    allTimeRevenue: 1,
-                    allTimeOrders: 1,
-                    monthlyBreakdown: 1
+                $group: {
+                    _id: '$_id.shopId',
+                    dailyBreakdown: {
+                        $push: {
+                            date: '$_id.date',
+                            revenue: '$dailyRevenue',
+                            orders: '$dailyOrders'
+                        }
+                    }
                 }
             }
         ]);
 
-        // 5. Add shops that haven't made any sales yet
-        const activeShops = await Shop.find({ _id: { $nin: testShopIds } }, { name: 1, _id: 1, isVisible: 1 });
-        const revenueShopIds = new Set(revenueByShop.map(s => s.shopId.toString()));
+        // Merge daily into main revenue data
+        const dailyMap = new Map(dailyRevenueByShop.map(item => [item._id.toString(), item.dailyBreakdown]));
 
-        activeShops.forEach(shop => {
-            if (!revenueShopIds.has(shop._id.toString())) {
-                revenueByShop.push({
-                    shopId: shop._id,
-                    shopName: shop.name,
-                    isVisible: shop.isVisible,
-                    allTimeRevenue: 0,
-                    allTimeOrders: 0,
-                    monthlyBreakdown: []
-                });
-            }
+        // 6. Fetch shop info and finalize list
+        const activeShops = await Shop.find({ _id: { $nin: testShopIds } }, { name: 1, _id: 1, isVisible: 1 });
+        const revenueMap = new Map(revenueByShop.map(item => [item._id.toString(), item]));
+
+        const finalShops = activeShops.map(shop => {
+            const idStr = shop._id.toString();
+            const revData = revenueMap.get(idStr) || { allTimeRevenue: 0, allTimeOrders: 0, monthlyBreakdown: [] };
+            const dailyData = dailyMap.get(idStr) || [];
+
+            // Sort breakdowns
+            revData.monthlyBreakdown.sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month);
+            dailyData.sort((a, b) => b.date.localeCompare(a.date));
+
+            return {
+                shopId: shop._id,
+                shopName: shop.name,
+                isVisible: shop.isVisible,
+                allTimeRevenue: revData.allTimeRevenue,
+                allTimeOrders: revData.allTimeOrders,
+                monthlyBreakdown: revData.monthlyBreakdown,
+                dailyBreakdown: dailyData
+            };
         });
 
-        // 6. Sort by visibility (Visible first) and then by name
-        revenueByShop.sort((a, b) => {
+        // Sort by visibility (Visible first) and then by name
+        finalShops.sort((a, b) => {
             if (a.isVisible !== b.isVisible) {
                 return a.isVisible ? -1 : 1;
             }
@@ -2010,10 +2049,14 @@ exports.getShopRevenue = async (req, res) => {
                     partnerShops: totalShops,
                     totalRevenue: globalStats[0]?.totalRevenue || 0,
                     totalOrders: globalStats[0]?.totalOrders || 0,
-                    currentMonthRevenue: currentMonthStats[0]?.revenue || 0,
-                    currentMonthOrders: currentMonthStats[0]?.orders || 0
+                    currentMonthRevenue: monthStats[0]?.revenue || 0,
+                    currentMonthOrders: monthStats[0]?.orders || 0,
+                    todayRevenue: todayStats[0]?.revenue || 0,
+                    todayOrders: todayStats[0]?.orders || 0,
+                    yesterdayRevenue: yesterdayStats[0]?.revenue || 0,
+                    yesterdayOrders: yesterdayStats[0]?.orders || 0
                 },
-                shops: revenueByShop
+                shops: finalShops
             }
         });
 
@@ -2025,6 +2068,7 @@ exports.getShopRevenue = async (req, res) => {
         });
     }
 };
+
 
 // Terms and Conditions Management
 
