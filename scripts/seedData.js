@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Shop = require('../models/Shop');
 const Product = require('../models/Product');
 const User = require('../models/User');
-require('dotenv').config();
+require('../config/loadEnv');
 
 const sampleShops = [
     {

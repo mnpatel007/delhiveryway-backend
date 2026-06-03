@@ -2,14 +2,14 @@
 const express = require('express');
 const http = require('http');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
 const socketIo = require('socket.io');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 
-dotenv.config();
+// Loads .env.development locally (NODE_ENV=development) or .env / Render vars otherwise.
+require('./config/loadEnv');
 
 const app = express();
 const server = http.createServer(app);
