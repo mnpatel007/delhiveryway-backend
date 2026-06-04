@@ -7,7 +7,10 @@
     "dev": "cross-env NODE_ENV=development nodemon server.js",
     "dev:prod-db": "nodemon server.js",
     "seed": "node scripts/seedData.js",
-    "seed:dev": "cross-env NODE_ENV=development node scripts/seedData.js"
+    "seed:dev": "cross-env NODE_ENV=development node scripts/seedData.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
@@ -32,6 +35,11 @@
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "nodemon": "^3.1.1"
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "nodemon": "^3.1.1",
+    "prettier": "^3.8.3"
   }
 }

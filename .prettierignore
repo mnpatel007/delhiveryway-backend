@@ -1,0 +1,7 @@
+node_modules
+build
+dist
+coverage
+uploads
+package-lock.json
+*.min.js

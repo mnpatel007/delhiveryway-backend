@@ -1,0 +1,23 @@
+# 1. Block merge-conflict markers in staged files
+conflicts=""
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+  if [ -f "$f" ] && grep -qE '^(<{7}|>{7})' "$f" 2>/dev/null; then
+    conflicts="$conflicts $f"
+  fi
+done
+if [ -n "$conflicts" ]; then
+  echo "Merge-conflict markers found in:$conflicts"
+  exit 1
+fi
+
+# 2. Block focused/skipped tests (.only / .skip) in staged test files
+staged_tests=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(test|spec)\.(js|jsx|ts|tsx)$' || true)
+if [ -n "$staged_tests" ]; then
+  if echo "$staged_tests" | xargs grep -nE '\.(only|skip)\(' 2>/dev/null; then
+    echo "Remove .only/.skip from the tests above before committing."
+    exit 1
+  fi
+fi
+
+# 3. Auto-format + lint staged files (ESLint errors block the commit; warnings are allowed)
+npx lint-staged
