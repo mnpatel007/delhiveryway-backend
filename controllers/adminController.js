@@ -12,12 +12,17 @@ exports.adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check for admin credentials
-    if (email === 'admin@delhiveryway.com' && password === 'admin123') {
+    // Check for the built-in system admin, configured via environment variables.
+    // Both ADMIN_EMAIL and ADMIN_PASSWORD must be set for this path to be usable —
+    // an unconfigured deployment cannot be bypassed with empty credentials.
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (adminEmail && adminPassword && email === adminEmail && password === adminPassword) {
       const adminUser = {
         _id: 'admin',
         name: 'System Admin',
-        email: 'admin@delhiveryway.com',
+        email: adminEmail,
         role: 'admin',
       };
 
