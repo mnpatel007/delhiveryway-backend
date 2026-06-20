@@ -16,3 +16,6 @@ yarn-error.log*
 # OS / editor cruft
 .DS_Store
 Thumbs.db
+
+# Stripe CLI binary (install locally, do not commit)
+stripe.exe
