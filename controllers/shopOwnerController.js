@@ -369,10 +369,15 @@ exports.getVendorStatus = async (req, res) => {
     const shop = await Shop.findOne({ vendorId: req.user._id }).select('name isActive');
     const pendingCode = shop ? null : await ShopClaimCode.findLiveFor(req.user._id);
 
+    const held =
+      Array.isArray(req.user.roles) && req.user.roles.length ? req.user.roles : [req.user.role];
+
     res.json({
       success: true,
       data: {
         linked: Boolean(shop),
+        isPartner: held.includes('vendor') || req.user.role === 'vendor',
+        applied: Boolean(req.user.vendorAppliedAt),
         shop: shop ? { _id: shop._id, name: shop.name, isActive: shop.isActive } : null,
         requestedShopName: req.user.requestedShopName || null,
         codeIssued: Boolean(pendingCode),
@@ -434,6 +439,16 @@ exports.claimShop = async (req, res) => {
     shop.vendorId = req.user._id;
     await shop.save();
 
+    // Grant the capability without disturbing anything they already hold: a
+    // shop owner who also orders from us stays a customer too.
+    const user = await User.findById(req.user._id);
+    const heldRoles = new Set(
+      Array.isArray(user.roles) && user.roles.length ? user.roles : [user.role]
+    );
+    heldRoles.add('vendor');
+    user.roles = [...heldRoles];
+    await user.save();
+
     record.usedAt = new Date();
     record.usedBy = req.user._id;
     await record.save();
@@ -445,6 +460,43 @@ exports.claimShop = async (req, res) => {
     });
   } catch (error) {
     console.error('Claim shop error:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+/**
+ * An existing account asking for partner access. Most shop owners already
+ * order from us, so rather than making them register twice they sign in with
+ * the account they have and tell us which shop is theirs. This records the
+ * request only - access still arrives via an admin-issued claim code.
+ */
+exports.applyAsPartner = async (req, res) => {
+  try {
+    const { shopName } = req.body;
+    if (!shopName || !String(shopName).trim()) {
+      return res.status(400).json({ success: false, message: 'Tell us your shop name.' });
+    }
+
+    const existing = await Shop.findOne({ vendorId: req.user._id });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: 'Your account already runs ' + existing.name + '.',
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    user.requestedShopName = String(shopName).trim();
+    if (!user.vendorAppliedAt) user.vendorAppliedAt = new Date();
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Thanks. We will check this and send you an access code.',
+      data: { requestedShopName: user.requestedShopName },
+    });
+  } catch (error) {
+    console.error('Apply as partner error:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };

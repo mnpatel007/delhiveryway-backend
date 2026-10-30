@@ -27,9 +27,11 @@ exports.signup = async (req, res) => {
     // customer or a vendor; an admin account is configured through
     // ADMIN_EMAIL or promoted in the database deliberately. Without this,
     // POSTing role:"admin" created a working admin login.
-    const ALLOWED_SIGNUP_ROLES = ['customer', 'vendor'];
-    const requestedRole = String(req.body.role || 'customer').toLowerCase();
-    const role = ALLOWED_SIGNUP_ROLES.includes(requestedRole) ? requestedRole : 'customer';
+    // Signing up never grants partner access. Someone asking to be a vendor is
+    // recorded as an applicant; the capability is added only when they redeem
+    // the one-time code an admin issued for a specific shop.
+    const wantsVendor = String(req.body.role || '').toLowerCase() === 'vendor';
+    const role = 'customer';
 
     // Validate required fields
     if (!name || !email || !password || !phone) {
@@ -71,10 +73,15 @@ exports.signup = async (req, res) => {
     });
 
     if (existingUser) {
-      const field = existingUser.email === email ? 'email' : 'phone number';
+      const field =
+        existingUser.email === String(email).toLowerCase().trim() ? 'email' : 'phone number';
       return res.status(409).json({
         success: false,
-        message: `User with this ${field} already exists`,
+        // accountExists lets the partner portal offer "sign in and apply"
+        // instead of a dead end, since most shop owners already order with us.
+        accountExists: true,
+        matchedOn: field,
+        message: `An account with this ${field} already exists. Sign in with it instead.`,
       });
     }
 
@@ -88,10 +95,11 @@ exports.signup = async (req, res) => {
       password,
       phone: phone.trim(),
       role,
-      // Vendors tell us which shop they run; an admin matches it to a real
+      roles: ['customer'],
+      // Shop owners tell us which shop they run; an admin matches it to a real
       // shop and issues them a claim code.
-      requestedShopName:
-        role === 'vendor' && req.body.shopName ? String(req.body.shopName).trim() : null,
+      requestedShopName: wantsVendor && req.body.shopName ? String(req.body.shopName).trim() : null,
+      vendorAppliedAt: wantsVendor ? new Date() : null,
       verificationToken,
       isVerified: process.env.NODE_ENV === 'development', // Auto-verify in development
     });
@@ -115,10 +123,11 @@ exports.signup = async (req, res) => {
           process.env.GMAIL_PASS ? process.env.GMAIL_PASS.length : 0
         );
 
-        const frontendURL =
-          role === 'vendor'
-            ? process.env.SHOPKEEPER_FRONTEND_URL || 'https://shopkeeper.delhiveryway.com'
-            : process.env.FRONTEND_URL;
+        // Send a partner applicant to the partner portal to verify, not the
+        // customer site, even though their role is still customer at this point.
+        const frontendURL = wantsVendor
+          ? process.env.SHOPKEEPER_FRONTEND_URL || 'https://shopkeeper.delhiveryway.com'
+          : process.env.FRONTEND_URL;
 
         const verificationLink = `${frontendURL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
         console.log('📧 Verification link:', verificationLink);
@@ -474,10 +483,16 @@ exports.forgotPassword = async (req, res) => {
 
     // Send reset email
     try {
-      const frontendURL =
-        user.role === 'vendor'
-          ? process.env.SHOPKEEPER_FRONTEND_URL || 'https://shopkeeper.delhiveryway.com'
-          : process.env.FRONTEND_URL;
+      // Someone who runs a shop resets from the partner portal. Accounts that
+      // are both land on the portal, since that is the one they cannot reach
+      // any other way.
+      const isPartner =
+        user.role === 'vendor' ||
+        (Array.isArray(user.roles) && user.roles.includes('vendor')) ||
+        Boolean(user.vendorAppliedAt);
+      const frontendURL = isPartner
+        ? process.env.SHOPKEEPER_FRONTEND_URL || 'https://shopkeeper.delhiveryway.com'
+        : process.env.FRONTEND_URL;
 
       const resetLink = `${frontendURL}/reset-password?token=${resetToken}&email=${email}`;
 

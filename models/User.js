@@ -58,6 +58,20 @@ const userSchema = new mongoose.Schema(
       enum: ['customer', 'vendor', 'admin'],
       default: 'customer',
     },
+    // Every capability this account holds. `role` above remains the primary
+    // identity (and what older code reads); this is what authorisation checks,
+    // so one person can be both a customer and a shop owner without needing a
+    // second account - which the unique email index forbids in any case.
+    roles: {
+      type: [String],
+      enum: ['customer', 'vendor', 'admin'],
+      default: undefined,
+    },
+    // When they asked for partner access. Set on signup or by applying later.
+    vendorAppliedAt: {
+      type: Date,
+      default: null,
+    },
     // What a vendor typed as their shop name at signup. It is only a claim at
     // this point - the real link is Shop.vendorId, set when they redeem a
     // claim code - but it tells an admin which shop they say they are.
@@ -98,6 +112,7 @@ const userSchema = new mongoose.Schema(
 
 // Indexes (email index is created by unique: true)
 userSchema.index({ role: 1 });
+userSchema.index({ roles: 1 });
 userSchema.index({ isVerified: 1 });
 
 // Virtual for account lock status

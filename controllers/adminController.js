@@ -2583,8 +2583,14 @@ exports.listVendors = async (req, res) => {
   try {
     const ShopClaimCode = require('../models/ShopClaimCode');
 
-    const vendors = await User.find({ role: 'vendor' })
-      .select('name email phone requestedShopName isVerified isActive createdAt')
+    // Anyone holding the capability, plus anyone who has asked for it and is
+    // still waiting, so applicants are visible before they are granted access.
+    const vendors = await User.find({
+      $or: [{ role: 'vendor' }, { roles: 'vendor' }, { vendorAppliedAt: { $ne: null } }],
+    })
+      .select(
+        'name email phone requestedShopName isVerified isActive createdAt roles vendorAppliedAt'
+      )
       .sort({ createdAt: -1 })
       .lean();
 
@@ -2667,8 +2673,10 @@ exports.issueClaimCode = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Pick a shop to connect them to.' });
     }
 
-    const vendor = await User.findOne({ _id: vendorId, role: 'vendor' });
-    if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found' });
+    // A code can be issued to any account - that is the whole point, since most
+    // shop owners sign up as customers first.
+    const vendor = await User.findById(vendorId);
+    if (!vendor) return res.status(404).json({ success: false, message: 'Account not found' });
 
     const shop = await Shop.findById(shopId);
     if (!shop) return res.status(404).json({ success: false, message: 'Shop not found' });

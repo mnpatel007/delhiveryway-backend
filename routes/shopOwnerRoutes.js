@@ -12,19 +12,24 @@ const {
   updateOrderStatus,
   getVendorStatus,
   claimShop,
+  applyAsPartner,
 } = require('../controllers/shopOwnerController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 // Public routes
 router.get('/available-shops', getAvailableShops);
 
-// All routes are protected and restricted to vendor
 router.use(protect);
-router.use(restrictTo('vendor'));
 
-// Where this vendor stands: bound to a shop yet, code waiting?
+// Reachable by any signed-in account, because this is how someone who is
+// currently only a customer becomes a partner: see where they stand, ask for
+// access, and redeem the code an admin issued them.
 router.get('/status', getVendorStatus);
+router.post('/apply', applyAsPartner);
 router.post('/claim', claimShop);
+
+// Everything below needs the vendor capability, which arrives with the claim.
+router.use(restrictTo('vendor'));
 
 router.get('/profile', getProfile);
 router.put('/consent', updateConsent);
