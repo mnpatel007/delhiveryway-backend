@@ -26,6 +26,11 @@ const {
   getAnalytics,
   getShopRevenue,
   getConvenienceProfit,
+  listVendors,
+  listUnclaimedShops,
+  issueClaimCode,
+  revokeClaimCode,
+  unlinkVendorShop,
   getAppSettings,
   updateAppSettings,
 } = require('../controllers/adminController');
@@ -70,6 +75,13 @@ router.get('/revenue', adminProtect, getShopRevenue);
 
 // Global shop closure (must be registered before :shopId routes to avoid conflict)
 router.get('/profit', adminProtect, getConvenienceProfit);
+
+// Vendor management
+router.get('/vendors', adminProtect, listVendors);
+router.get('/vendors/unclaimed-shops', adminProtect, listUnclaimedShops);
+router.post('/vendors/:vendorId/claim-code', adminProtect, issueClaimCode);
+router.delete('/vendors/:vendorId/claim-code', adminProtect, revokeClaimCode);
+router.delete('/vendors/:vendorId/shop', adminProtect, unlinkVendorShop);
 router.get('/settings', adminProtect, getAppSettings);
 router.put('/settings', adminProtect, updateAppSettings);
 

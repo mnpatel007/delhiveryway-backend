@@ -88,20 +88,19 @@ exports.signup = async (req, res) => {
       password,
       phone: phone.trim(),
       role,
+      // Vendors tell us which shop they run; an admin matches it to a real
+      // shop and issues them a claim code.
+      requestedShopName:
+        role === 'vendor' && req.body.shopName ? String(req.body.shopName).trim() : null,
       verificationToken,
       isVerified: process.env.NODE_ENV === 'development', // Auto-verify in development
     });
 
     await user.save();
 
-    if (role === 'vendor' && req.body.shopId) {
-      const Shop = require('../models/Shop');
-      const shop = await Shop.findById(req.body.shopId);
-      if (shop && !shop.vendorId) {
-        shop.vendorId = user._id;
-        await shop.save();
-      }
-    }
+    // A vendor is NOT bound to a shop at signup. Binding happens only when
+    // they redeem a one-time claim code an admin issued for that shop, so a
+    // stranger cannot attach themselves to a business by picking its id.
 
     // Send verification email if not in development
     if (process.env.NODE_ENV !== 'development') {

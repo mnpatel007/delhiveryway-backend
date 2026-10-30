@@ -1,15 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const {
-    getProfile,
-    updateConsent,
-    updateTimings,
-    getCommission,
-    updateCommission,
-    getMonthlyStats,
-    getAvailableShops,
-    getShopOrders,
-    updateOrderStatus
+  getProfile,
+  updateConsent,
+  updateTimings,
+  getCommission,
+  updateCommission,
+  getMonthlyStats,
+  getAvailableShops,
+  getShopOrders,
+  updateOrderStatus,
+  getVendorStatus,
+  claimShop,
 } = require('../controllers/shopOwnerController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -19,6 +21,10 @@ router.get('/available-shops', getAvailableShops);
 // All routes are protected and restricted to vendor
 router.use(protect);
 router.use(restrictTo('vendor'));
+
+// Where this vendor stands: bound to a shop yet, code waiting?
+router.get('/status', getVendorStatus);
+router.post('/claim', claimShop);
 
 router.get('/profile', getProfile);
 router.put('/consent', updateConsent);

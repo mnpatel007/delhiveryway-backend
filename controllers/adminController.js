@@ -2573,3 +2573,226 @@ exports.getConvenienceProfit = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to load profit data' });
   }
 };
+
+// ---------------------------------------------------------------------------
+// Vendor management
+// ---------------------------------------------------------------------------
+
+/** Every vendor account, with the shop they are bound to and any live code. */
+exports.listVendors = async (req, res) => {
+  try {
+    const ShopClaimCode = require('../models/ShopClaimCode');
+
+    const vendors = await User.find({ role: 'vendor' })
+      .select('name email phone requestedShopName isVerified isActive createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const ids = vendors.map((v) => v._id);
+
+    const shops = await Shop.find({ vendorId: { $in: ids } })
+      .select('name vendorId isActive')
+      .lean();
+    const shopByVendor = new Map(shops.map((s) => [String(s.vendorId), s]));
+
+    const liveCodes = await ShopClaimCode.find({
+      issuedToUserId: { $in: ids },
+      usedAt: null,
+      revokedAt: null,
+      expiresAt: { $gt: new Date() },
+    })
+      .select('issuedToUserId shopId expiresAt createdAt')
+      .populate('shopId', 'name')
+      .lean();
+    const codeByVendor = new Map(liveCodes.map((c) => [String(c.issuedToUserId), c]));
+
+    const data = vendors.map((v) => {
+      const shop = shopByVendor.get(String(v._id));
+      const code = codeByVendor.get(String(v._id));
+      return {
+        ...v,
+        shop: shop ? { _id: shop._id, name: shop.name, isActive: shop.isActive } : null,
+        pendingCode: code
+          ? {
+              shopName: code.shopId?.name || null,
+              expiresAt: code.expiresAt,
+              issuedAt: code.createdAt,
+            }
+          : null,
+        status: shop
+          ? 'linked'
+          : code
+            ? 'code-issued'
+            : v.isVerified
+              ? 'awaiting-code'
+              : 'unverified',
+      };
+    });
+
+    res.json({ success: true, data: { vendors: data } });
+  } catch (error) {
+    console.error('List vendors error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load vendors' });
+  }
+};
+
+/** Shops with no owner yet, for the admin to pick from when issuing a code. */
+exports.listUnclaimedShops = async (req, res) => {
+  try {
+    const shops = await Shop.find({ $or: [{ vendorId: null }, { vendorId: { $exists: false } }] })
+      .select('name address isActive')
+      .sort({ name: 1 })
+      .lean();
+    res.json({ success: true, data: { shops } });
+  } catch (error) {
+    console.error('List unclaimed shops error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load shops' });
+  }
+};
+
+/**
+ * Issue a one-time claim code binding a vendor to a shop, and email it to them.
+ * The plaintext is returned once so the admin can also read it out by phone;
+ * only its hash is stored.
+ */
+exports.issueClaimCode = async (req, res) => {
+  try {
+    const ShopClaimCode = require('../models/ShopClaimCode');
+    const { sendMail } = require('../utils/mailer');
+
+    const { vendorId } = req.params;
+    const { shopId, expiresInDays } = req.body;
+
+    if (!shopId) {
+      return res.status(400).json({ success: false, message: 'Pick a shop to connect them to.' });
+    }
+
+    const vendor = await User.findOne({ _id: vendorId, role: 'vendor' });
+    if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found' });
+
+    const shop = await Shop.findById(shopId);
+    if (!shop) return res.status(404).json({ success: false, message: 'Shop not found' });
+
+    if (shop.vendorId) {
+      return res.status(409).json({
+        success: false,
+        message: 'That shop already has an owner. Unlink it first.',
+      });
+    }
+
+    const alreadyOwns = await Shop.findOne({ vendorId: vendor._id });
+    if (alreadyOwns) {
+      return res.status(409).json({
+        success: false,
+        message: vendor.name + ' already runs ' + alreadyOwns.name + '.',
+      });
+    }
+
+    // Any earlier unused code for this vendor is dead the moment a new one is cut.
+    await ShopClaimCode.updateMany(
+      { issuedToUserId: vendor._id, usedAt: null, revokedAt: null },
+      { $set: { revokedAt: new Date() } }
+    );
+
+    const code = ShopClaimCode.generateCode();
+    const days = Math.min(Math.max(parseInt(expiresInDays, 10) || 7, 1), 30);
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+    await ShopClaimCode.create({
+      shopId: shop._id,
+      codeHash: ShopClaimCode.hashCode(code),
+      issuedToEmail: vendor.email,
+      issuedToUserId: vendor._id,
+      issuedBy: req.user?.email || 'admin',
+      expiresAt,
+    });
+
+    // Emailing is best-effort: the admin still has the code on screen.
+    let emailed = true;
+    try {
+      await sendMail({
+        to: vendor.email,
+        subject: 'Your shop access code',
+        text:
+          'Hello ' +
+          vendor.name +
+          ',\n\n' +
+          'Your access code for ' +
+          shop.name +
+          ' is: ' +
+          code +
+          '\n\n' +
+          'Sign in to the partner portal and enter it once to connect your account to the shop. ' +
+          'The code expires on ' +
+          expiresAt.toDateString() +
+          '.\n\n' +
+          'If you were not expecting this, you can ignore it.',
+        html:
+          '<p>Hello ' +
+          vendor.name +
+          ',</p>' +
+          '<p>Your access code for <strong>' +
+          shop.name +
+          '</strong> is:</p>' +
+          '<p style="font-size:28px;font-weight:800;letter-spacing:4px">' +
+          code +
+          '</p>' +
+          '<p>Sign in to the partner portal and enter it once to connect your account to the shop.</p>' +
+          '<p>The code expires on ' +
+          expiresAt.toDateString() +
+          '.</p>' +
+          '<p style="color:#64748b;font-size:13px">If you were not expecting this, you can ignore it.</p>',
+      });
+    } catch (err) {
+      emailed = false;
+      console.error('Claim code email failed:', err.message);
+    }
+
+    res.json({
+      success: true,
+      message: emailed
+        ? 'Code issued and emailed to ' + vendor.email
+        : 'Code issued, but the email did not send. Pass it on yourself.',
+      data: { code, shopName: shop.name, expiresAt, emailed },
+    });
+  } catch (error) {
+    console.error('Issue claim code error:', error);
+    res.status(500).json({ success: false, message: 'Failed to issue code' });
+  }
+};
+
+/** Kill any outstanding code for a vendor. */
+exports.revokeClaimCode = async (req, res) => {
+  try {
+    const ShopClaimCode = require('../models/ShopClaimCode');
+    const result = await ShopClaimCode.updateMany(
+      { issuedToUserId: req.params.vendorId, usedAt: null, revokedAt: null },
+      { $set: { revokedAt: new Date() } }
+    );
+    res.json({
+      success: true,
+      message: result.modifiedCount ? 'Code revoked.' : 'There was no live code to revoke.',
+    });
+  } catch (error) {
+    console.error('Revoke claim code error:', error);
+    res.status(500).json({ success: false, message: 'Failed to revoke code' });
+  }
+};
+
+/** Detach a vendor from their shop, freeing it to be claimed again. */
+exports.unlinkVendorShop = async (req, res) => {
+  try {
+    const shop = await Shop.findOne({ vendorId: req.params.vendorId });
+    if (!shop) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'That vendor is not linked to a shop.' });
+    }
+    shop.vendorId = null;
+    await shop.save();
+    res.json({ success: true, message: 'Unlinked from ' + shop.name + '.' });
+  } catch (error) {
+    console.error('Unlink vendor error:', error);
+    res.status(500).json({ success: false, message: 'Failed to unlink' });
+  }
+};
