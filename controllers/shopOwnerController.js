@@ -3,6 +3,7 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const mongoose = require('mongoose');
 const ShopClaimCode = require('../models/ShopClaimCode');
+const { isUsablePhone, normalisePhone } = require('../utils/phone');
 const { toVendorOrder, shopFacingValue, round2, istPeriodRange } = require('../utils/vendorView');
 
 // Helper to get the current shop for the vendor
@@ -399,6 +400,10 @@ exports.getVendorStatus = async (req, res) => {
         linked: Boolean(shop),
         isPartner: held.includes('vendor') || req.user.role === 'vendor',
         applied: Boolean(req.user.vendorAppliedAt),
+        // Accounts created through Google carry a placeholder number, so a
+        // partner may need to give us a real one before we can reach them.
+        phone: isUsablePhone(req.user.phone) ? req.user.phone : null,
+        needsPhone: !isUsablePhone(req.user.phone),
         shop: shop ? { _id: shop._id, name: shop.name, isActive: shop.isActive } : null,
         requestedShopName: req.user.requestedShopName || null,
         codeIssued: Boolean(pendingCode),
@@ -493,9 +498,44 @@ exports.claimShop = async (req, res) => {
  */
 exports.applyAsPartner = async (req, res) => {
   try {
-    const { shopName } = req.body;
+    const { shopName, phone } = req.body;
     if (!shopName || !String(shopName).trim()) {
       return res.status(400).json({ success: false, message: 'Tell us your shop name.' });
+    }
+
+    const user = await User.findById(req.user._id);
+
+    // We can only act on a partner request if we can reach them. Accounts that
+    // signed in with Google have never given us a number.
+    if (!isUsablePhone(user.phone)) {
+      const supplied = normalisePhone(phone);
+
+      if (!supplied) {
+        return res.status(400).json({
+          success: false,
+          needsPhone: true,
+          message: 'We also need a phone number we can reach you on.',
+        });
+      }
+      if (!isUsablePhone(supplied)) {
+        return res.status(400).json({
+          success: false,
+          needsPhone: true,
+          message: 'Enter a real 10-digit phone number.',
+        });
+      }
+
+      // Signup treats a phone as unique, so do not let two accounts share one.
+      const taken = await User.findOne({ phone: supplied, _id: { $ne: user._id } });
+      if (taken) {
+        return res.status(409).json({
+          success: false,
+          needsPhone: true,
+          message: 'That number is already on another account.',
+        });
+      }
+
+      user.phone = supplied;
     }
 
     const existing = await Shop.findOne({ vendorId: req.user._id });
@@ -506,7 +546,6 @@ exports.applyAsPartner = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.user._id);
     user.requestedShopName = String(shopName).trim();
     if (!user.vendorAppliedAt) user.vendorAppliedAt = new Date();
     await user.save();
@@ -514,7 +553,7 @@ exports.applyAsPartner = async (req, res) => {
     res.json({
       success: true,
       message: 'Thanks. We will check this and send you an access code.',
-      data: { requestedShopName: user.requestedShopName },
+      data: { requestedShopName: user.requestedShopName, phone: user.phone },
     });
   } catch (error) {
     console.error('Apply as partner error:', error);
