@@ -31,6 +31,7 @@ const {
   issueClaimCode,
   revokeClaimCode,
   unlinkVendorShop,
+  revokePartnerAccess,
   getAppSettings,
   updateAppSettings,
 } = require('../controllers/adminController');
@@ -82,6 +83,7 @@ router.get('/vendors/unclaimed-shops', adminProtect, listUnclaimedShops);
 router.post('/vendors/:vendorId/claim-code', adminProtect, issueClaimCode);
 router.delete('/vendors/:vendorId/claim-code', adminProtect, revokeClaimCode);
 router.delete('/vendors/:vendorId/shop', adminProtect, unlinkVendorShop);
+router.delete('/vendors/:vendorId/access', adminProtect, revokePartnerAccess);
 router.get('/settings', adminProtect, getAppSettings);
 router.put('/settings', adminProtect, updateAppSettings);
 

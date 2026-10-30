@@ -1264,11 +1264,15 @@ exports.deleteUser = async (req, res) => {
       });
     }
 
-    // If user is a vendor, unlink their shops so they can be claimed by a new vendor.
-    // Shops are admin-managed assets and must NOT be deleted along with the vendor account.
-    if (user.role === 'vendor') {
-      await Shop.updateMany({ vendorId: userId }, { $unset: { vendorId: '' } });
-    }
+    // Unlink any shop they ran so it can be claimed again. Shops are
+    // admin-managed assets and must NOT be deleted with the account. Checked by
+    // ownership rather than role, since a shop owner's primary role is usually
+    // still 'customer'.
+    await Shop.updateMany({ vendorId: userId }, { $unset: { vendorId: '' } });
+
+    // Any outstanding claim code is meaningless once the account is gone.
+    const ShopClaimCode = require('../models/ShopClaimCode');
+    await ShopClaimCode.deleteMany({ issuedToUserId: userId });
 
     res.json({
       success: true,
@@ -2601,6 +2605,14 @@ exports.listVendors = async (req, res) => {
       .lean();
     const shopByVendor = new Map(shops.map((s) => [String(s.vendorId), s]));
 
+    // How much history deleting the account would orphan, so an admin can see
+    // the cost before choosing delete over revoke.
+    const orderCounts = await Order.aggregate([
+      { $match: { customerId: { $in: ids } } },
+      { $group: { _id: '$customerId', n: { $sum: 1 } } },
+    ]);
+    const ordersByUser = new Map(orderCounts.map((o) => [String(o._id), o.n]));
+
     const liveCodes = await ShopClaimCode.find({
       issuedToUserId: { $in: ids },
       usedAt: null,
@@ -2625,6 +2637,7 @@ exports.listVendors = async (req, res) => {
               issuedAt: code.createdAt,
             }
           : null,
+        customerOrders: ordersByUser.get(String(v._id)) || 0,
         status: shop
           ? 'linked'
           : code
@@ -2802,5 +2815,62 @@ exports.unlinkVendorShop = async (req, res) => {
   } catch (error) {
     console.error('Unlink vendor error:', error);
     res.status(500).json({ success: false, message: 'Failed to unlink' });
+  }
+};
+
+/**
+ * Take partner access away without touching the rest of the account.
+ *
+ * Unwinds every trace of the partnership - the shop link, any live code, the
+ * application and the vendor capability - while leaving the person's customer
+ * account exactly as it was, including their order history. An account is
+ * never left with no role at all: if vendor was the only one it holds, it
+ * falls back to customer so they can still sign in and order.
+ */
+exports.revokePartnerAccess = async (req, res) => {
+  try {
+    const ShopClaimCode = require('../models/ShopClaimCode');
+    const { vendorId } = req.params;
+
+    const user = await User.findById(vendorId);
+    if (!user) return res.status(404).json({ success: false, message: 'Account not found' });
+
+    const shop = await Shop.findOne({ vendorId: user._id });
+    if (shop) {
+      shop.vendorId = null;
+      await shop.save();
+    }
+
+    const codes = await ShopClaimCode.updateMany(
+      { issuedToUserId: user._id, usedAt: null, revokedAt: null },
+      { $set: { revokedAt: new Date() } }
+    );
+
+    const held = new Set(Array.isArray(user.roles) && user.roles.length ? user.roles : [user.role]);
+    held.delete('vendor');
+    // Never strand an account without a role.
+    if (held.size === 0) held.add('customer');
+
+    user.roles = [...held];
+    if (user.role === 'vendor') user.role = held.has('admin') ? 'admin' : 'customer';
+    user.requestedShopName = null;
+    user.vendorAppliedAt = null;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: shop
+        ? user.name + ' no longer has access to ' + shop.name + '.'
+        : user.name + ' no longer has partner access.',
+      data: {
+        unlinkedShop: shop ? shop.name : null,
+        codesRevoked: codes.modifiedCount,
+        remainingRoles: user.roles,
+        accountKept: true,
+      },
+    });
+  } catch (error) {
+    console.error('Revoke partner access error:', error);
+    res.status(500).json({ success: false, message: 'Failed to revoke access' });
   }
 };
