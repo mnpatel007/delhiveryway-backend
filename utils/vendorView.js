@@ -72,4 +72,47 @@ const toVendorOrder = (order) => {
   };
 };
 
-module.exports = { shopFacingValue, shopFacingItems, toVendorOrder, round2 };
+const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+
+/**
+ * The window a named period covers, in real (UTC) time.
+ * Shops think in IST business days, so the boundaries are IST midnights.
+ * `all` returns nulls, meaning no bound at all.
+ */
+const istPeriodRange = (period) => {
+  const nowIST = new Date(Date.now() + IST_OFFSET);
+
+  switch (period) {
+    case 'last-month': {
+      const start = new Date(
+        Date.UTC(nowIST.getUTCFullYear(), nowIST.getUTCMonth() - 1, 1) - IST_OFFSET
+      );
+      const end = new Date(Date.UTC(nowIST.getUTCFullYear(), nowIST.getUTCMonth(), 1) - IST_OFFSET);
+      return { start, end, label: 'Last month' };
+    }
+    case 'last-30':
+      return {
+        start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        end: null,
+        label: 'Last 30 days',
+      };
+    case 'all':
+      return { start: null, end: null, label: 'All time' };
+    case 'this-month':
+    default: {
+      const start = new Date(
+        Date.UTC(nowIST.getUTCFullYear(), nowIST.getUTCMonth(), 1) - IST_OFFSET
+      );
+      return { start, end: null, label: 'This month' };
+    }
+  }
+};
+
+module.exports = {
+  shopFacingValue,
+  shopFacingItems,
+  toVendorOrder,
+  round2,
+  istPeriodRange,
+  IST_OFFSET,
+};

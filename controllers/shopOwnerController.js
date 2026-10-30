@@ -3,7 +3,7 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const mongoose = require('mongoose');
 const ShopClaimCode = require('../models/ShopClaimCode');
-const { toVendorOrder, shopFacingValue, round2 } = require('../utils/vendorView');
+const { toVendorOrder, shopFacingValue, round2, istPeriodRange } = require('../utils/vendorView');
 
 // Helper to get the current shop for the vendor
 const getVendorShop = async (vendorId) => {
@@ -275,35 +275,56 @@ exports.getShopOrders = async (req, res) => {
     const shop = await getVendorShop(req.user._id);
     if (!shop) return res.status(404).json({ success: false, message: 'Shop not found' });
 
-    const { status, from, to, limit } = req.query;
+    const { status, from, to, limit, period } = req.query;
 
     const filter = { shopId: shop._id };
     if (status && status !== 'all') filter.status = status;
 
-    // Dates arrive as YYYY-MM-DD and mean IST days, since that is the
-    // business day the shop keeps.
+    // An explicit from/to wins; otherwise fall back to the same named periods
+    // the overview uses, so the two screens always agree.
+    let label = 'All time';
     if (from || to) {
       filter.createdAt = {};
+      // Dates arrive as YYYY-MM-DD and mean IST days, since that is the
+      // business day the shop keeps.
       if (from) filter.createdAt.$gte = new Date(from + 'T00:00:00+05:30');
       if (to) {
         const end = new Date(to + 'T00:00:00+05:30');
         end.setUTCDate(end.getUTCDate() + 1);
         filter.createdAt.$lt = end;
       }
+      label = 'Custom range';
+    } else if (period) {
+      const range = istPeriodRange(period);
+      label = range.label;
+      if (range.start || range.end) {
+        filter.createdAt = {};
+        if (range.start) filter.createdAt.$gte = range.start;
+        if (range.end) filter.createdAt.$lt = range.end;
+      }
     }
 
-    const cap = Math.min(parseInt(limit, 10) || 200, 500);
+    const cap = Math.min(parseInt(limit, 10) || 500, 1000);
 
-    const orders = await Order.find(filter)
-      .populate('customerId', 'name')
-      .sort({ createdAt: -1 })
-      .limit(cap);
+    // Count before limiting, so the portal can state how many there really are
+    // rather than reporting the size of the page it happened to receive.
+    const [total, orders] = await Promise.all([
+      Order.countDocuments(filter),
+      Order.find(filter).populate('customerId', 'name').sort({ createdAt: -1 }).limit(cap),
+    ]);
 
     // toVendorOrder is an allow-list: the delivery fee, convenience charge
     // and shopper commission are never serialised to a vendor.
     res.json({
       success: true,
-      data: { orders: orders.map(toVendorOrder) },
+      data: {
+        orders: orders.map(toVendorOrder),
+        total,
+        returned: orders.length,
+        truncated: total > orders.length,
+        period: period || null,
+        label,
+      },
     });
   } catch (error) {
     console.error('Get shop orders error:', error);
