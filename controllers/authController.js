@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const { sendMail } = require('../utils/mailer');
 const crypto = require('crypto');
+const axios = require('axios');
 const https = require('https');
 
 // Utility function to sanitize log inputs
@@ -385,76 +386,106 @@ exports.verifyEmail = async (req, res) => {
 // Google login/signup
 exports.googleLogin = async (req, res) => {
   try {
-    const { email, name, googleId, role = 'customer' } = req.body;
+    const { accessToken } = req.body;
 
-    if (!email || !name || !googleId) {
+    // The identity must come from Google, never from the request body. Without
+    // this the endpoint handed out a session for any email anyone cared to
+    // name, and let a caller pick their own role on the way in.
+    if (!accessToken) {
       return res.status(400).json({
         success: false,
-        message: 'Email, name, and Google ID are required',
+        message: 'Google sign-in could not be verified. Please try again.',
       });
     }
 
-    // Check if user exists
+    let profile;
+    try {
+      const { data } = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        timeout: 10000,
+      });
+      profile = data;
+    } catch (err) {
+      console.error('Google token verification failed:', err.response?.status, err.message);
+      return res.status(401).json({
+        success: false,
+        message: 'Google sign-in could not be verified. Please try again.',
+      });
+    }
+
+    const email = String(profile?.email || '')
+      .toLowerCase()
+      .trim();
+    const googleId = profile?.sub;
+    const name = String(profile?.name || '').trim() || email.split('@')[0];
+
+    if (!email || !googleId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Google did not return an email for that account.',
+      });
+    }
+
+    // Google tells us whether it has actually confirmed the address. An
+    // unconfirmed one must not be allowed to claim an existing account.
+    if (profile.email_verified === false) {
+      return res.status(401).json({
+        success: false,
+        message: 'That Google account has an unverified email address.',
+      });
+    }
+
     let user = await User.findOne({ email });
 
     if (user) {
-      // User exists, check role compatibility
-      if (user.role !== role) {
-        return res.status(400).json({
-          success: false,
-          message: `This email is registered as ${user.role}. Please use the correct app.`,
-        });
+      if (user.isActive === false) {
+        return res.status(403).json({ success: false, message: 'This account has been disabled.' });
       }
 
-      // Update last login
+      // Older records have no roles array; fall back to the primary role.
+      if (!Array.isArray(user.roles) || user.roles.length === 0) {
+        user.roles = [user.role || 'customer'];
+      }
+
       user.lastLogin = new Date();
       await user.save();
 
-      const token = generateToken(user);
       return res.json({
         success: true,
         message: 'Login successful',
-        data: {
-          user: user.toJSON(),
-          token,
-        },
+        data: { user: user.toJSON(), token: generateToken(user) },
       });
     }
 
-    // User doesn't exist - create new user
+    // New account. Signing in with Google never grants anything beyond a
+    // customer; partner access arrives only via an admin-issued claim code.
     const randomPassword = crypto.randomBytes(16).toString('hex');
 
     user = new User({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+      name,
+      email,
       password: randomPassword,
-      phone: '0000000000', // Placeholder, user can update later
-      role,
-      isVerified: true, // Google accounts are pre-verified
+      // The schema demands ten digits, so an account that has never given us a
+      // number carries a placeholder until it does.
+      phone: '0000000000',
+      role: 'customer',
+      roles: ['customer'],
+      isVerified: true, // Google has confirmed the address for us
     });
 
     await user.save();
 
-    const token = generateToken(user);
-
     res.status(201).json({
       success: true,
       message: 'Account created successfully',
-      data: {
-        user: user.toJSON(),
-        token,
-      },
+      data: { user: user.toJSON(), token: generateToken(user) },
     });
   } catch (error) {
     console.error('Google login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Google login failed. Please try again.',
-    });
+    res.status(500).json({ success: false, message: 'Google sign-in failed. Please try again.' });
   }
 };
 
-// Forgot password
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
