@@ -12,12 +12,14 @@ const {
 const { protect, restrictTo, optionalAuth } = require('../middleware/authMiddleware');
 const { getClosureStatus } = require('../controllers/globalClosureController');
 const { serveMenuPdf } = require('../controllers/shopMenuFileController');
+const { getPublicOffers } = require('../controllers/shopOfferController');
 
 // Public routes
 router.get('/closure-status', getClosureStatus);
 router.get('/', getAllShops);
 // Declared before /:id so the PDF route is not swallowed by it.
 router.get('/:id/menu-pdf', serveMenuPdf);
+router.get('/:id/offers', getPublicOffers);
 router.get('/:id', optionalAuth, getShopById);
 
 // Vendor routes

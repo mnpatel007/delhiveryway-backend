@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const PersonalShopper = require('../models/PersonalShopper');
 const User = require('../models/User');
 const { calculateOrderPricing } = require('../utils/paymentCalculator');
+const { resolveGifts, recordOfferUse } = require('../utils/shopOffers');
 const { sendOrderBill } = require('../utils/mailer');
 const path = require('path');
 const fs = require('fs');
@@ -158,6 +159,9 @@ exports.placeOrder = async (req, res) => {
       specialInstructions,
       paymentMethod = 'cash',
       confirmDuplicate = false, // Allow bypassing similar order confirmation
+      // The customer's picks for any "choose your free item" offer. Advisory
+      // only: the server decides what is actually given away.
+      offerSelections = [],
     } = req.body;
 
     // Validate required fields
@@ -196,10 +200,14 @@ exports.placeOrder = async (req, res) => {
 
     if (recentOrder) {
       // Check if items are similar (same items with similar quantities)
-      const existingItems = recentOrder.items.map((item) => ({
-        name: item.name.toLowerCase().trim(),
-        quantity: item.quantity,
-      }));
+      // Free gift lines were added by the shop's offers, not chosen by the
+      // customer, so they must not take part in the duplicate comparison.
+      const existingItems = recentOrder.items
+        .filter((item) => !item.isGift)
+        .map((item) => ({
+          name: item.name.toLowerCase().trim(),
+          quantity: item.quantity,
+        }));
 
       const newItems = items.map((item) => ({
         name: item.name.toLowerCase().trim(),
@@ -379,6 +387,15 @@ exports.placeOrder = async (req, res) => {
       });
     }
 
+    // Free items from the shop's own offers. Worked out from the subtotal the
+    // server just calculated, never from anything the client claims, and
+    // priced at zero so the subtotal, taxes and commission above stand.
+    const { giftItems, appliedOffers } = await resolveGifts(
+      shopId,
+      pricing.subtotal,
+      offerSelections
+    );
+
     // Generate unique order number
     const orderNumber = `ORD${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
@@ -387,7 +404,8 @@ exports.placeOrder = async (req, res) => {
       orderNumber,
       customerId: req.user._id,
       shopId,
-      items: validatedItems,
+      items: [...validatedItems, ...giftItems],
+      appliedOffers,
       orderValue: {
         subtotal: pricing.subtotal,
         deliveryFee: pricing.deliveryFee,
@@ -424,6 +442,7 @@ exports.placeOrder = async (req, res) => {
     });
 
     await order.save();
+    await recordOfferUse(appliedOffers);
 
     // Populate order for response
     await order.populate([
@@ -463,6 +482,7 @@ exports.placeOrder = async (req, res) => {
           total: order.orderValue.total,
           estimatedDeliveryTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
           shop: order.shopId,
+          freeItems: appliedOffers,
         },
       },
     });

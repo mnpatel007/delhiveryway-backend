@@ -26,6 +26,12 @@ const {
   uploadMenuPdf,
   deleteMenuPdf,
 } = require('../controllers/shopMenuFileController');
+const {
+  listMyOffers,
+  createOffer,
+  updateOffer,
+  deleteOffer,
+} = require('../controllers/shopOfferController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 // Public routes
@@ -61,6 +67,12 @@ router.delete('/products/:id', removeProduct);
 router.get('/menu-pdf', getMenuPdfInfo);
 router.post('/menu-pdf', uploadMiddleware, uploadMenuPdf);
 router.delete('/menu-pdf', deleteMenuPdf);
+
+// Free-gift offers the shop runs on its own items.
+router.get('/offers', listMyOffers);
+router.post('/offers', createOffer);
+router.patch('/offers/:id', updateOffer);
+router.delete('/offers/:id', deleteOffer);
 
 // Order management routes
 router.get('/orders', getShopOrders);

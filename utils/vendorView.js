@@ -46,6 +46,9 @@ const shopFacingItems = (order) =>
       quantity: Number(quantity) || 0,
       lineTotal: round2(price * (Number(quantity) || 0)),
       unavailable: item.revisedQuantity === 0,
+      // A free item one of the shop's own offers added, so the shop can tell it
+      // apart from an item that is priced at zero by mistake.
+      isGift: Boolean(item.isGift),
     };
   });
 

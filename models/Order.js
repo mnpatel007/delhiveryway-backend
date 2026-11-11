@@ -34,6 +34,17 @@ const orderItemSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  // A free item the shop's own offer added. Priced at zero, so it never
+  // touches the subtotal, taxes or commission, but it is a real line the
+  // shop packs and the shopper picks up.
+  isGift: {
+    type: Boolean,
+    default: false,
+  },
+  giftOfferId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ShopOffer',
+  },
 });
 
 const orderSchema = new mongoose.Schema(
@@ -66,6 +77,18 @@ const orderSchema = new mongoose.Schema(
         message: 'Order must have at least one item',
       },
     },
+    // A record of which of the shop's offers fired on this order, kept so the
+    // order can still be explained after the shop edits or deletes the offer.
+    appliedOffers: [
+      {
+        offerId: { type: mongoose.Schema.Types.ObjectId, ref: 'ShopOffer' },
+        title: String,
+        minSubtotal: Number,
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+        productName: String,
+        quantity: Number,
+      },
+    ],
     orderValue: {
       subtotal: {
         type: Number,
