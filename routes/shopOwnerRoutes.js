@@ -20,6 +20,12 @@ const {
   updateProduct,
   removeProduct,
 } = require('../controllers/vendorProductController');
+const {
+  uploadMiddleware,
+  getMenuPdfInfo,
+  uploadMenuPdf,
+  deleteMenuPdf,
+} = require('../controllers/shopMenuFileController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 // Public routes
@@ -50,6 +56,11 @@ router.get('/products', listProducts);
 router.post('/products', createProduct);
 router.patch('/products/:id', updateProduct);
 router.delete('/products/:id', removeProduct);
+
+// The shop's menu PDF. Customers open it through the public shop route.
+router.get('/menu-pdf', getMenuPdfInfo);
+router.post('/menu-pdf', uploadMiddleware, uploadMenuPdf);
+router.delete('/menu-pdf', deleteMenuPdf);
 
 // Order management routes
 router.get('/orders', getShopOrders);
